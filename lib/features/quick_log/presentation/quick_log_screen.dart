@@ -17,7 +17,10 @@ class QuickLogScreen extends StatefulWidget {
 class _QuickLogScreenState extends State<QuickLogScreen> {
   bool _isIncome = true;
   String _amount = '0';
+  String _description = '';
   String? _selectedCategory;
+  bool _isRecommendingCategory = false;
+  double? _iaConfidence;
 
   static const _incomeCategories = [
     _LogCategory('Salario', Icons.work),
@@ -63,6 +66,45 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
     });
   }
 
+  void _suggestCategoryWithIa() {
+    if (_description.isEmpty) return;
+    
+    setState(() {
+      _isRecommendingCategory = true;
+      _selectedCategory = null;
+      _iaConfidence = null;
+    });
+
+    // Mock API Call to Claude
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      
+      setState(() {
+        _isRecommendingCategory = false;
+        
+        // Simple mock matching based on words
+        final lowerDesc = _description.toLowerCase();
+        if (lowerDesc.contains('supermercado') || lowerDesc.contains('comida') || lowerDesc.contains('restaurante')) {
+          _selectedCategory = 'Alimentación';
+          _iaConfidence = 0.95;
+        } else if (lowerDesc.contains('uber') || lowerDesc.contains('gasolina') || lowerDesc.contains('transporte')) {
+          _selectedCategory = 'Transporte';
+          _iaConfidence = 0.92;
+        } else if (lowerDesc.contains('netflix') || lowerDesc.contains('cine') || lowerDesc.contains('suscripción')) {
+          _selectedCategory = 'Entretenimiento';
+          _iaConfidence = 0.98;
+        } else if (lowerDesc.contains('pago') || lowerDesc.contains('salario') || lowerDesc.contains('sueldo')) {
+          _selectedCategory = 'Salario';
+          _iaConfidence = 0.90;
+        } else {
+          _selectedCategory = 'Otro';
+          _iaConfidence = 0.65;
+        }
+      });
+      HapticFeedback.lightImpact();
+    });
+  }
+
   void _onSave() {
     HapticFeedback.mediumImpact();
     final value = double.tryParse(_amount) ?? 0;
@@ -80,7 +122,9 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
       );
       setState(() {
         _amount = '0';
+        _description = '';
         _selectedCategory = null;
+        _iaConfidence = null;
       });
     }
   }
@@ -202,6 +246,67 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
               ),
             ).animate().fadeIn(duration: 300.ms, delay: 100.ms),
 
+            // ── Description Input ──
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.cardBorder),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        onChanged: (val) => _description = val,
+                        style: AppTextStyles.bodyMedium,
+                        decoration: InputDecoration(
+                          hintText: 'Descripción (ej. "Uber al trabajo")',
+                          hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textTertiary),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                    if (_description.isNotEmpty)
+                      GestureDetector(
+                        onTap: _isRecommendingCategory ? null : _suggestCategoryWithIa,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+                          ),
+                          child: _isRecommendingCategory
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.accent,
+                                  ),
+                                )
+                              : Row(
+                                  children: [
+                                    const Icon(Icons.smart_toy, size: 16, color: AppColors.accent),
+                                    const SizedBox(width: 4),
+                                    Text('Sugerir con IA', style: AppTextStyles.labelSmall.copyWith(color: AppColors.accent)),
+                                  ],
+                                ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ).animate().fadeIn(duration: 300.ms, delay: 150.ms),
+            
+            const SizedBox(height: 24),
+
             // ── Category Selector ──
             SizedBox(
               height: 80,
@@ -255,6 +360,24 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
+                          if (isSelected && _iaConfidence != null) ...[
+                            const SizedBox(height: 2),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceLight.withValues(alpha: 0.8),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '${(_iaConfidence! * 100).toInt()}% IA',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  color: _iaConfidence! > 0.8 ? AppColors.positive : AppColors.accent,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),

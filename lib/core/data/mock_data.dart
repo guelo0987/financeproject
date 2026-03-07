@@ -8,7 +8,7 @@ class MockData {
 
   // ── Assets ─────────────────────────────────────
 
-  static const List<Asset> assets = [
+  static final List<Asset> assets = [
     // Cash
     Asset(
       id: 'cash-1',
@@ -82,6 +82,8 @@ class MockData {
       previousValue: 17800,
       currency: 'USD',
       sparklineData: [15000, 16200, 17000, 16500, 17800, 18500],
+      tickerSymbol: 'BTC',
+      lastSynced: DateTime.now().subtract(const Duration(minutes: 5)),
     ),
     Asset(
       id: 'crypto-2',
@@ -92,6 +94,8 @@ class MockData {
       previousValue: 4350,
       currency: 'USD',
       sparklineData: [3800, 4100, 4500, 4350, 4200, 4200],
+      tickerSymbol: 'ETH',
+      lastSynced: DateTime.now().subtract(const Duration(minutes: 12)),
     ),
     // Real Estate
     Asset(

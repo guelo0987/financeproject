@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/widgets/glass_card.dart';
+import '../../../shared/widgets/menudo_text_field.dart';
+import '../../../shared/widgets/menudo_button.dart';
 import '../auth_state.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -18,6 +19,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -27,14 +29,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _handleLogin() {
-    // In a real app we'd validate here
-    ref.read(authProvider.notifier).state = true;
-    context.go('/');
+    if (_emailController.text.isNotEmpty && _passwordController.text.isNotEmpty) {
+      setState(() => _isLoading = true);
+      
+      // Simulate API call
+      Future.delayed(const Duration(seconds: 2), () {
+        if (!mounted) return;
+        ref.read(authProvider.notifier).login('usr_mock_123', 'mock.jwt.token');
+        setState(() => _isLoading = false);
+        context.go('/');
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: MenudoColors.appBg,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -48,20 +59,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Center(
                   child: Hero(
                     tag: 'app_logo',
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: const BoxDecoration(
-                        color: AppColors.surface,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Image.network(
-                        'https://i.imgur.com/kS5x8XX.png',
-                        width: 80,
-                        height: 80,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(Icons.account_balance,
-                              size: 80, color: AppColors.accent);
-                        },
+                    child: SizedBox(
+                      width: 72,
+                      height: 72,
+                      child: Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: MenudoColors.cardBg,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          Positioned(
+                            left: 20,
+                            top: 10,
+                            bottom: 10,
+                            right: -10,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: MenudoColors.primary,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -70,8 +91,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 32),
                 
                 Text(
-                  'Bienvenido',
-                  style: AppTextStyles.displaySmall,
+                  'Bienvenido a Menudo',
+                  style: MenudoTextStyles.h1,
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 300.ms),
                 
@@ -79,80 +100,59 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 
                 Text(
                   'Inicia sesión para gestionar tu patrimonio',
-                  style: AppTextStyles.bodyMedium,
+                  style: MenudoTextStyles.bodyMedium.copyWith(color: MenudoColors.textMuted),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 400.ms),
                 
                 const SizedBox(height: 40),
                 
-                GlassCard(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text('Correo electrónico', style: AppTextStyles.labelSmall),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          hintText: 'tu@correo.com',
-                          prefixIcon: Icon(Icons.email_outlined),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    MenudoTextField(
+                      label: 'Correo electrónico',
+                      hint: 'tu@correo.com',
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      prefixIcon: const Icon(Icons.email_outlined),
+                    ),
+                    const SizedBox(height: 16),
+                    MenudoTextField(
+                      label: 'Contraseña',
+                      hint: '••••••••',
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      trailing: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          color: MenudoColors.textSecondary,
                         ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
                       ),
-                      const SizedBox(height: 20),
-                      Text('Contraseña', style: AppTextStyles.labelSmall),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        decoration: InputDecoration(
-                          hintText: '••••••••',
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                          ),
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {},
+                        style: TextButton.styleFrom(
+                          foregroundColor: MenudoColors.primary,
                         ),
+                        child: const Text('¿Olvidaste tu contraseña?'),
                       ),
-                      const SizedBox(height: 16),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {},
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.accentBright,
-                          ),
-                          child: const Text('¿Olvidaste tu contraseña?'),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: _handleLogin,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accent,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Iniciar Sesión',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 24),
+                    MenudoPrimaryButton(
+                      label: _isLoading ? 'Cargando...' : 'Iniciar Sesión',
+                      onTap: _isLoading ? null : _handleLogin,
+                      isDisabled: _isLoading,
+                    ),
+                  ],
                 ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
                 
                 const SizedBox(height: 30),
@@ -160,16 +160,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('¿No tienes cuenta?', style: AppTextStyles.bodyMedium),
+                    Text('¿No tienes cuenta?', style: MenudoTextStyles.bodyMedium),
                     TextButton(
                       onPressed: () => context.push('/register'),
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.accentBright,
+                        foregroundColor: MenudoColors.primary,
                       ),
-                      child: const Text(
-                        'Regístrate',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                      child: const Text('Regístrate', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ).animate().fadeIn(delay: 600.ms),

@@ -1,375 +1,170 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/constants/app_constants.dart';
-import '../../../shared/widgets/glass_card.dart';
+import '../../../shared/widgets/menudo_card.dart';
+import '../../../shared/widgets/menudo_chip.dart';
+import '../../../shared/widgets/menudo_button.dart';
+import '../../auth/auth_state.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
-  String _baseCurrency = 'DOP';
-  bool _biometricEnabled = true;
-  bool _notificationsEnabled = true;
-  int _themeIndex = 2; // 0=Light, 1=Dark, 2=Auto
-
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Configuración'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Profile Header ──
-            GlassCard(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.accent, AppColors.accentBright],
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Center(
-                      child: Text('MC', style: TextStyle(
-                        color: AppColors.background,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                      )),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Miguel Cruz', style: AppTextStyles.headlineLarge),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(Icons.flag, size: 14, color: AppColors.accent),
-                            const SizedBox(width: 4),
-                            Expanded(
+      backgroundColor: MenudoColors.appBg,
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                child: Column(
+                  children: [
+                    Text('Perfil', style: MenudoTextStyles.h1),
+                    const SizedBox(height: 32),
+                    
+                    // Avatar & Info
+                    Center(
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: MenudoColors.primaryLight.withValues(alpha: 0.5),
+                              border: Border.all(color: MenudoColors.primaryLight, width: 2),
+                            ),
+                            child: const Center(
                               child: Text(
-                                'Alcanzar \$1M para 2030',
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  color: AppColors.accent,
+                                'MC',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w800,
+                                  color: MenudoColors.primary,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ],
+                          ).animate().scale(duration: 400.ms),
+                          const SizedBox(height: 16),
+                          Text('Miguel Cruz', style: MenudoTextStyles.h2).animate().fadeIn(delay: 100.ms),
+                          const SizedBox(height: 8),
+                          const MenudoChip('Plan Premium', variant: MenudoChipVariant.primary).animate().fadeIn(delay: 200.ms),
+                        ],
+                      ),
                     ),
-                  ),
-                  const Icon(Icons.edit_outlined,
-                      color: AppColors.textTertiary, size: 20),
-                ],
+                  ],
+                ),
               ),
-            ).animate().fadeIn(duration: 400.ms),
+            ),
 
-            const SizedBox(height: 24),
+            // Sections
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionHeader('Cuenta'),
+                    MenudoCard(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          _buildListTile(Icons.person_outline, 'Tus datos', () {}),
+                          const Divider(height: 1, color: MenudoColors.divider),
+                          _buildListTile(Icons.security, 'Seguridad', () {}),
+                          const Divider(height: 1, color: MenudoColors.divider),
+                          _buildListTile(Icons.devices, 'Dispositivos', () {}),
+                        ],
+                      ),
+                    ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.05),
 
-            // ── Currency ──
-            Text('MONEDA', style: AppTextStyles.sectionTitle),
-            const SizedBox(height: 12),
-            GlassCard(
-              padding: const EdgeInsets.all(4),
-              child: Row(
-                children: [
-                  _CurrencyOption(
-                    label: 'DOP (RD\$)',
-                    isSelected: _baseCurrency == 'DOP',
-                    onTap: () => setState(() => _baseCurrency = 'DOP'),
-                  ),
-                  _CurrencyOption(
-                    label: 'USD (\$)',
-                    isSelected: _baseCurrency == 'USD',
-                    onTap: () => setState(() => _baseCurrency = 'USD'),
-                  ),
-                ],
+                    const SizedBox(height: 24),
+
+                    _buildSectionHeader('Espacios'),
+                    MenudoCard(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          _buildListTile(Icons.group, 'Gestionar Espacios Compartidos', () {
+                            context.push('/spaces-manager');
+                          }),
+                        ],
+                      ),
+                    ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.05),
+
+                    const SizedBox(height: 24),
+
+                    _buildSectionHeader('Configuración'),
+                    MenudoCard(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          _buildListTile(Icons.notifications_none, 'Notificaciones', () {}),
+                          const Divider(height: 1, color: MenudoColors.divider),
+                          _buildListTile(Icons.dark_mode_outlined, 'Tema (Claro/Oscuro)', () {}),
+                          const Divider(height: 1, color: MenudoColors.divider),
+                          _buildListTile(Icons.help_outline, 'Centro de Ayuda', () {}),
+                        ],
+                      ),
+                    ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.05),
+
+                    const SizedBox(height: 48),
+
+                    MenudoSecondaryButton(
+                      label: 'Cerrar sesión',
+                      onTap: () {
+                        // Logout logic
+                        ref.read(authProvider.notifier).logout();
+                        context.go('/login');
+                      },
+                    ).animate().fadeIn(delay: 600.ms),
+
+                    const SizedBox(height: 120), // Bottom nav padding
+                  ],
+                ),
               ),
-            ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
-
-            const SizedBox(height: 24),
-
-            // ── Preferences ──
-            Text('PREFERENCIAS', style: AppTextStyles.sectionTitle),
-            const SizedBox(height: 12),
-            GlassCard(
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  _SettingsToggle(
-                    icon: Icons.notifications_outlined,
-                    label: 'Notificaciones',
-                    subtitle: 'Alertas de variación y recordatorios',
-                    value: _notificationsEnabled,
-                    onChanged: (v) => setState(() => _notificationsEnabled = v),
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  _SettingsToggle(
-                    icon: Icons.fingerprint,
-                    label: 'Face ID / Touch ID',
-                    subtitle: 'Acceso biométrico',
-                    value: _biometricEnabled,
-                    onChanged: (v) => setState(() => _biometricEnabled = v),
-                  ),
-                ],
-              ),
-            ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
-
-            const SizedBox(height: 24),
-
-            // ── Theme ──
-            Text('TEMA', style: AppTextStyles.sectionTitle),
-            const SizedBox(height: 12),
-            GlassCard(
-              padding: const EdgeInsets.all(4),
-              child: Row(
-                children: [
-                  _ThemeOption(
-                    icon: Icons.light_mode,
-                    label: 'Claro',
-                    isSelected: _themeIndex == 0,
-                    onTap: () => setState(() => _themeIndex = 0),
-                  ),
-                  _ThemeOption(
-                    icon: Icons.dark_mode,
-                    label: 'Oscuro',
-                    isSelected: _themeIndex == 1,
-                    onTap: () => setState(() => _themeIndex = 1),
-                  ),
-                  _ThemeOption(
-                    icon: Icons.brightness_auto,
-                    label: 'Auto',
-                    isSelected: _themeIndex == 2,
-                    onTap: () => setState(() => _themeIndex = 2),
-                  ),
-                ],
-              ),
-            ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
-
-            const SizedBox(height: 24),
-
-            // ── About ──
-            Text('ACERCA DE', style: AppTextStyles.sectionTitle),
-            const SizedBox(height: 12),
-            GlassCard(
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  _SettingsItem(
-                    icon: Icons.info_outline,
-                    label: 'Versión',
-                    trailing: Text('1.0.0', style: AppTextStyles.bodySmall),
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  _SettingsItem(
-                    icon: Icons.description_outlined,
-                    label: 'Términos y condiciones',
-                    trailing: const Icon(Icons.chevron_right,
-                        color: AppColors.textTertiary, size: 20),
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  _SettingsItem(
-                    icon: Icons.shield_outlined,
-                    label: 'Política de privacidad',
-                    trailing: const Icon(Icons.chevron_right,
-                        color: AppColors.textTertiary, size: 20),
-                  ),
-                ],
-              ),
-            ).animate().fadeIn(duration: 400.ms, delay: 400.ms),
-
-            const SizedBox(height: 40),
+            )
           ],
         ),
       ),
     );
   }
-}
 
-// ── Currency Option ─────────────────────────────
-
-class _CurrencyOption extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _CurrencyOption({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: AppConstants.animFast,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.accentSurface : Colors.transparent,
-            borderRadius: BorderRadius.circular(14),
-            border: isSelected
-                ? Border.all(color: AppColors.accent.withValues(alpha: 0.3))
-                : null,
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: AppTextStyles.labelLarge.copyWith(
-                color: isSelected ? AppColors.accent : AppColors.textTertiary,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Theme Option ────────────────────────────────
-
-class _ThemeOption extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ThemeOption({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: AppConstants.animFast,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.accentSurface : Colors.transparent,
-            borderRadius: BorderRadius.circular(14),
-            border: isSelected
-                ? Border.all(color: AppColors.accent.withValues(alpha: 0.3))
-                : null,
-          ),
-          child: Column(
-            children: [
-              Icon(icon, size: 20,
-                  color: isSelected ? AppColors.accent : AppColors.textTertiary),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: isSelected ? AppColors.accent : AppColors.textTertiary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Settings Toggle ─────────────────────────────
-
-class _SettingsToggle extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  const _SettingsToggle({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.textSecondary, size: 22),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: AppTextStyles.labelLarge),
-                const SizedBox(height: 2),
-                Text(subtitle, style: AppTextStyles.bodySmall),
-              ],
-            ),
-          ),
-          Switch.adaptive(
-            value: value,
-            onChanged: onChanged,
-            activeTrackColor: AppColors.accent,
-          ),
-        ],
+      padding: const EdgeInsets.only(bottom: 12, left: 4),
+      child: Text(
+        title.toUpperCase(),
+        style: MenudoTextStyles.labelCaps.copyWith(color: MenudoColors.textMuted),
       ),
     );
   }
-}
 
-// ── Settings Item ───────────────────────────────
-
-class _SettingsItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Widget trailing;
-
-  const _SettingsItem({
-    required this.icon,
-    required this.label,
-    required this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.textSecondary, size: 22),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(label, style: AppTextStyles.labelLarge),
-          ),
-          trailing,
-        ],
+  Widget _buildListTile(IconData icon, String title, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Row(
+          children: [
+            Icon(icon, size: 22, color: MenudoColors.textSecondary),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(title, style: MenudoTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w500)),
+            ),
+            const Icon(Icons.chevron_right, color: MenudoColors.textMuted, size: 20),
+          ],
+        ),
       ),
     );
   }

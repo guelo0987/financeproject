@@ -15,22 +15,20 @@ void main() async {
       statusBarBrightness: Brightness.dark,
     ),
   );
-  runApp(const ProviderScope(child: PatrimoniumApp()));
+  runApp(const ProviderScope(child: MenudoApp()));
 }
 
-class PatrimoniumApp extends ConsumerWidget {
-  const PatrimoniumApp({super.key});
+class MenudoApp extends ConsumerWidget {
+  const MenudoApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouter);
 
     return MaterialApp.router(
-      title: 'Patrimonium',
+      title: 'Menudo',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.dark,
+      theme: AppTheme.light,
       routerConfig: router,
     );
   }

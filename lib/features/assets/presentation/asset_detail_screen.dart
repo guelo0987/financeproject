@@ -51,7 +51,26 @@ class AssetDetailScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(asset.name, style: AppTextStyles.headlineLarge),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(asset.name, style: AppTextStyles.headlineLarge),
+                                ),
+                                if (asset.tickerSymbol != null)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surfaceLight,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: AppColors.cardBorder),
+                                    ),
+                                    child: Text(
+                                      asset.tickerSymbol!,
+                                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.accent),
+                                    ),
+                                  ),
+                              ],
+                            ),
                             Text(asset.institution, style: AppTextStyles.bodyMedium),
                           ],
                         ),
@@ -66,7 +85,23 @@ class AssetDetailScreen extends StatelessWidget {
                     style: AppTextStyles.displayMedium,
                   ),
                   const SizedBox(height: 8),
-                  VariationBadge(percentage: asset.variationPercent),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      VariationBadge(percentage: asset.variationPercent),
+                      if (asset.lastSynced != null)
+                        Row(
+                          children: [
+                            const Icon(Icons.sync, color: AppColors.textTertiary, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Sincronizado hace ${DateTime.now().difference(asset.lastSynced!).inMinutes} min',
+                              style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ).animate().fadeIn(duration: 400.ms),

@@ -9,33 +9,48 @@ import '../features/insights/presentation/insights_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/assets/presentation/asset_detail_screen.dart';
 import '../features/history/presentation/transaction_history_screen.dart';
+import '../features/ia/presentation/ai_advisor_screen.dart';
+import '../features/spaces/presentation/spaces_manager_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
+import '../features/auth/presentation/splash_screen.dart';
+import '../features/auth/presentation/onboarding_screen.dart';
 import '../features/auth/auth_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final appRouter = Provider<GoRouter>((ref) {
-  final isAuth = ref.watch(authProvider);
+  final authState = ref.watch(authProvider);
+  final isAuth = authState.isAuthenticated;
 
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/splash',
     redirect: (context, state) {
-      final isGoingToAuth = state.matchedLocation == '/login' || 
-                            state.matchedLocation == '/register';
+      final isGoingToAuthOrOnboarding = state.matchedLocation == '/login' || 
+                            state.matchedLocation == '/register' ||
+                            state.matchedLocation == '/splash' ||
+                            state.matchedLocation == '/onboarding';
 
-      // If not logged in and not going to auth pages, redirect to login
-      if (!isAuth && !isGoingToAuth) {
-        return '/login';
+      // If not logged in and not going to auth/onboarding pages, redirect to login
+      if (!isAuth && !isGoingToAuthOrOnboarding) {
+        return '/splash';
       }
 
       // If logged in and going to auth pages, redirect to home
-      if (isAuth && isGoingToAuth) {
+      if (isAuth && isGoingToAuthOrOnboarding) {
         return '/';
       }
 
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
@@ -69,15 +84,9 @@ final appRouter = Provider<GoRouter>((ref) {
           ],
         ),
         GoRoute(
-          path: '/history',
+          path: '/settings',
           pageBuilder: (context, state) => const NoTransitionPage(
-            child: TransactionHistoryScreen(),
-          ),
-        ),
-        GoRoute(
-          path: '/invest',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: InvestScreen(),
+            child: SettingsScreen(),
           ),
         ),
         GoRoute(
@@ -89,12 +98,24 @@ final appRouter = Provider<GoRouter>((ref) {
       ],
     ),
     GoRoute(
-      path: '/settings',
-      builder: (context, state) => const SettingsScreen(),
+      path: '/history',
+      builder: (context, state) => const TransactionHistoryScreen(),
+    ),
+    GoRoute(
+      path: '/invest',
+      builder: (context, state) => const InvestScreen(),
     ),
     GoRoute(
       path: '/quick-log',
       builder: (context, state) => const QuickLogScreen(),
+    ),
+    GoRoute(
+      path: '/ai-advisor',
+      builder: (context, state) => const AiAdvisorScreen(),
+    ),
+    GoRoute(
+      path: '/spaces-manager',
+      builder: (context, state) => const SpacesManagerScreen(),
     ),
   ],
 );

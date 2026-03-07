@@ -29,6 +29,8 @@ class Asset {
   final double previousValue;
   final String currency; // DOP or USD
   final List<double> sparklineData;
+  final String? tickerSymbol;
+  final DateTime? lastSynced;
 
   const Asset({
     required this.id,
@@ -39,6 +41,8 @@ class Asset {
     required this.previousValue,
     this.currency = 'DOP',
     this.sparklineData = const [],
+    this.tickerSymbol,
+    this.lastSynced,
   });
 
   double get variation => currentValue - previousValue;
