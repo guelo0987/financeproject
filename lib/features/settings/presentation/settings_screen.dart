@@ -98,6 +98,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           _buildListTile(Icons.group, 'Gestionar Espacios Compartidos', () {
                             context.push('/spaces-manager');
                           }),
+                          const Divider(height: 1, color: MenudoColors.divider),
+                          _buildListTile(Icons.repeat, 'Transacciones Automáticas', () {
+                            context.push('/recurring');
+                          }),
+                          const Divider(height: 1, color: MenudoColors.divider),
+                          _buildListTile(Icons.grid_view, 'Herramientas de categorías', () {
+                            context.push('/tools');
+                          }),
                         ],
                       ),
                     ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.05),

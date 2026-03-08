@@ -2,12 +2,11 @@
 import 'package:go_router/go_router.dart';
 import 'main_shell.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
-import '../features/assets/presentation/assets_screen.dart';
+import '../features/calendar/presentation/calendar_screen.dart';
+import '../features/budgets/presentation/budgets_screen.dart';
+import '../features/wallet/presentation/wallet_screen.dart';
 import '../features/quick_log/presentation/quick_log_screen.dart';
 import '../features/invest/presentation/invest_screen.dart';
-import '../features/insights/presentation/insights_screen.dart';
-import '../features/settings/presentation/settings_screen.dart';
-import '../features/assets/presentation/asset_detail_screen.dart';
 import '../features/history/presentation/transaction_history_screen.dart';
 import '../features/ia/presentation/ai_advisor_screen.dart';
 import '../features/spaces/presentation/spaces_manager_screen.dart';
@@ -16,6 +15,10 @@ import '../features/auth/presentation/register_screen.dart';
 import '../features/auth/presentation/splash_screen.dart';
 import '../features/auth/presentation/onboarding_screen.dart';
 import '../features/auth/auth_state.dart';
+import '../features/settings/presentation/settings_screen.dart';
+import '../features/categories/presentation/categories_screen.dart';
+import '../features/tools/presentation/tools_screen.dart';
+import '../features/recurring/presentation/recurring_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final appRouter = Provider<GoRouter>((ref) {
@@ -69,30 +72,21 @@ final appRouter = Provider<GoRouter>((ref) {
           ),
         ),
         GoRoute(
-          path: '/assets',
+          path: '/calendar',
           pageBuilder: (context, state) => const NoTransitionPage(
-            child: AssetsScreen(),
-          ),
-          routes: [
-            GoRoute(
-              path: 'detail/:id',
-              builder: (context, state) {
-                final id = state.pathParameters['id'] ?? '';
-                return AssetDetailScreen(assetId: id);
-              },
-            ),
-          ],
-        ),
-        GoRoute(
-          path: '/settings',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: SettingsScreen(),
+            child: CalendarScreen(),
           ),
         ),
         GoRoute(
-          path: '/insights',
+          path: '/budgets',
           pageBuilder: (context, state) => const NoTransitionPage(
-            child: InsightsScreen(),
+            child: BudgetsScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/wallet',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: WalletScreen(),
           ),
         ),
       ],
@@ -116,6 +110,22 @@ final appRouter = Provider<GoRouter>((ref) {
     GoRoute(
       path: '/spaces-manager',
       builder: (context, state) => const SpacesManagerScreen(),
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/categories',
+      builder: (context, state) => const CategoriesScreen(),
+    ),
+    GoRoute(
+      path: '/tools',
+      builder: (context, state) => const ToolsScreen(),
+    ),
+    GoRoute(
+      path: '/recurring',
+      builder: (context, state) => const RecurringScreen(),
     ),
   ],
 );

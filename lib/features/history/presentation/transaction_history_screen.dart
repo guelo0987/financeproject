@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/data/mock_data.dart';
 import '../../../core/data/models.dart';
+import '../../transactions/presentation/transaction_detail_sheet.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -14,316 +14,263 @@ class TransactionHistoryScreen extends StatefulWidget {
 }
 
 class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
-  String _selectedFilter = 'Todos';
-  
-  static const _filters = ['Todos', 'Entradas', 'Salidas'];
+  String _filter = "Todos"; // "Todos", "Gastos", "Ingresos", "Transferencias"
+  final _filters = ["Todos", "Gastos", "Ingresos", "Transferencias"];
 
-  List<Transaction> get _filteredTransactions {
-    final all = MockData.recentTransactions.toList()
-      ..sort((a, b) => b.date.compareTo(a.date)); // Sort newest first
-      
-    if (_selectedFilter == 'Todos') return all;
-    final type = _selectedFilter == 'Entradas' 
-        ? TransactionType.income 
-        : TransactionType.expense;
-        
-    return all.where((t) => t.type == type).toList();
+  String fmt(double val) => "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
+
+  List<MenudoTransaction> get _filtered {
+    switch (_filter) {
+      case 'Gastos': return mockTxns.where((t) => t.tipo == 'gasto').toList();
+      case 'Ingresos': return mockTxns.where((t) => t.tipo == 'ingreso').toList();
+      case 'Transferencias': return mockTxns.where((t) => t.tipo == 'transferencia').toList();
+      default: return mockTxns;
+    }
   }
 
-  // Grupos por fecha
-  Map<String, List<Transaction>> get _groupedTransactions {
-    final Map<String, List<Transaction>> groups = {};
-    final formatter = DateFormat('EEEE d MMM', 'es');
-
-    for (final t in _filteredTransactions) {
-      String dateStr = formatter.format(t.date);
-      // Simplify logic for demo, capitalizing first letter
-      dateStr = dateStr[0].toUpperCase() + dateStr.substring(1);
-      
-      if (!groups.containsKey(dateStr)) {
-        groups[dateStr] = [];
-      }
-      groups[dateStr]!.add(t);
+  Map<String, List<MenudoTransaction>> get _grouped {
+    final months = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    final Map<String, List<MenudoTransaction>> groups = {};
+    for (final t in _filtered) {
+      final parts = t.dateString.split('-');
+      final day = int.parse(parts[2]);
+      final monthLabel = months[int.tryParse(parts[1]) ?? 0];
+      final key = "$day $monthLabel ${parts[0]}";
+      groups.putIfAbsent(key, () => []).add(t);
     }
     return groups;
   }
 
-  double get _totalIncome => MockData.recentTransactions
-      .where((t) => t.type == TransactionType.income)
-      .fold(0, (s, t) => s + t.amount);
-      
-  double get _totalExpense => MockData.recentTransactions
-      .where((t) => t.type == TransactionType.expense)
-      .fold(0, (s, t) => s + t.amount);
+  double get _totalIngresos => mockTxns.where((t) => t.tipo == 'ingreso').fold(0.0, (s, t) => s + t.monto.abs());
+  double get _totalGastos => mockTxns.where((t) => t.tipo == 'gasto').fold(0.0, (s, t) => s + t.monto.abs());
 
   @override
   Widget build(BuildContext context) {
-    final groupedTransactions = _groupedTransactions;
-    final formatter = NumberFormat('#,##0.00', 'en_US');
+    final activeBudget = mockBudgets.firstWhere((b) => b.activo, orElse: () => mockBudgets.first);
+    final grouped = _grouped;
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Historial', style: AppTextStyles.displaySmall),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Revisa tus movimientos financieros',
-                    style: AppTextStyles.bodyMedium,
-                  ),
-                ],
-              ).animate().fadeIn(duration: 400.ms),
-            ),
-            
-            // Filters
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: SizedBox(
-                height: 38,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _filters.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final filter = _filters[index];
-                    final isSelected = _selectedFilter == filter;
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedFilter = filter),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.accentSurface
-                              : AppColors.surfaceLight,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isSelected ? AppColors.accent : AppColors.cardBorder,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            filter,
-                            style: AppTextStyles.labelMedium.copyWith(
-                              color: isSelected ? AppColors.accent : AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Summary Card
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                   Expanded(
-                    child: _SummaryBox(
-                      title: 'Entradas',
-                      amount: formatter.format(_totalIncome),
-                      color: AppColors.positive,
-                      icon: Icons.arrow_downward,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _SummaryBox(
-                      title: 'Salidas',
-                      amount: formatter.format(_totalExpense),
-                      color: AppColors.negative,
-                      icon: Icons.arrow_upward,
-                    ),
-                  ),
-                ],
-              ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
-            ),
-
-            const SizedBox(height: 16),
-
-            // List
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                itemCount: groupedTransactions.length,
-                itemBuilder: (context, index) {
-                  final date = groupedTransactions.keys.elementAt(index);
-                  final transactions = groupedTransactions[date]!;
-                  
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          date,
-                          style: AppTextStyles.labelMedium.copyWith(
-                            color: AppColors.textTertiary,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.cardBorder),
-                          ),
-                          child: Column(
-                            children: transactions.map((t) => _TransactionItem(transaction: t)).toList(),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ).animate().fadeIn(duration: 400.ms, delay: (250 + 50 * index).ms).slideY(begin: 0.05);
-                },
-              ),
-            ),
-          ],
+      backgroundColor: AppColors.g0,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: GestureDetector(
+          onTap: () { HapticFeedback.lightImpact(); Navigator.pop(context); },
+          child: const Padding(
+            padding: EdgeInsets.all(8),
+            child: Icon(LucideIcons.arrowLeft, color: AppColors.e8, size: 22),
+          ),
+        ),
+        title: const Text('Historial', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.e8)),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: const Color(0xFFF3F4F6), height: 1),
         ),
       ),
-    );
-  }
-}
-
-class _SummaryBox extends StatelessWidget {
-  final String title;
-  final String amount;
-  final Color color;
-  final IconData icon;
-
-  const _SummaryBox({
-    required this.title,
-    required this.amount,
-    required this.color,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Column(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 14, color: color),
-              ),
-              const SizedBox(width: 8),
-              Text(title, style: AppTextStyles.labelSmall),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '\$ $amount',
-            style: AppTextStyles.cardValue.copyWith(fontSize: 18),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TransactionItem extends StatelessWidget {
-  final Transaction transaction;
-
-  const _TransactionItem({required this.transaction});
-
-  @override
-  Widget build(BuildContext context) {
-    final formatter = NumberFormat('#,##0.00', 'en_US');
-    final isIncome = transaction.type == TransactionType.income;
-    final color = isIncome ? AppColors.positive : AppColors.textPrimary;
-    final prefix = isIncome ? '+' : '-';
-
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        collapsedIconColor: AppColors.textTertiary,
-        iconColor: AppColors.accentBright,
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceLight,
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.cardBorder),
-          ),
-          child: Icon(transaction.icon, size: 20, color: AppColors.textSecondary),
-        ),
-        title: Text(
-          transaction.description,
-          style: AppTextStyles.labelLarge,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text(
-          transaction.category,
-          style: AppTextStyles.bodySmall,
-        ),
-        trailing: Text(
-          '$prefix RD\$ ${formatter.format(transaction.amount)}',
-          style: AppTextStyles.labelLarge.copyWith(color: color),
-        ),
-        children: [
+          // Summary row
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Row(
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Cuenta', style: AppTextStyles.labelSmall),
-                      const SizedBox(height: 2),
-                      Text(
-                        transaction.assetName ?? 'Desconocida',
-                        style: AppTextStyles.labelMedium,
-                      ),
-                    ],
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.e8,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [const BoxShadow(color: Color(0x33065F46), blurRadius: 16, offset: Offset(0, 4))],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("INGRESOS", style: TextStyle(fontSize: 9, color: Colors.white.withValues(alpha: 0.5), fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                        const SizedBox(height: 3),
+                        Text(fmt(_totalIngresos), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF6EE7B7), letterSpacing: -0.5)),
+                      ],
+                    ),
                   ),
                 ),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Fecha', style: AppTextStyles.labelSmall),
-                      const SizedBox(height: 2),
-                      Text(
-                        DateFormat('dd/MM/yyyy', 'es').format(transaction.date),
-                        style: AppTextStyles.labelMedium,
-                      ),
-                    ],
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("GASTOS", style: TextStyle(fontSize: 9, color: AppColors.g4, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                        const SizedBox(height: 3),
+                        Text(fmt(_totalGastos), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.r5, letterSpacing: -0.5)),
+                      ],
+                    ),
                   ),
                 ),
               ],
-            ),
+            ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0, duration: 400.ms),
+          ),
+
+          // Filters
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: SizedBox(
+              height: 36,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _filters.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, i) {
+                  final f = _filters[i];
+                  final isSel = _filter == f;
+                  return GestureDetector(
+                    onTap: () { HapticFeedback.selectionClick(); setState(() => _filter = f); },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: isSel ? AppColors.e8 : Colors.white,
+                        borderRadius: BorderRadius.circular(100),
+                        border: Border.all(color: isSel ? AppColors.e8 : const Color(0xFFE5E7EB), width: 1.5),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(f, style: TextStyle(color: isSel ? Colors.white : AppColors.g5, fontWeight: FontWeight.w700, fontSize: 13)),
+                    ),
+                  );
+                },
+              ),
+            ).animate().fadeIn(duration: 300.ms, delay: 100.ms),
+          ),
+
+          const SizedBox(height: 12),
+
+          // List
+          Expanded(
+            child: grouped.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 64, height: 64,
+                          decoration: BoxDecoration(color: AppColors.g1, borderRadius: BorderRadius.circular(20)),
+                          alignment: Alignment.center,
+                          child: const Icon(LucideIcons.inbox, size: 30, color: AppColors.g3),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text("Sin transacciones", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.e8)),
+                        const SizedBox(height: 4),
+                        const Text("No hay movimientos en esta categoría", style: TextStyle(fontSize: 13, color: AppColors.g4)),
+                      ],
+                    ).animate().fadeIn(duration: 400.ms),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                    itemCount: grouped.length,
+                    itemBuilder: (context, index) {
+                      final dateKey = grouped.keys.elementAt(index);
+                      final txns = grouped[dateKey]!;
+                      final dayTotal = txns.where((t) => t.tipo == 'gasto').fold(0.0, (s, t) => s + t.monto.abs());
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8, left: 2),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(dateKey, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.e8)),
+                                  if (dayTotal > 0)
+                                    Text("- ${fmt(dayTotal)}", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.g4)),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: Column(
+                                children: List.generate(txns.length, (i) {
+                                  final t = txns[i];
+                                  final ci = activeBudget.cats[t.catKey];
+                                  final isTransfer = t.tipo == 'transferencia';
+                                  final fromW = t.fromAccountId != null ? mockWallets.firstWhere((w) => w.id == t.fromAccountId, orElse: () => mockWallets.first) : null;
+                                  final toW = t.toAccountId != null ? mockWallets.firstWhere((w) => w.id == t.toAccountId, orElse: () => mockWallets.last) : null;
+
+                                  return Column(
+                                    children: [
+                                      if (i > 0) const Divider(height: 1, color: Color(0xFFF3F4F6), indent: 68, endIndent: 16),
+                                      GestureDetector(
+                                        onTap: () {
+                                          HapticFeedback.lightImpact();
+                                          showModalBottomSheet(
+                                            context: context,
+                                            isScrollControlled: true,
+                                            backgroundColor: Colors.transparent,
+                                            builder: (_) => TransactionDetailSheet(transaction: t),
+                                          );
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 40, height: 40,
+                                                decoration: BoxDecoration(
+                                                  color: (isTransfer ? AppColors.b5 : (ci?.color ?? AppColors.g4)).withValues(alpha: 0.13),
+                                                  borderRadius: BorderRadius.circular(13),
+                                                ),
+                                                alignment: Alignment.center,
+                                                child: Icon(t.icono, size: 19, color: isTransfer ? AppColors.b5 : (ci?.color ?? AppColors.g4)),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(t.desc, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.e8), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                                    const SizedBox(height: 2),
+                                                    if (isTransfer && fromW != null && toW != null)
+                                                      Text("${fromW.nombre.split('—').first.trim()} → ${toW.nombre.split('—').first.trim()}", style: const TextStyle(fontSize: 11, color: AppColors.g4), maxLines: 1, overflow: TextOverflow.ellipsis)
+                                                    else
+                                                      Text(ci?.label ?? t.catKey, style: const TextStyle(fontSize: 11, color: AppColors.g4)),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                isTransfer
+                                                    ? fmt(t.monto.abs())
+                                                    : (t.tipo == "ingreso" ? "+ ${fmt(t.monto.abs())}" : "- ${fmt(t.monto.abs())}"),
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: isTransfer ? AppColors.b5 : (t.tipo == "ingreso" ? AppColors.e6 : AppColors.e8),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ).animate().fadeIn(duration: 350.ms, delay: (100 + index * 50).ms).slideY(begin: 0.04, end: 0, duration: 350.ms, delay: (100 + index * 50).ms);
+                    },
+                  ),
           ),
         ],
       ),

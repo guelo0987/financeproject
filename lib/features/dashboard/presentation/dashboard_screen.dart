@@ -1,467 +1,578 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/widgets/menudo_card.dart';
-import '../../../shared/widgets/menudo_button.dart';
-import '../../../shared/widgets/menudo_chip.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/data/models.dart';
+import '../../../../shared/widgets/menudo_chip.dart';
+import '../../budgets/budget_providers.dart';
+import '../../budgets/presentation/budget_detail_sheet.dart';
+import '../../quick_log/presentation/register_transaction_sheet.dart';
+import '../../transactions/presentation/transaction_detail_sheet.dart';
+import '../../categories/presentation/categories_screen.dart';
+import '../../tools/presentation/tools_screen.dart';
+import '../../recurring/presentation/recurring_screen.dart';
 
-
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: MenudoColors.appBg,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildHeader(context),
-              const SizedBox(height: 24),
-              _buildHeroCard(),
-              const SizedBox(height: 16),
-              MenudoPrimaryButton(
-                label: 'Registrar Gasto',
-                icon: Icons.add,
-                onTap: () {
-                  context.push('/quick-log'); // Open QuickLog screen for now
-                },
-              ),
-              const SizedBox(height: 24),
-              _buildFlujoDelMes(context),
-              const SizedBox(height: 24),
-              _buildMisActivos(context),
-              const SizedBox(height: 24),
-              _buildMercado(context),
-              const SizedBox(height: 24),
-              _buildTasaCambio(),
-              const SizedBox(height: 100), // Clear bottom nav
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  String _fmt(double val) => "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
 
-  Widget _buildHeader(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedIdx = ref.watch(selectedBudgetIdxProvider);
+    final budget = mockBudgets[selectedIdx];
+    final double spent = budget.cats.values.fold(0, (s, c) => s + c.gastado);
+    final double remaining = budget.ingresos - spent;
+    final double pct = spent / (budget.ingresos > 0 ? budget.ingresos : 1);
+
+    final double ingresos = mockTxns.where((t) => t.tipo == 'ingreso').fold(0.0, (s, t) => s + t.monto.abs());
+    final double gastos  = mockTxns.where((t) => t.tipo == 'gasto').fold(0.0, (s, t) => s + t.monto.abs());
+    final recent = mockTxns.where((t) => t.tipo != 'transferencia').take(4).toList();
+
+    final periodoLabel = {
+      'mensual': 'este mes', 'quincenal': 'esta quincena',
+      'semanal': 'esta semana', 'anual': 'este año',
+    }[budget.periodo.toLowerCase()] ?? budget.periodo.toLowerCase();
+
+    return Scaffold(
+      backgroundColor: AppColors.g0,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+
+            // ── Header ────────────────────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('¡Hola, Marcos! 👋', style: MenudoTextStyles.bodyMedium.copyWith(color: MenudoColors.textMuted)),
-                const SizedBox(height: 4),
-                // Allow space switching
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text("Hola, Miguel", style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.e8, letterSpacing: -0.5)),
+                    SizedBox(height: 2),
+                    Text("Tu resumen financiero", style: TextStyle(fontSize: 13, color: AppColors.g4)),
+                  ],
+                ),
                 GestureDetector(
-                  onTap: () {
-                    // Placeholder for Space Switcher Bottom Sheet
-                  },
-                  child: Row(
-                    children: [
-                      Text('Menudo', style: MenudoTextStyles.h1),
-                      const Icon(Icons.keyboard_arrow_down_rounded, color: MenudoColors.textMuted),
-                    ],
+                  onTap: () { HapticFeedback.lightImpact(); context.push('/settings'); },
+                  child: Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.g2, width: 1.5),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(LucideIcons.settings, size: 19, color: AppColors.g5),
                   ),
                 ),
               ],
-            ),
-            GestureDetector(
-              onTap: () => context.go('/settings'),
-              child: Stack(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: MenudoColors.cardBg, width: 2),
-                      color: MenudoColors.divider,
-                    ),
-                    child: const Center(child: Icon(Icons.person, color: MenudoColors.textSecondary, size: 24)),
-                  ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: MenudoColors.danger,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                    ),
-                  )
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text('Martes, 7 de Marzo · 2026'.toUpperCase(), style: MenudoTextStyles.labelCaps.copyWith(color: MenudoColors.textMuted)),
-      ],
-    );
-  }
+            ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.04, end: 0, duration: 350.ms),
 
-  Widget _buildHeroCard() {
-    return MenudoHeroCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
+            const SizedBox(height: 18),
+
+            // ── Budget Card ────────────────────────────────────────────
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.e8,
+                borderRadius: BorderRadius.circular(26),
+                boxShadow: [const BoxShadow(color: Color(0x55065F46), blurRadius: 36, offset: Offset(0, 14))],
+              ),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('PATRIMONIO TOTAL', style: MenudoTextStyles.labelCaps.copyWith(color: MenudoColors.textOnDarkSub)),
-                  const SizedBox(height: 4),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text('RD\$', style: TextStyle(fontSize: 20, color: MenudoColors.textOnDarkSub, fontWeight: FontWeight.w600)),
-                      TweenAnimationBuilder<double>(
-                        tween: Tween<double>(begin: 0, end: 45230),
-                        duration: const Duration(milliseconds: 1500),
-                        curve: Curves.easeOutCubic,
-                        builder: (context, value, child) {
-                          return Text(
-                            value.toStringAsFixed(0).replaceAll(RegExp(r'\B(?=(\d{3})+(?!\d))'), ','),
-                            style: MenudoTextStyles.heroAmount,
+
+                  // ── Card top row: name + Ver button
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                budget.nombre,
+                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3),
+                              ),
+                              const SizedBox(height: 6),
+                              MenudoChip.custom(
+                                label: budget.periodo,
+                                color: Colors.white,
+                                bgColor: Colors.white.withValues(alpha: 0.18),
+                                isSmall: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => BudgetDetailSheet(budget: budget),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.14),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text("Ver →", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── Budget selector chips
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    height: 30,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: mockBudgets.length + 1,
+                      separatorBuilder: (context, index) => const SizedBox(width: 8),
+                      itemBuilder: (ctx, i) {
+                        if (i == mockBudgets.length) {
+                          // "+ Nuevo" pill
+                          return GestureDetector(
+                            onTap: () { HapticFeedback.lightImpact(); context.go('/budgets'); },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.transparent,
+                                borderRadius: BorderRadius.circular(100),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
+                              ),
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(LucideIcons.plus, size: 12, color: Colors.white.withValues(alpha: 0.6)),
+                                  const SizedBox(width: 4),
+                                  Text("Nuevo", style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12, fontWeight: FontWeight.w600)),
+                                ],
+                              ),
+                            ),
                           );
-                        },
-                      ),
-                      Text('.00', style: TextStyle(fontSize: 22, color: MenudoColors.textOnDark.withValues(alpha: 0.5))),
-                    ],
+                        }
+                        final b = mockBudgets[i];
+                        final isSelected = i == selectedIdx;
+                        return GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            ref.read(selectedBudgetIdxProvider.notifier).state = i;
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOut,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(100),
+                              border: Border.all(color: isSelected ? Colors.transparent : Colors.white.withValues(alpha: 0.2)),
+                            ),
+                            alignment: Alignment.center,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isSelected) ...[
+                                  Icon(LucideIcons.checkCircle, size: 11, color: AppColors.e8),
+                                  const SizedBox(width: 4),
+                                ],
+                                Text(
+                                  b.nombre,
+                                  style: TextStyle(
+                                    color: isSelected ? AppColors.e8 : Colors.white.withValues(alpha: 0.75),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // ── Remaining amount + main progress bar
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "RESTANTE",
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.45), letterSpacing: 1.2),
+                        ),
+                        const SizedBox(height: 5),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              _fmt(remaining),
+                              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -1.2),
+                            ),
+                            const SizedBox(width: 8),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 5),
+                              child: Text(
+                                "de ${_fmt(budget.ingresos)}",
+                                style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.4), fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // Overall progress bar
+                        Container(
+                          height: 6,
+                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(3)),
+                          child: LayoutBuilder(
+                            builder: (_, constraints) => AnimatedContainer(
+                              duration: const Duration(milliseconds: 900),
+                              curve: Curves.easeOutCubic,
+                              height: 6,
+                              width: constraints.maxWidth * min(pct, 1.0),
+                              decoration: BoxDecoration(
+                                color: pct > 0.9 ? AppColors.r5 : pct > 0.7 ? AppColors.a5 : const Color(0xFF6EE7B7),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          "${(pct * 100).round()}% usado $periodoLabel",
+                          style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.38)),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── Category bars
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
+                    child: Column(
+                      children: budget.cats.values.map((cat) {
+                        final double p = min(cat.gastado / (cat.limite > 0 ? cat.limite : 1), 1.0);
+                        final bool over = cat.gastado > cat.limite;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 9),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(children: [
+                                    Icon(cat.icono, size: 13, color: Colors.white.withValues(alpha: 0.8)),
+                                    const SizedBox(width: 6),
+                                    Text(cat.label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.85))),
+                                    if (over) ...[
+                                      const SizedBox(width: 6),
+                                      Icon(LucideIcons.alertTriangle, size: 11, color: AppColors.a5),
+                                    ],
+                                  ]),
+                                  Row(children: [
+                                    Text(_fmt(cat.gastado), style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.5))),
+                                    Text(" / ${_fmt(cat.limite)}", style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.28))),
+                                  ]),
+                                ],
+                              ),
+                              const SizedBox(height: 5),
+                              Container(
+                                height: 4,
+                                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(2)),
+                                child: LayoutBuilder(
+                                  builder: (_, constraints) => AnimatedContainer(
+                                    duration: const Duration(milliseconds: 800),
+                                    curve: Curves.easeOutCubic,
+                                    height: 4,
+                                    width: constraints.maxWidth * p,
+                                    decoration: BoxDecoration(
+                                      color: over ? AppColors.r5 : cat.color,
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.all(8),
+            ).animate().fadeIn(duration: 500.ms, delay: 80.ms).slideY(begin: 0.05, end: 0, duration: 500.ms, delay: 80.ms),
+
+            const SizedBox(height: 14),
+
+            // ── Register Button ────────────────────────────────────────
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.mediumImpact();
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => const RegisterTransactionSheet(),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.auto_awesome, color: MenudoColors.textOnDarkSub, size: 20),
-              ).animate().rotate(duration: 2.seconds, curve: Curves.easeInOut), // Smart assistant hook
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: AppColors.o5,
                   borderRadius: BorderRadius.circular(100),
+                  boxShadow: [const BoxShadow(color: Color(0x44F97316), blurRadius: 22, offset: Offset(0, 8))],
                 ),
-                child: Row(
+                alignment: Alignment.center,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.arrow_upward, size: 14, color: Color(0xFF6EE7B7)),
-                    const SizedBox(width: 4),
-                    Text('+12.5% este año', style: MenudoTextStyles.labelBold.copyWith(color: const Color(0xFF6EE7B7))),
+                    Icon(LucideIcons.plus, size: 18, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text("Registrar transacción", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: -0.2)),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Text('Buen ritmo 🔥', style: MenudoTextStyles.bodySmall.copyWith(color: MenudoColors.textOnDarkSub)),
-            ],
-          ),
-          const SizedBox(height: 48),
-          SizedBox(
-            height: 40,
-            child: LineChart(
-              LineChartData(
-                gridData: const FlGridData(show: false),
-                titlesData: const FlTitlesData(show: false),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: const [
-                      FlSpot(0, 1),
-                      FlSpot(1, 1.5),
-                      FlSpot(2, 1.4),
-                      FlSpot(3, 3.4),
-                      FlSpot(4, 2),
-                      FlSpot(5, 4),
-                      FlSpot(6, 5),
-                    ],
-                    isCurved: true,
-                    color: Colors.white.withValues(alpha: 0.7),
-                    barWidth: 2,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: Colors.white.withValues(alpha: 0.1),
+            ).animate().fadeIn(duration: 350.ms, delay: 220.ms),
+
+            const SizedBox(height: 14),
+
+            // ── Summary Cards ──────────────────────────────────────────
+            Row(
+              children: [
+                // Gastos card
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const CategoriesScreen()));
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: AppColors.g2, width: 1.5),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(color: AppColors.r1, borderRadius: BorderRadius.circular(10)),
+                                child: const Icon(LucideIcons.trendingDown, size: 15, color: AppColors.r5),
+                              ),
+                              const Icon(LucideIcons.chevronRight, size: 14, color: AppColors.g3),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text("GASTÉ ${periodoLabel.toUpperCase()}", style: const TextStyle(fontSize: 10, color: AppColors.g4, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+                          const SizedBox(height: 3),
+                          Text(_fmt(gastos), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.r5, letterSpacing: -0.5)),
+                        ],
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.05);
-  }
-
-  Widget _buildFlujoDelMes(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Flujo del mes', style: MenudoTextStyles.h3),
-            TextButton(
-              onPressed: () => context.go('/insights'),
-              child: const Row(
-                children: [
-                  Text('Ver análisis ', style: TextStyle(color: MenudoColors.primary, fontWeight: FontWeight.bold)),
-                  Icon(Icons.arrow_forward_rounded, size: 16, color: MenudoColors.primary),
-                ],
-              ),
-            )
-          ],
-        ),
-        MenudoCard(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildFlujoCol('INGRESOS', 'RD\$95K', '+5% vs feb', MenudoColors.successLight, MenudoColors.success, true),
-              Container(width: 1, height: 40, color: MenudoColors.divider),
-              _buildFlujoCol('GASTOS', 'RD\$58K', '-2% vs feb', MenudoColors.dangerLight, MenudoColors.danger, true),
-              Container(width: 1, height: 40, color: MenudoColors.divider),
-              _buildFlujoCol('AHORRO', 'RD\$37K', '38.6% tasa', MenudoColors.primaryLight, MenudoColors.primary, false),
-            ],
-          ),
-        ),
-      ],
-    ).animate().fadeIn(delay: 200.ms);
-  }
-
-  Widget _buildFlujoCol(String label, String amount, String sub, Color bgColor, Color mainColor, bool showSubColor) {
-    return Expanded(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(width: 4, height: 36, decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(2))),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: MenudoTextStyles.labelCaps.copyWith(color: MenudoColors.textMuted, fontSize: 10)),
-                const SizedBox(height: 2),
-                Text(amount, style: MenudoTextStyles.amountMedium.copyWith(color: mainColor)),
-                const SizedBox(height: 2),
-                Text(sub, style: MenudoTextStyles.bodySmall.copyWith(color: showSubColor ? mainColor : MenudoColors.textMuted, fontSize: 10), overflow: TextOverflow.ellipsis),
+                ),
+                const SizedBox(width: 10),
+                // Ingresos card
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: AppColors.g2, width: 1.5),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(color: AppColors.e1, borderRadius: BorderRadius.circular(10)),
+                          child: const Icon(LucideIcons.trendingUp, size: 15, color: AppColors.e6),
+                        ),
+                        const SizedBox(height: 10),
+                        Text("INGRESÉ ${periodoLabel.toUpperCase()}", style: const TextStyle(fontSize: 10, color: AppColors.g4, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+                        const SizedBox(height: 3),
+                        Text(_fmt(ingresos), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.e6, letterSpacing: -0.5)),
+                      ],
+                    ),
+                  ),
+                ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+            ).animate().fadeIn(duration: 380.ms, delay: 300.ms).slideY(begin: 0.04, end: 0, duration: 380.ms, delay: 300.ms),
 
-  Widget _buildMisActivos(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Mis activos', style: MenudoTextStyles.h3),
-            TextButton(
-              onPressed: () => context.go('/assets'),
-              child: const Row(
-                children: [
-                  Text('Ver todos ', style: TextStyle(color: MenudoColors.primary, fontWeight: FontWeight.bold)),
-                  Icon(Icons.arrow_forward_rounded, size: 16, color: MenudoColors.primary),
-                ],
+            const SizedBox(height: 14),
+
+            // ── Quick Actions ──────────────────────────────────────────
+            Row(
+              children: [
+                _quickAction(
+                  icon: LucideIcons.pieChart,
+                  label: "Categorías",
+                  iconColor: AppColors.e6,
+                  bgColor: AppColors.e1,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CategoriesScreen())),
+                ),
+                const SizedBox(width: 8),
+                _quickAction(
+                  icon: LucideIcons.repeat2,
+                  label: "Automáticas",
+                  iconColor: AppColors.o5,
+                  bgColor: AppColors.o1,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecurringScreen())),
+                ),
+                const SizedBox(width: 8),
+                _quickAction(
+                  icon: LucideIcons.clock,
+                  label: "Historial",
+                  iconColor: AppColors.p5,
+                  bgColor: const Color(0xFFF3EEFF),
+                  onTap: () => context.push('/history'),
+                ),
+                const SizedBox(width: 8),
+                _quickAction(
+                  icon: LucideIcons.wrench,
+                  label: "Herramientas",
+                  iconColor: AppColors.b5,
+                  bgColor: const Color(0xFFEFF6FF),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen())),
+                ),
+              ],
+            ).animate().fadeIn(duration: 380.ms, delay: 380.ms).slideY(begin: 0.04, end: 0, duration: 380.ms, delay: 380.ms),
+
+            const SizedBox(height: 26),
+
+            // ── Recent Transactions ────────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Últimas transacciones", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.e8)),
+                GestureDetector(
+                  onTap: () { HapticFeedback.lightImpact(); context.push('/history'); },
+                  child: const Text("Ver todas →", style: TextStyle(fontSize: 13, color: AppColors.o5, fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ).animate().fadeIn(duration: 350.ms, delay: 440.ms),
+
+            const SizedBox(height: 10),
+
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: AppColors.g2, width: 1.5),
+                borderRadius: BorderRadius.circular(22),
               ),
-            )
+              child: Column(
+                children: List.generate(recent.length, (i) {
+                  final t = recent[i];
+                  final ci = budget.cats[t.catKey];
+                  final Color tileColor = ci?.color ?? AppColors.g4;
+                  return Column(
+                    children: [
+                      if (i > 0) const Divider(height: 1, color: Color(0xFFF3F4F6), indent: 68, endIndent: 16),
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => TransactionDetailSheet(transaction: t),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40, height: 40,
+                                decoration: BoxDecoration(color: tileColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(13)),
+                                alignment: Alignment.center,
+                                child: Icon(t.icono, size: 19, color: tileColor),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(t.desc, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.e8), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    const SizedBox(height: 2),
+                                    Text("${ci?.label ?? t.catKey} · ${t.dateString.split('-')[2]} mar", style: const TextStyle(fontSize: 12, color: AppColors.g4)),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                t.tipo == "ingreso" ? "+${_fmt(t.monto.abs())}" : "-${_fmt(t.monto.abs())}",
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: t.tipo == "ingreso" ? AppColors.e6 : AppColors.e8),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ).animate().fadeIn(duration: 380.ms, delay: 480.ms).slideY(begin: 0.04, end: 0, duration: 380.ms, delay: 480.ms),
           ],
         ),
-        SizedBox(
-          height: 120,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _buildAssetPill(Icons.account_balance, 'BHD León', 'RD\$850,000', MenudoColors.successLight, MenudoColors.success, '+2.1%'),
-              const SizedBox(width: 12),
-              _buildAssetPill(Icons.currency_bitcoin, 'Bitcoin', '\$67,420', MenudoColors.primaryLight, MenudoColors.primary, '+4.3%'),
-              const SizedBox(width: 12),
-              _buildAssetPill(Icons.trending_up, 'QQQ', '\$487.32', MenudoColors.warningLight, MenudoColors.warning, '+0.8%'),
-              const SizedBox(width: 12),
-              _buildAssetPill(Icons.home, 'Apto. Naco', '\$125,000', MenudoColors.cardBg.withValues(alpha: 0.1), MenudoColors.cardBg, '+0.0%'),
-            ],
-          ),
-        ),
-      ],
-    ).animate().fadeIn(delay: 300.ms);
-  }
-
-  Widget _buildAssetPill(IconData icon, String name, String value, Color bgColor, Color fgColor, String change) {
-    return Container(
-      width: 160,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: MenudoColors.border),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              CircleAvatar(radius: 16, backgroundColor: bgColor, child: Icon(icon, size: 18, color: fgColor)),
-              MenudoChip(change, variant: MenudoChipVariant.success, isSmall: true),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(name, style: MenudoTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 2),
-              Text(value, style: MenudoTextStyles.amountSmall),
-            ],
-          )
-        ],
       ),
     );
   }
 
-  Widget _buildMercado(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text('Mercado', style: MenudoTextStyles.h3),
-            const SizedBox(width: 8),
-            const Icon(Icons.refresh, size: 12, color: MenudoColors.textMuted),
-            const SizedBox(width: 4),
-            Text('hace 3 min', style: MenudoTextStyles.bodySmall.copyWith(color: MenudoColors.textMuted, fontSize: 10)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        MenudoCard(
-          padding: EdgeInsets.zero,
+  Widget _quickAction({
+    required IconData icon,
+    required String label,
+    required Color iconColor,
+    required Color bgColor,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () { HapticFeedback.lightImpact(); onTap(); },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: AppColors.g2, width: 1.5),
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Column(
             children: [
-              _buildMarketItem('BTC', 'Bitcoin', '\$67,420.50', '-2.1%', false),
-              const Divider(color: MenudoColors.divider, height: 1),
-              _buildMarketItem('ETH', 'Ethereum', '\$3,840.10', '+1.4%', true),
-              const Divider(color: MenudoColors.divider, height: 1),
-              _buildMarketItem('QQQ', 'Invesco QQQ', '\$487.32', '+0.8%', true),
-              const Divider(color: MenudoColors.divider, height: 1),
-              _buildMarketItem('XAU', 'Oro Gld', '\$2,310.00', '+0.3%', true),
+              Container(
+                width: 38, height: 38,
+                decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(11)),
+                alignment: Alignment.center,
+                child: Icon(icon, size: 18, color: iconColor),
+              ),
+              const SizedBox(height: 7),
+              Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.g5), textAlign: TextAlign.center),
             ],
           ),
         ),
-      ],
-    ).animate().fadeIn(delay: 400.ms);
-  }
-
-  Widget _buildMarketItem(String ticker, String name, String price, String change, bool isUp) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              SizedBox(
-                width: 40,
-                child: Text(ticker, style: MenudoTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(width: 8),
-              Text(name, style: MenudoTextStyles.bodyMedium.copyWith(color: MenudoColors.textMuted)),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(price, style: MenudoTextStyles.amountSmall.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              MenudoChip(change, variant: isUp ? MenudoChipVariant.success : MenudoChipVariant.danger, isSmall: true),
-            ],
-          ),
-        ],
       ),
     );
-  }
-
-  Widget _buildTasaCambio() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: const Border(left: BorderSide(color: MenudoColors.primary, width: 4)),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('USD / DOP', style: MenudoTextStyles.labelCaps.copyWith(color: MenudoColors.textMuted)),
-              const SizedBox(height: 4),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('60.25', style: MenudoTextStyles.h2),
-                  const SizedBox(width: 8),
-                  const MenudoChip('+0.12', variant: MenudoChipVariant.success, isSmall: true),
-                ],
-              ),
-            ],
-          ),
-          SizedBox(
-            width: 80,
-            height: 40,
-            child: LineChart(
-              LineChartData(
-                gridData: const FlGridData(show: false),
-                titlesData: const FlTitlesData(show: false),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: const [
-                      FlSpot(0, 59.8), FlSpot(1, 59.9), FlSpot(2, 60.0), FlSpot(3, 60.15), FlSpot(4, 60.25),
-                    ],
-                    isCurved: true,
-                    color: MenudoColors.primary,
-                    barWidth: 2,
-                    dotData: const FlDotData(show: false),
-                  ),
-                ],
-              ),
-            ),
-          )
-        ],
-      ),
-    ).animate().fadeIn(delay: 500.ms);
   }
 }

@@ -10,10 +10,10 @@ class MainShell extends StatelessWidget {
 
   int _getSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    if (location.startsWith('/assets')) return 1;
-    if (location.startsWith('/insights')) return 2;
-    if (location.startsWith('/settings')) return 3;
-    return 0; // Dashboard
+    if (location.startsWith('/calendar')) return 1;
+    if (location.startsWith('/budgets')) return 2;
+    if (location.startsWith('/wallet')) return 3;
+    return 0; // Dashboard / Home
   }
 
   void _onItemTapped(BuildContext context, int index) {
@@ -21,11 +21,11 @@ class MainShell extends StatelessWidget {
       case 0:
         context.go('/');
       case 1:
-        context.go('/assets');
+        context.go('/calendar');
       case 2:
-        context.go('/insights');
+        context.go('/budgets');
       case 3:
-        context.go('/settings');
+        context.go('/wallet');
     }
   }
 

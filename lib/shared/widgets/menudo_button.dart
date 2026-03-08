@@ -1,53 +1,76 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_shadows.dart';
 
-class MenudoPrimaryButton extends StatelessWidget {
+class MenudoButton extends StatefulWidget {
   final String label;
   final VoidCallback? onTap;
-  final IconData? icon;
+  final bool isFullWidth;
   final bool isDisabled;
+  final IconData? icon;
 
-  const MenudoPrimaryButton({
+  const MenudoButton({
     super.key,
     required this.label,
     this.onTap,
-    this.icon,
+    this.isFullWidth = false,
     this.isDisabled = false,
+    this.icon,
   });
 
   @override
+  State<MenudoButton> createState() => _MenudoButtonState();
+}
+
+class _MenudoButtonState extends State<MenudoButton> {
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: isDisabled ? null : [MenudoShadows.primaryShadow],
-        color: isDisabled ? MenudoColors.border : MenudoColors.primary,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: isDisabled ? null : onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, color: isDisabled ? MenudoColors.textSecondary : Colors.white, size: 20),
-                  const SizedBox(width: 8),
-                ],
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: isDisabled ? MenudoColors.textSecondary : Colors.white,
-                  ),
-                ),
+    final bgColor = widget.isDisabled ? AppColors.g1 : AppColors.o5;
+    final textColor = widget.isDisabled ? AppColors.g4 : AppColors.white;
+
+    return GestureDetector(
+      onTapDown: widget.isDisabled ? null : (_) => setState(() => _isPressed = true),
+      onTapUp: widget.isDisabled ? null : (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.isDisabled ? null : widget.onTap,
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 150),
+        scale: _isPressed ? 0.96 : 1.0,
+        alignment: Alignment.center,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: widget.isFullWidth ? double.infinity : null,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: widget.isDisabled ? null : [
+              const BoxShadow(
+                color: Color(0x44F97316),
+                blurRadius: 32,
+                offset: Offset(0, 8),
+              )
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (widget.icon != null) ...[
+                Icon(widget.icon, color: textColor, size: 20),
+                const SizedBox(width: 8),
               ],
-            ),
+              Text(
+                widget.label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -55,28 +78,49 @@ class MenudoPrimaryButton extends StatelessWidget {
   }
 }
 
+// Legacy alias to prevent compilation errors in older views
+class MenudoPrimaryButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onTap;
+  final IconData? icon;
+  final bool isDisabled;
+
+  const MenudoPrimaryButton({
+    super.key, 
+    required this.label, 
+    this.onTap,
+    this.icon,
+    this.isDisabled = false,
+  });
+  
+  @override
+  Widget build(BuildContext context) => MenudoButton(
+        label: label, 
+        onTap: onTap, 
+        isFullWidth: true,
+        icon: icon,
+        isDisabled: isDisabled,
+      );
+}
+
+// Legacy alias to prevent compilation errors
 class MenudoSecondaryButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  
-  const MenudoSecondaryButton({super.key, required this.label, required this.onTap});
+  final bool isDisabled;
+
+  const MenudoSecondaryButton({
+    super.key, 
+    required this.label, 
+    required this.onTap,
+    this.isDisabled = false,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: MenudoColors.primary,
-        side: const BorderSide(color: MenudoColors.primary),
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => MenudoButton(
+        label: label, 
+        onTap: onTap, 
+        isFullWidth: true,
+        isDisabled: isDisabled,
+      );
 }

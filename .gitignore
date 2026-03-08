@@ -1,3 +1,6 @@
+# MCP config (contains secrets - use .mcp.json.example as template)
+.mcp.json
+
 # Miscellaneous
 *.class
 *.log

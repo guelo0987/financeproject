@@ -6,7 +6,7 @@ abstract class MenudoTextStyles {
   // Hero amount
   static final TextStyle heroAmount = GoogleFonts.plusJakartaSans(
     fontSize: 40,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w800,
     letterSpacing: -1.5,
     color: MenudoColors.textOnDark,
   );
@@ -14,43 +14,43 @@ abstract class MenudoTextStyles {
   // Headlines
   static final TextStyle h1 = GoogleFonts.plusJakartaSans(
     fontSize: 28,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w800,
     letterSpacing: -0.5,
     color: MenudoColors.textMain,
   );
   static final TextStyle h2 = GoogleFonts.plusJakartaSans(
-    fontSize: 22,
-    fontWeight: FontWeight.w700,
-    letterSpacing: -0.3,
+    fontSize: 24,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.5,
     color: MenudoColors.textMain,
   );
   static final TextStyle h3 = GoogleFonts.plusJakartaSans(
-    fontSize: 18,
-    fontWeight: FontWeight.w600,
+    fontSize: 17,
+    fontWeight: FontWeight.w800,
     color: MenudoColors.textMain,
   );
 
   // Body
   static final TextStyle bodyLarge  = GoogleFonts.plusJakartaSans(
     fontSize: 16,
-    fontWeight: FontWeight.w500,
+    fontWeight: FontWeight.w600,
     color: MenudoColors.textMain,
   );
   static final TextStyle bodyMedium = GoogleFonts.plusJakartaSans(
     fontSize: 14,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w600,
     color: MenudoColors.textMain,
   );
   static final TextStyle bodySmall  = GoogleFonts.plusJakartaSans(
     fontSize: 12,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w500,
     color: MenudoColors.textMain,
   );
 
   // Labels
   static final TextStyle labelCaps = GoogleFonts.plusJakartaSans(
     fontSize: 11,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700,
     letterSpacing: 0.8,
   );
   static final TextStyle labelBold = GoogleFonts.plusJakartaSans(
@@ -61,12 +61,12 @@ abstract class MenudoTextStyles {
   // Amounts
   static final TextStyle amountMedium = GoogleFonts.plusJakartaSans(
     fontSize: 18,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w800,
     letterSpacing: -0.5,
   );
   static final TextStyle amountSmall  = GoogleFonts.plusJakartaSans(
     fontSize: 14,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700,
   );
 }
 

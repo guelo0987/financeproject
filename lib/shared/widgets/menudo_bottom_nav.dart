@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_shadows.dart';
 
 class MenudoBottomNav extends StatelessWidget {
   final int currentIndex;
@@ -30,27 +29,27 @@ class MenudoBottomNav extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _NavItem(
-                icon: Icons.home_filled,
+                icon: Icons.home_rounded,
                 label: 'Inicio',
                 isActive: currentIndex == 0,
                 onTap: () => onTabTap(0),
               ),
               _NavItem(
-                icon: Icons.bar_chart_rounded,
-                label: 'Activos',
+                icon: Icons.calendar_today_rounded,
+                label: 'Calendario',
                 isActive: currentIndex == 1,
                 onTap: () => onTabTap(1),
               ),
               _FabItem(onTap: onFabTap),
               _NavItem(
-                icon: Icons.pie_chart_rounded,
-                label: 'Análisis',
-                isActive: currentIndex == 2, // mapped for go_router which treats it as index 2 skipping fab
+                icon: Icons.content_paste_rounded,
+                label: 'Presupuestos',
+                isActive: currentIndex == 2, 
                 onTap: () => onTabTap(2),
               ),
               _NavItem(
-                icon: Icons.person_rounded,
-                label: 'Perfil',
+                icon: Icons.account_balance_wallet_rounded,
+                label: 'Wallet',
                 isActive: currentIndex == 3,
                 onTap: () => onTabTap(3),
               ),
@@ -77,8 +76,9 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive ? MenudoColors.tabActive : MenudoColors.tabInactive;
-    final weight = isActive ? FontWeight.w600 : FontWeight.w500;
+    final color = isActive ? AppColors.e8 : AppColors.g3;
+    final weight = isActive ? FontWeight.w800 : FontWeight.w500;
+    final filterColor = isActive ? AppColors.e8 : Colors.grey;
 
     return Expanded(
       child: InkWell(
@@ -86,12 +86,15 @@ class _NavItem extends StatelessWidget {
           HapticFeedback.selectionClick();
           onTap();
         },
-        splashColor: MenudoColors.tabActive.withValues(alpha: 0.1),
-        highlightColor: MenudoColors.tabActive.withValues(alpha: 0.05),
+        splashColor: AppColors.e8.withValues(alpha: 0.1),
+        highlightColor: AppColors.e8.withValues(alpha: 0.05),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 24),
+            ColorFiltered(
+              colorFilter: ColorFilter.mode(filterColor, BlendMode.srcIn),
+              child: Icon(icon, size: 24, color: color),
+            ),
             const SizedBox(height: 4),
             Text(
               label,
@@ -99,6 +102,7 @@ class _NavItem extends StatelessWidget {
                 fontSize: 10,
                 fontWeight: weight,
                 color: color,
+                letterSpacing: 0.2,
               ),
             ),
           ],
@@ -128,7 +132,7 @@ class _FabItemState extends State<_FabItem> with SingleTickerProviderStateMixin 
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.96).animate(
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.93).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
   }
@@ -164,15 +168,24 @@ class _FabItemState extends State<_FabItem> with SingleTickerProviderStateMixin 
         child: Center(
           child: ScaleTransition(
             scale: _scaleAnimation,
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: const BoxDecoration(
-                color: MenudoColors.primary,
-                shape: BoxShape.circle,
-                boxShadow: [MenudoShadows.primaryShadow],
+            child: Transform.translate(
+              offset: const Offset(0, -10),
+              child: Container(
+                width: 54,
+                height: 54,
+                decoration: const BoxDecoration(
+                  color: AppColors.o5,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x55F97316),
+                      blurRadius: 20,
+                      offset: Offset(0, 8),
+                    )
+                  ],
+                ),
+                child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
               ),
-              child: const Icon(Icons.add, color: Colors.white, size: 28),
             ),
           ),
         ),
