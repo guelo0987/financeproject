@@ -44,11 +44,12 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedIdx = ref.watch(selectedBudgetIdxProvider);
+    final budgets = ref.watch(budgetNotifierProvider).valueOrNull ?? mockBudgets;
+    final selectedIdx = ref.watch(selectedBudgetIdxProvider).clamp(0, budgets.isEmpty ? 0 : budgets.length - 1);
 
     final filteredBudgets = _filtro == "Todos"
-        ? mockBudgets
-        : mockBudgets.where((b) => b.periodo.toLowerCase() == _filtro.toLowerCase()).toList();
+        ? budgets
+        : budgets.where((b) => b.periodo.toLowerCase() == _filtro.toLowerCase()).toList();
 
     return Scaffold(
       backgroundColor: AppColors.g0,
@@ -101,7 +102,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                       style: const TextStyle(fontSize: 12, color: AppColors.e8, fontFamily: 'PlusJakartaSans'),
                       children: [
                         const TextSpan(text: "Dashboard muestra: ", style: TextStyle(fontWeight: FontWeight.w600)),
-                        TextSpan(text: mockBudgets[selectedIdx].nombre, style: const TextStyle(fontWeight: FontWeight.w800)),
+                        TextSpan(text: budgets.isNotEmpty ? budgets[selectedIdx].nombre : '', style: const TextStyle(fontWeight: FontWeight.w800)),
                         const TextSpan(text: ". Toca otro presupuesto para cambiarlo."),
                       ],
                     ),
@@ -142,7 +143,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
 
           // ── Budget Cards
           ...filteredBudgets.asMap().entries.map((entry) {
-            final globalIdx = mockBudgets.indexOf(entry.value);
+            final globalIdx = budgets.indexOf(entry.value);
             final b = entry.value;
             final double sp = b.cats.values.fold(0, (s, c) => s + c.gastado);
             final int usedPct = (sp / (b.ingresos > 0 ? b.ingresos : 1) * 100).round();

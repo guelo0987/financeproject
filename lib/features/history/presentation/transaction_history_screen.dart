@@ -1,37 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
+import '../../budgets/budget_providers.dart';
+import '../../transactions/providers/transaction_providers.dart';
+import '../../wallet/providers/wallet_providers.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
 
-class TransactionHistoryScreen extends StatefulWidget {
+class TransactionHistoryScreen extends ConsumerStatefulWidget {
   const TransactionHistoryScreen({super.key});
 
   @override
-  State<TransactionHistoryScreen> createState() => _TransactionHistoryScreenState();
+  ConsumerState<TransactionHistoryScreen> createState() => _TransactionHistoryScreenState();
 }
 
-class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
-  String _filter = "Todos"; // "Todos", "Gastos", "Ingresos", "Transferencias"
+class _TransactionHistoryScreenState extends ConsumerState<TransactionHistoryScreen> {
+  String _filter = "Todos";
   final _filters = ["Todos", "Gastos", "Ingresos", "Transferencias"];
 
   String fmt(double val) => "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
 
-  List<MenudoTransaction> get _filtered {
+  List<MenudoTransaction> _filtered(List<MenudoTransaction> txns) {
     switch (_filter) {
-      case 'Gastos': return mockTxns.where((t) => t.tipo == 'gasto').toList();
-      case 'Ingresos': return mockTxns.where((t) => t.tipo == 'ingreso').toList();
-      case 'Transferencias': return mockTxns.where((t) => t.tipo == 'transferencia').toList();
-      default: return mockTxns;
+      case 'Gastos': return txns.where((t) => t.tipo == 'gasto').toList();
+      case 'Ingresos': return txns.where((t) => t.tipo == 'ingreso').toList();
+      case 'Transferencias': return txns.where((t) => t.tipo == 'transferencia').toList();
+      default: return txns;
     }
   }
 
-  Map<String, List<MenudoTransaction>> get _grouped {
+  Map<String, List<MenudoTransaction>> _grouped(List<MenudoTransaction> txns) {
     final months = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
     final Map<String, List<MenudoTransaction>> groups = {};
-    for (final t in _filtered) {
+    for (final t in txns) {
       final parts = t.dateString.split('-');
       final day = int.parse(parts[2]);
       final monthLabel = months[int.tryParse(parts[1]) ?? 0];
@@ -41,13 +45,19 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     return groups;
   }
 
-  double get _totalIngresos => mockTxns.where((t) => t.tipo == 'ingreso').fold(0.0, (s, t) => s + t.monto.abs());
-  double get _totalGastos => mockTxns.where((t) => t.tipo == 'gasto').fold(0.0, (s, t) => s + t.monto.abs());
-
   @override
   Widget build(BuildContext context) {
-    final activeBudget = mockBudgets.firstWhere((b) => b.activo, orElse: () => mockBudgets.first);
-    final grouped = _grouped;
+    final txns = ref.watch(transactionNotifierProvider).valueOrNull ?? mockTxns;
+    final wallets = ref.watch(walletNotifierProvider).valueOrNull ?? mockWallets;
+    final budgets = ref.watch(budgetNotifierProvider).valueOrNull ?? mockBudgets;
+    final selectedIdx = ref.watch(selectedBudgetIdxProvider).clamp(0, budgets.isEmpty ? 0 : budgets.length - 1);
+    final activeBudget = budgets.isNotEmpty ? budgets[selectedIdx] : mockBudgets.first;
+
+    final filtered = _filtered(txns);
+    final grouped = _grouped(filtered);
+
+    final totalIngresos = txns.where((t) => t.tipo == 'ingreso').fold(0.0, (s, t) => s + t.monto.abs());
+    final totalGastos = txns.where((t) => t.tipo == 'gasto').fold(0.0, (s, t) => s + t.monto.abs());
 
     return Scaffold(
       backgroundColor: AppColors.g0,
@@ -87,7 +97,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                       children: [
                         Text("INGRESOS", style: TextStyle(fontSize: 9, color: Colors.white.withValues(alpha: 0.5), fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                         const SizedBox(height: 3),
-                        Text(fmt(_totalIngresos), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF6EE7B7), letterSpacing: -0.5)),
+                        Text(fmt(totalIngresos), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF6EE7B7), letterSpacing: -0.5)),
                       ],
                     ),
                   ),
@@ -106,7 +116,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                       children: [
                         const Text("GASTOS", style: TextStyle(fontSize: 9, color: AppColors.g4, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                         const SizedBox(height: 3),
-                        Text(fmt(_totalGastos), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.r5, letterSpacing: -0.5)),
+                        Text(fmt(totalGastos), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.r5, letterSpacing: -0.5)),
                       ],
                     ),
                   ),
@@ -123,7 +133,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: _filters.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                separatorBuilder: (context2, i2) => const SizedBox(width: 8),
                 itemBuilder: (context, i) {
                   final f = _filters[i];
                   final isSel = _filter == f;
@@ -173,8 +183,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                     itemCount: grouped.length,
                     itemBuilder: (context, index) {
                       final dateKey = grouped.keys.elementAt(index);
-                      final txns = grouped[dateKey]!;
-                      final dayTotal = txns.where((t) => t.tipo == 'gasto').fold(0.0, (s, t) => s + t.monto.abs());
+                      final dayTxns = grouped[dateKey]!;
+                      final dayTotal = dayTxns.where((t) => t.tipo == 'gasto').fold(0.0, (s, t) => s + t.monto.abs());
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 18),
@@ -199,12 +209,16 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                 borderRadius: BorderRadius.circular(18),
                               ),
                               child: Column(
-                                children: List.generate(txns.length, (i) {
-                                  final t = txns[i];
+                                children: List.generate(dayTxns.length, (i) {
+                                  final t = dayTxns[i];
                                   final ci = activeBudget.cats[t.catKey];
                                   final isTransfer = t.tipo == 'transferencia';
-                                  final fromW = t.fromAccountId != null ? mockWallets.firstWhere((w) => w.id == t.fromAccountId, orElse: () => mockWallets.first) : null;
-                                  final toW = t.toAccountId != null ? mockWallets.firstWhere((w) => w.id == t.toAccountId, orElse: () => mockWallets.last) : null;
+                                  final fromW = t.fromAccountId != null
+                                      ? wallets.where((w) => w.id == t.fromAccountId).firstOrNull
+                                      : null;
+                                  final toW = t.toAccountId != null
+                                      ? wallets.where((w) => w.id == t.toAccountId).firstOrNull
+                                      : null;
 
                                   return Column(
                                     children: [

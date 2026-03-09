@@ -12,6 +12,7 @@ import '../../budgets/budget_providers.dart';
 import '../../budgets/presentation/budget_detail_sheet.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
+import '../../transactions/providers/transaction_providers.dart';
 import '../../categories/presentation/categories_screen.dart';
 import '../../tools/presentation/tools_screen.dart';
 import '../../recurring/presentation/recurring_screen.dart';
@@ -23,15 +24,25 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedIdx = ref.watch(selectedBudgetIdxProvider);
-    final budget = mockBudgets[selectedIdx];
+    final budgets = ref.watch(budgetNotifierProvider).valueOrNull ?? mockBudgets;
+    final txns = ref.watch(transactionNotifierProvider).valueOrNull ?? mockTxns;
+    final selectedIdx = ref.watch(selectedBudgetIdxProvider).clamp(0, budgets.isEmpty ? 0 : budgets.length - 1);
+
+    if (budgets.isEmpty) {
+      return const Scaffold(
+        backgroundColor: AppColors.g0,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final budget = budgets[selectedIdx];
     final double spent = budget.cats.values.fold(0, (s, c) => s + c.gastado);
     final double remaining = budget.ingresos - spent;
     final double pct = spent / (budget.ingresos > 0 ? budget.ingresos : 1);
 
-    final double ingresos = mockTxns.where((t) => t.tipo == 'ingreso').fold(0.0, (s, t) => s + t.monto.abs());
-    final double gastos  = mockTxns.where((t) => t.tipo == 'gasto').fold(0.0, (s, t) => s + t.monto.abs());
-    final recent = mockTxns.where((t) => t.tipo != 'transferencia').take(4).toList();
+    final double ingresos = txns.where((t) => t.tipo == 'ingreso').fold(0.0, (s, t) => s + t.monto.abs());
+    final double gastos  = txns.where((t) => t.tipo == 'gasto').fold(0.0, (s, t) => s + t.monto.abs());
+    final recent = txns.where((t) => t.tipo != 'transferencia').take(4).toList();
 
     final periodoLabel = {
       'mensual': 'este mes', 'quincenal': 'esta quincena',
@@ -141,10 +152,10 @@ class DashboardScreen extends ConsumerWidget {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: mockBudgets.length + 1,
+                      itemCount: budgets.length + 1,
                       separatorBuilder: (context, index) => const SizedBox(width: 8),
                       itemBuilder: (ctx, i) {
-                        if (i == mockBudgets.length) {
+                        if (i == budgets.length) {
                           // "+ Nuevo" pill
                           return GestureDetector(
                             onTap: () { HapticFeedback.lightImpact(); context.go('/budgets'); },
@@ -167,7 +178,7 @@ class DashboardScreen extends ConsumerWidget {
                             ),
                           );
                         }
-                        final b = mockBudgets[i];
+                        final b = budgets[i];
                         final isSelected = i == selectedIdx;
                         return GestureDetector(
                           onTap: () {
