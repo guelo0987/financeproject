@@ -30,7 +30,9 @@ class MenudoChip extends StatelessWidget {
       label,
       variant: MenudoChipVariant.custom,
       customColor: color,
-      customBgColor: bgColor ?? color.withValues(alpha: 0.15), // roughly "22" hex in opacity (13%)
+      customBgColor:
+          bgColor ??
+          color.withValues(alpha: 0.15), // roughly "22" hex in opacity (13%)
       isSmall: isSmall,
     );
   }

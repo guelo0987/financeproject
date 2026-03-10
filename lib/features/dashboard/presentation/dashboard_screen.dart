@@ -8,27 +8,27 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../shared/widgets/menudo_chip.dart';
-import '../../../../shared/widgets/glass_card.dart';
 import '../../budgets/budget_providers.dart';
 import '../../budgets/presentation/budget_detail_sheet.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
 import '../../transactions/providers/transaction_providers.dart';
-import '../../categories/presentation/categories_screen.dart';
-import '../../tools/presentation/tools_screen.dart';
-import '../../recurring/presentation/recurring_screen.dart';
 import '../../transactions/presentation/spending_breakdown_sheet.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
-  String _fmt(double val) => "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
+  String _fmt(double val) =>
+      "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final budgets = ref.watch(budgetNotifierProvider).valueOrNull ?? mockBudgets;
+    final budgets =
+        ref.watch(budgetNotifierProvider).valueOrNull ?? mockBudgets;
     final txns = ref.watch(transactionNotifierProvider).valueOrNull ?? mockTxns;
-    final selectedIdx = ref.watch(selectedBudgetIdxProvider).clamp(0, budgets.length - 1);
+    final selectedIdx = ref
+        .watch(selectedBudgetIdxProvider)
+        .clamp(0, budgets.length - 1);
     final budget = budgets[selectedIdx];
     final double spent = budget.cats.values.fold(0, (s, c) => s + c.gastado);
     final double remaining = budget.ingresos - spent;
@@ -36,15 +36,28 @@ class DashboardScreen extends ConsumerWidget {
 
     final now = DateTime.now();
     final monthPrefix = "${now.year}-${now.month.toString().padLeft(2, '0')}";
-    final txnsThisPeriod = txns.where((t) => t.dateString.startsWith(monthPrefix)).toList();
-    final double ingresos = txnsThisPeriod.where((t) => t.tipo == 'ingreso').fold(0.0, (s, t) => s + t.monto.abs());
-    final double gastos  = txnsThisPeriod.where((t) => t.tipo == 'gasto').fold(0.0, (s, t) => s + t.monto.abs());
-    final recent = txns.where((t) => t.tipo != 'transferencia').take(4).toList();
+    final txnsThisPeriod = txns
+        .where((t) => t.dateString.startsWith(monthPrefix))
+        .toList();
+    final double ingresos = txnsThisPeriod
+        .where((t) => t.tipo == 'ingreso')
+        .fold(0.0, (s, t) => s + t.monto.abs());
+    final double gastos = txnsThisPeriod
+        .where((t) => t.tipo == 'gasto')
+        .fold(0.0, (s, t) => s + t.monto.abs());
+    final recent = txns
+        .where((t) => t.tipo != 'transferencia')
+        .take(4)
+        .toList();
 
-    final periodoLabel = {
-      'mensual': 'este mes', 'quincenal': 'esta quincena',
-      'semanal': 'esta semana', 'anual': 'este año',
-    }[budget.periodo.toLowerCase()] ?? budget.periodo.toLowerCase();
+    final periodoLabel =
+        {
+          'mensual': 'este mes',
+          'quincenal': 'esta quincena',
+          'semanal': 'esta semana',
+          'anual': 'este año',
+        }[budget.periodo.toLowerCase()] ??
+        budget.periodo.toLowerCase();
 
     return Scaffold(
       backgroundColor: AppColors.g0,
@@ -53,48 +66,63 @@ class DashboardScreen extends ConsumerWidget {
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
           children: [
-
             // ── Header ────────────────────────────────────────────────
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      "Hola, Miguel",
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.e8,
-                        letterSpacing: -0.8,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Hola, Miguel",
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.e8,
+                            letterSpacing: -0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "Tu resumen financiero de $periodoLabel",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.g5,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      "Tu resumen financiero de $periodoLabel",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.g5,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    _HeaderCircleButton(
+                      icon: LucideIcons.settings,
+                      onTap: () => context.push('/settings'),
                     ),
                   ],
-                ),
-                _HeaderCircleButton(
-                  icon: LucideIcons.settings,
-                  onTap: () => context.push('/settings'),
-                ),
-              ],
-            ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.05, end: 0, curve: Curves.easeOutBack),
+                )
+                .animate()
+                .fadeIn(duration: 400.ms)
+                .slideX(begin: -0.05, end: 0, curve: Curves.easeOutBack),
 
             const SizedBox(height: 24),
 
             // ── Budget Card ────────────────────────────────────────────
-            _buildBudgetCard(context, ref, budgets, budget, selectedIdx, remaining, pct, periodoLabel)
+            _buildBudgetCard(
+                  context,
+                  ref,
+                  budgets,
+                  budget,
+                  selectedIdx,
+                  remaining,
+                  pct,
+                  periodoLabel,
+                )
                 .animate()
                 .fadeIn(duration: 500.ms, delay: 100.ms)
-                .scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOutBack, delay: 100.ms),
+                .scale(
+                  begin: const Offset(0.95, 0.95),
+                  curve: Curves.easeOutBack,
+                  delay: 100.ms,
+                ),
 
             const SizedBox(height: 20),
 
@@ -108,69 +136,85 @@ class DashboardScreen extends ConsumerWidget {
 
             // ── Summary Metrics ────────────────────────────────────────
             Row(
-              children: [
-                Expanded(
-                  child: _SummaryCard(
-                    label: "GASTOS",
-                    amount: _fmt(gastos),
-                    icon: LucideIcons.trendingDown,
-                    color: AppColors.r5,
-                    bgColor: AppColors.r1,
-                    onTap: () => _showBreakdown(context, txnsThisPeriod, true, periodoLabel),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _SummaryCard(
-                    label: "INGRESOS",
-                    amount: _fmt(ingresos),
-                    icon: LucideIcons.trendingUp,
-                    color: AppColors.e6,
-                    bgColor: AppColors.e1,
-                    onTap: () => _showBreakdown(context, txnsThisPeriod, false, periodoLabel),
-                  ),
-                ),
-              ],
-            ).animate().fadeIn(duration: 400.ms, delay: 300.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
+                  children: [
+                    Expanded(
+                      child: _SummaryCard(
+                        label: "GASTOS",
+                        amount: _fmt(gastos),
+                        icon: LucideIcons.trendingDown,
+                        color: AppColors.r5,
+                        bgColor: AppColors.r1,
+                        onTap: () => _showBreakdown(
+                          context,
+                          txnsThisPeriod,
+                          true,
+                          periodoLabel,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _SummaryCard(
+                        label: "INGRESOS",
+                        amount: _fmt(ingresos),
+                        icon: LucideIcons.trendingUp,
+                        color: AppColors.e6,
+                        bgColor: AppColors.e1,
+                        onTap: () => _showBreakdown(
+                          context,
+                          txnsThisPeriod,
+                          false,
+                          periodoLabel,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 300.ms)
+                .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
 
             const SizedBox(height: 20),
 
             // ── Action Grid ────────────────────────────────────────────
             Row(
-              children: [
-                _QuickAction(
-                  icon: LucideIcons.pieChart,
-                  label: "Categorías",
-                  color: AppColors.e6,
-                  bgColor: AppColors.e1,
-                  onTap: () => context.push('/categories'),
-                ),
-                const SizedBox(width: 10),
-                _QuickAction(
-                  icon: LucideIcons.repeat2,
-                  label: "Automáticas",
-                  color: AppColors.o5,
-                  bgColor: AppColors.o1,
-                  onTap: () => context.push('/recurring'),
-                ),
-                const SizedBox(width: 10),
-                _QuickAction(
-                  icon: LucideIcons.clock,
-                  label: "Historial",
-                  color: AppColors.p5,
-                  bgColor: const Color(0xFFF3EEFF),
-                  onTap: () => context.push('/history'),
-                ),
-                const SizedBox(width: 10),
-                _QuickAction(
-                  icon: LucideIcons.wrench,
-                  label: "Herramientas",
-                  color: AppColors.b5,
-                  bgColor: const Color(0xFFEFF6FF),
-                  onTap: () => context.push('/tools'),
-                ),
-              ],
-            ).animate().fadeIn(duration: 400.ms, delay: 400.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
+                  children: [
+                    _QuickAction(
+                      icon: LucideIcons.pieChart,
+                      label: "Categorías",
+                      color: AppColors.e6,
+                      bgColor: AppColors.e1,
+                      onTap: () => context.push('/categories'),
+                    ),
+                    const SizedBox(width: 10),
+                    _QuickAction(
+                      icon: LucideIcons.repeat2,
+                      label: "Automáticas",
+                      color: AppColors.o5,
+                      bgColor: AppColors.o1,
+                      onTap: () => context.push('/recurring'),
+                    ),
+                    const SizedBox(width: 10),
+                    _QuickAction(
+                      icon: LucideIcons.clock,
+                      label: "Historial",
+                      color: AppColors.p5,
+                      bgColor: const Color(0xFFF3EEFF),
+                      onTap: () => context.push('/history'),
+                    ),
+                    const SizedBox(width: 10),
+                    _QuickAction(
+                      icon: LucideIcons.wrench,
+                      label: "Herramientas",
+                      color: AppColors.b5,
+                      bgColor: const Color(0xFFEFF6FF),
+                      onTap: () => context.push('/tools'),
+                    ),
+                  ],
+                )
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 400.ms)
+                .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
 
             const SizedBox(height: 32),
 
@@ -180,14 +224,29 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 const Text(
                   "Transacciones recientes",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.e8, letterSpacing: -0.4),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.e8,
+                    letterSpacing: -0.4,
+                  ),
                 ),
                 TextButton(
                   onPressed: () => context.push('/history'),
                   child: Row(
                     children: [
-                      Text("Ver todo", style: TextStyle(color: AppColors.o5, fontWeight: FontWeight.w700)),
-                      const Icon(LucideIcons.chevronRight, size: 14, color: AppColors.o5),
+                      Text(
+                        "Ver todo",
+                        style: TextStyle(
+                          color: AppColors.o5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Icon(
+                        LucideIcons.chevronRight,
+                        size: 14,
+                        color: AppColors.o5,
+                      ),
                     ],
                   ),
                 ),
@@ -206,7 +265,12 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  void _showBreakdown(BuildContext context, List<MenudoTransaction> txns, bool isGastos, String label) {
+  void _showBreakdown(
+    BuildContext context,
+    List<MenudoTransaction> txns,
+    bool isGastos,
+    String label,
+  ) {
     HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
@@ -220,7 +284,16 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildBudgetCard(BuildContext context, WidgetRef ref, List<MenudoBudget> budgets, MenudoBudget budget, int selectedIdx, double remaining, double pct, String periodoLabel) {
+  Widget _buildBudgetCard(
+    BuildContext context,
+    WidgetRef ref,
+    List<MenudoBudget> budgets,
+    MenudoBudget budget,
+    int selectedIdx,
+    double remaining,
+    double pct,
+    String periodoLabel,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.e8,
@@ -230,7 +303,7 @@ class DashboardScreen extends ConsumerWidget {
             color: AppColors.e8.withValues(alpha: 0.35),
             blurRadius: 32,
             offset: const Offset(0, 16),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -246,7 +319,12 @@ class DashboardScreen extends ConsumerWidget {
                   children: [
                     Text(
                       budget.nombre,
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.4),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: -0.4,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     MenudoChip.custom(
@@ -261,9 +339,9 @@ class DashboardScreen extends ConsumerWidget {
               ],
             ),
           ),
-          
+
           _buildBudgetSelector(ref, budgets, selectedIdx),
-          
+
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
             child: Column(
@@ -271,7 +349,12 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 Text(
                   "SALDO DISPONIBLE",
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white.withValues(alpha: 0.4), letterSpacing: 1.2),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white.withValues(alpha: 0.4),
+                    letterSpacing: 1.2,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Row(
@@ -279,14 +362,23 @@ class DashboardScreen extends ConsumerWidget {
                   children: [
                     Text(
                       _fmt(remaining),
-                      style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1.5),
+                      style: const TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: -1.5,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 6),
                       child: Text(
                         "/ ${_fmt(budget.ingresos)}",
-                        style: TextStyle(fontSize: 15, color: Colors.white.withValues(alpha: 0.3), fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.white.withValues(alpha: 0.3),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -302,7 +394,10 @@ class DashboardScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
             child: Column(
-              children: budget.cats.values.take(3).map((cat) => _buildCategoryRow(cat)).toList(),
+              children: budget.cats.values
+                  .take(3)
+                  .map((cat) => _buildCategoryRow(cat))
+                  .toList(),
             ),
           ),
         ],
@@ -328,19 +423,30 @@ class DashboardScreen extends ConsumerWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
         ),
-        child: const Text("Detalles", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+        child: const Text(
+          "Detalles",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildBudgetSelector(WidgetRef ref, List<MenudoBudget> budgets, int selectedIdx) {
+  Widget _buildBudgetSelector(
+    WidgetRef ref,
+    List<MenudoBudget> budgets,
+    int selectedIdx,
+  ) {
     return SizedBox(
       height: 34,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 24),
         itemCount: budgets.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (ctx, i) {
           final b = budgets[i];
           final isSelected = i == selectedIdx;
@@ -354,14 +460,18 @@ class DashboardScreen extends ConsumerWidget {
               curve: Curves.easeOutCubic,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.08),
+                color: isSelected
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(100),
               ),
               alignment: Alignment.center,
               child: Text(
                 b.nombre,
                 style: TextStyle(
-                  color: isSelected ? AppColors.e8 : Colors.white.withValues(alpha: 0.6),
+                  color: isSelected
+                      ? AppColors.e8
+                      : Colors.white.withValues(alpha: 0.6),
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                 ),
@@ -391,11 +501,20 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 Text(
                   "META DE AHORRO",
-                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Colors.white.withValues(alpha: 0.45), letterSpacing: 0.5),
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white.withValues(alpha: 0.45),
+                    letterSpacing: 0.5,
+                  ),
                 ),
                 Text(
                   _fmt(budget.ahorroObjetivo),
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
                 ),
               ],
             ),
@@ -411,7 +530,10 @@ class DashboardScreen extends ConsumerWidget {
       children: [
         Container(
           height: 8,
-          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(4),
+          ),
           child: LayoutBuilder(
             builder: (_, constraints) => AnimatedContainer(
               duration: const Duration(milliseconds: 1000),
@@ -419,11 +541,17 @@ class DashboardScreen extends ConsumerWidget {
               width: constraints.maxWidth * min(pct, 1.0),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: pct > 0.9 ? [AppColors.r5, AppColors.r5.withValues(alpha: 0.7)] : [const Color(0xFF6EE7B7), const Color(0xFF34D399)],
+                  colors: pct > 0.9
+                      ? [AppColors.r5, AppColors.r5.withValues(alpha: 0.7)]
+                      : [const Color(0xFF6EE7B7), const Color(0xFF34D399)],
                 ),
                 borderRadius: BorderRadius.circular(4),
                 boxShadow: [
-                  if (pct < 0.9) BoxShadow(color: const Color(0xFF6EE7B7).withValues(alpha: 0.4), blurRadius: 8)
+                  if (pct < 0.9)
+                    BoxShadow(
+                      color: const Color(0xFF6EE7B7).withValues(alpha: 0.4),
+                      blurRadius: 8,
+                    ),
                 ],
               ),
             ),
@@ -432,7 +560,11 @@ class DashboardScreen extends ConsumerWidget {
         const SizedBox(height: 8),
         Text(
           "${(pct * 100).round()}% de tu presupuesto utilizado",
-          style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.4), fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.white.withValues(alpha: 0.4),
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
@@ -450,17 +582,32 @@ class DashboardScreen extends ConsumerWidget {
               Row(
                 children: [
                   Container(
-                    width: 24, height: 24,
-                    decoration: BoxDecoration(color: cat.color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: cat.color.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
                     child: Icon(cat.icono, size: 14, color: cat.color),
                   ),
                   const SizedBox(width: 10),
-                  Text(cat.label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                  Text(
+                    cat.label,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
                 ],
               ),
               Text(
                 "${(p * 100).round()}%",
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white.withValues(alpha: 0.6)),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white.withValues(alpha: 0.6),
+                ),
               ),
             ],
           ),
@@ -470,7 +617,9 @@ class DashboardScreen extends ConsumerWidget {
             child: LinearProgressIndicator(
               value: p,
               backgroundColor: Colors.white.withValues(alpha: 0.05),
-              valueColor: AlwaysStoppedAnimation<Color>(p > 0.95 ? AppColors.r5 : cat.color),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                p > 0.95 ? AppColors.r5 : cat.color,
+              ),
               minHeight: 3,
             ),
           ),
@@ -496,7 +645,11 @@ class DashboardScreen extends ConsumerWidget {
           color: AppColors.o5,
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
-            BoxShadow(color: AppColors.o5.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8))
+            BoxShadow(
+              color: AppColors.o5.withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
           ],
         ),
         child: const Row(
@@ -504,14 +657,25 @@ class DashboardScreen extends ConsumerWidget {
           children: [
             Icon(LucideIcons.plusCircle, color: Colors.white, size: 22),
             SizedBox(width: 10),
-            Text("NUEVA TRANSACCIÓN", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+            Text(
+              "NUEVA TRANSACCIÓN",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRecentTransactions(MenudoBudget budget, List<MenudoTransaction> recent) {
+  Widget _buildRecentTransactions(
+    MenudoBudget budget,
+    List<MenudoTransaction> recent,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -553,9 +717,13 @@ class _HeaderCircleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () { HapticFeedback.lightImpact(); onTap(); },
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
       child: Container(
-        width: 48, height: 48,
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
@@ -573,7 +741,14 @@ class _SummaryCard extends StatelessWidget {
   final Color color, bgColor;
   final VoidCallback onTap;
 
-  const _SummaryCard({required this.label, required this.amount, required this.icon, required this.color, required this.bgColor, required this.onTap});
+  const _SummaryCard({
+    required this.label,
+    required this.amount,
+    required this.icon,
+    required this.color,
+    required this.bgColor,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -594,16 +769,35 @@ class _SummaryCard extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(10)),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   child: Icon(icon, size: 16, color: color),
                 ),
                 Icon(LucideIcons.chevronRight, size: 14, color: AppColors.g3),
               ],
             ),
             const SizedBox(height: 12),
-            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.g4, letterSpacing: 0.5)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: AppColors.g4,
+                letterSpacing: 0.5,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(amount, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color, letterSpacing: -0.5)),
+            Text(
+              amount,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: color,
+                letterSpacing: -0.5,
+              ),
+            ),
           ],
         ),
       ),
@@ -617,13 +811,22 @@ class _QuickAction extends StatelessWidget {
   final Color color, bgColor;
   final VoidCallback onTap;
 
-  const _QuickAction({required this.icon, required this.label, required this.color, required this.bgColor, required this.onTap});
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.bgColor,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: GestureDetector(
-        onTap: () { HapticFeedback.lightImpact(); onTap(); },
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
@@ -634,12 +837,24 @@ class _QuickAction extends StatelessWidget {
           child: Column(
             children: [
               Container(
-                width: 42, height: 42,
-                decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Icon(icon, size: 20, color: color),
               ),
               const SizedBox(height: 8),
-              Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.g5), textAlign: TextAlign.center),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.g5,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),
@@ -655,7 +870,13 @@ class _TransactionTile extends StatelessWidget {
   final bool isLast;
   final Function(BuildContext) onTap;
 
-  const _TransactionTile({required this.transaction, required this.categoryName, required this.color, required this.isLast, required this.onTap});
+  const _TransactionTile({
+    required this.transaction,
+    required this.categoryName,
+    required this.color,
+    required this.isLast,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -669,8 +890,12 @@ class _TransactionTile extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 44, height: 44,
-                  decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   child: Icon(transaction.icono, size: 20, color: color),
                 ),
                 const SizedBox(width: 14),
@@ -678,28 +903,48 @@ class _TransactionTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(transaction.desc, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.e8), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(
+                        transaction.desc,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.e8,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       const SizedBox(height: 2),
-                      Text("$categoryName · ${transaction.dateString}", style: const TextStyle(fontSize: 12, color: AppColors.g4, fontWeight: FontWeight.w500)),
+                      Text(
+                        "$categoryName · ${transaction.dateString}",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.g4,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  transaction.tipo == "ingreso" ? "+RD\$${transaction.monto.abs().toInt()}" : "-RD\$${transaction.monto.abs().toInt()}",
+                  transaction.tipo == "ingreso"
+                      ? "+RD\$${transaction.monto.abs().toInt()}"
+                      : "-RD\$${transaction.monto.abs().toInt()}",
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
-                    color: transaction.tipo == "ingreso" ? AppColors.e6 : AppColors.e8,
+                    color: transaction.tipo == "ingreso"
+                        ? AppColors.e6
+                        : AppColors.e8,
                   ),
                 ),
               ],
             ),
           ),
-          if (!isLast) Divider(height: 1, color: AppColors.g1, indent: 74, endIndent: 16),
+          if (!isLast)
+            Divider(height: 1, color: AppColors.g1, indent: 74, endIndent: 16),
         ],
       ),
     );
   }
 }
-

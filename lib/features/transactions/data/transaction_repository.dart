@@ -1,61 +1,114 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/data/models.dart';
-import '../../../core/network/supabase_client.dart';
+import '../../../model/models.dart';
+import '../../../services/api_service.dart';
+import '../../../utils/utils.dart';
 
 class TransactionRepository {
-  final SupabaseClient _client;
-  TransactionRepository(this._client);
+  final ApiService _api;
+  TransactionRepository(this._api);
 
-  /// Fetch all transactions for a user, joined with category slug for catKey resolution.
-  Future<List<MenudoTransaction>> fetchTransactions(int userId, {int limit = 100}) async {
-    final data = await _client
-        .from('transacciones')
-        .select('*, categorias(slug, icono)')
-        .eq('usuario_id', userId)
-        .order('fecha', ascending: false)
-        .limit(limit);
-    return data.map((row) {
-      final catSlug = (row['categorias'] as Map<String, dynamic>?)?['slug'] as String? ?? '';
-      final catIcono = (row['categorias'] as Map<String, dynamic>?)?['icono'] as String? ?? 'circle';
-      return MenudoTransaction.fromJson({...row, 'categoria_icono': catIcono}, catKey: catSlug);
-    }).toList();
+  Future<List<MenudoTransaction>> fetchTransactions(
+    int userId, {
+    int limit = 100,
+  }) async {
+    final response = await _api.get<List<dynamic>>(
+      ApiPaths.transactions,
+      queryParameters: {'limit': limit},
+      parser: asJsonList,
+    );
+    return response
+        .requireData()
+        .map((row) => _transactionFromApi(asJsonMap(row)))
+        .toList();
   }
 
-  /// Fetch transactions for a specific wallet account.
-  Future<List<MenudoTransaction>> fetchTransactionsForWallet(int walletId) async {
-    final data = await _client
-        .from('transacciones')
-        .select('*, categorias(slug, icono)')
-        .or('activo_id.eq.$walletId,activo_destino_id.eq.$walletId')
-        .order('fecha', ascending: false);
-    return data.map((row) {
-      final catSlug = (row['categorias'] as Map<String, dynamic>?)?['slug'] as String? ?? '';
-      final catIcono = (row['categorias'] as Map<String, dynamic>?)?['icono'] as String? ?? 'circle';
-      return MenudoTransaction.fromJson({...row, 'categoria_icono': catIcono}, catKey: catSlug);
-    }).toList();
+  Future<List<MenudoTransaction>> fetchTransactionsForWallet(
+    int walletId,
+  ) async {
+    final response = await _api.get<List<dynamic>>(
+      ApiPaths.walletTransactions(walletId),
+      parser: asJsonList,
+    );
+    return response
+        .requireData()
+        .map((row) => _transactionFromApi(asJsonMap(row)))
+        .toList();
   }
 
-  Future<MenudoTransaction> createTransaction(int userId, int categoriaId, MenudoTransaction txn) async {
-    final row = await _client
-        .from('transacciones')
-        .insert({
-          ...txn.toJson(),
-          'usuario_id': userId,
-          'categoria_id': categoriaId,
-        })
-        .select('*, categorias(slug, icono)')
-        .single();
-    final catSlug = (row['categorias'] as Map<String, dynamic>?)?['slug'] as String? ?? '';
-    final catIcono = (row['categorias'] as Map<String, dynamic>?)?['icono'] as String? ?? 'circle';
-    return MenudoTransaction.fromJson({...row, 'categoria_icono': catIcono}, catKey: catSlug);
+  Future<MenudoTransaction> createTransaction(
+    int userId,
+    int categoriaId,
+    MenudoTransaction txn,
+  ) async {
+    if (txn.budgetId == null) {
+      throw StateError(
+        'A transaction requires a budgetId before it can be sent to the API.',
+      );
+    }
+    if (txn.fromAccountId == null) {
+      throw StateError(
+        'A transaction requires a walletId before it can be sent to the API.',
+      );
+    }
+    if (txn.catKey.isEmpty) {
+      throw StateError(
+        'A transaction requires a catKey before it can be sent to the API.',
+      );
+    }
+
+    final response = await _api.post<Map<String, dynamic>>(
+      ApiPaths.transactions,
+      body: {
+        'fecha': txn.dateString,
+        'descripcion': txn.desc,
+        'monto': txn.monto.abs(),
+        'tipo': txn.tipo,
+        'budgetId': txn.budgetId,
+        'catKey': txn.catKey,
+        'walletId': txn.fromAccountId,
+        if (txn.toAccountId != null) 'toWalletId': txn.toAccountId,
+        if (txn.nota != null) 'nota': txn.nota,
+        'moneda': txn.moneda,
+      },
+      parser: asJsonMap,
+    );
+    return _transactionFromApi(response.requireData());
   }
 
   Future<void> deleteTransaction(int transactionId) async {
-    await _client.from('transacciones').delete().eq('transaccion_id', transactionId);
+    await _api.delete<void>(ApiPaths.transactionById(transactionId));
+  }
+
+  MenudoTransaction _transactionFromApi(Map<String, dynamic> row) {
+    final categoryPayload = row['categoria'] ?? row['categorias'];
+    final category = categoryPayload == null
+        ? null
+        : asJsonMap(categoryPayload);
+    final categoryId = row['catId'] ?? row['categoria_id'];
+    final budgetId = row['budgetId'] ?? row['presupuesto_id'];
+    final walletId = row['walletId'] ?? row['activo_id'];
+    final toWalletId = row['toWalletId'] ?? row['activo_destino_id'];
+    final userId = row['userId'] ?? row['usuario_id'];
+
+    return MenudoTransaction.fromJson({
+      'transaccion_id': row['id'] ?? row['transaccion_id'],
+      'presupuesto_id': budgetId,
+      'fecha': row['fecha'],
+      'descripcion': row['descripcion'],
+      'monto': row['monto'],
+      'tipo': row['tipo'],
+      'categoria_id': categoryId,
+      'categoria_icono':
+          category?['icono'] as String? ?? row['categoria_icono'] ?? 'circle',
+      'activo_id': walletId,
+      'activo_destino_id': toWalletId,
+      'nota': row['nota'],
+      'moneda': row['moneda'],
+      'usuario_id': userId,
+    }, catKey: row['catKey'] as String? ?? category?['slug'] as String? ?? '');
   }
 }
 
 final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
-  return TransactionRepository(ref.watch(supabaseClientProvider));
+  return TransactionRepository(ref.watch(apiServiceProvider));
 });

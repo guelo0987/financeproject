@@ -34,11 +34,14 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Análisis', style: MenudoTextStyles.h1),
-                        const MenudoChip('Marzo 2026', variant: MenudoChipVariant.primary),
+                        const MenudoChip(
+                          'Marzo 2026',
+                          variant: MenudoChipVariant.primary,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    // Tabs 
+                    // Tabs
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
@@ -86,7 +89,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
             color: isSelected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             boxShadow: isSelected
-                ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))]
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
                 : null,
           ),
           child: Text(
@@ -95,7 +104,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected ? MenudoColors.textMain : MenudoColors.textSecondary,
+              color: isSelected
+                  ? MenudoColors.textMain
+                  : MenudoColors.textSecondary,
             ),
           ),
         ),
@@ -140,24 +151,51 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         sideTitles: SideTitles(
                           showTitles: true,
                           getTitlesWidget: (double value, TitleMeta meta) {
-                            const style = TextStyle(color: MenudoColors.textMuted, fontWeight: FontWeight.bold, fontSize: 10);
+                            const style = TextStyle(
+                              color: MenudoColors.textMuted,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            );
                             String text;
                             switch (value.toInt()) {
-                              case 0: text = 'Oct'; break;
-                              case 1: text = 'Nov'; break;
-                              case 2: text = 'Dic'; break;
-                              case 3: text = 'Ene'; break;
-                              case 4: text = 'Feb'; break;
-                              case 5: text = 'Mar'; break;
-                              default: text = ''; break;
+                              case 0:
+                                text = 'Oct';
+                                break;
+                              case 1:
+                                text = 'Nov';
+                                break;
+                              case 2:
+                                text = 'Dic';
+                                break;
+                              case 3:
+                                text = 'Ene';
+                                break;
+                              case 4:
+                                text = 'Feb';
+                                break;
+                              case 5:
+                                text = 'Mar';
+                                break;
+                              default:
+                                text = '';
+                                break;
                             }
-                            return SideTitleWidget(meta: meta, child: Text(text, style: style));
+                            return SideTitleWidget(
+                              meta: meta,
+                              child: Text(text, style: style),
+                            );
                           },
                         ),
                       ),
-                      leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      leftTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
                     ),
                     gridData: const FlGridData(show: false),
                     borderData: FlBorderData(show: false),
@@ -167,7 +205,11 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       _makeGroupData(2, 19, 18),
                       _makeGroupData(3, 14, 11),
                       _makeGroupData(4, 15, 13),
-                      _makeGroupData(5, 17, 10), // Current has High Income, Low Exp
+                      _makeGroupData(
+                        5,
+                        17,
+                        10,
+                      ), // Current has High Income, Low Exp
                     ],
                   ),
                 ),
@@ -178,13 +220,25 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 children: [
                   Container(width: 12, height: 12, color: MenudoColors.success),
                   const SizedBox(width: 6),
-                  const Text('Ingresos', style: TextStyle(fontSize: 12, color: MenudoColors.textMuted)),
+                  const Text(
+                    'Ingresos',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: MenudoColors.textMuted,
+                    ),
+                  ),
                   const SizedBox(width: 20),
                   Container(width: 12, height: 12, color: MenudoColors.danger),
                   const SizedBox(width: 6),
-                  const Text('Gastos', style: TextStyle(fontSize: 12, color: MenudoColors.textMuted)),
+                  const Text(
+                    'Gastos',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: MenudoColors.textMuted,
+                    ),
+                  ),
                 ],
-              )
+              ),
             ],
           ),
         ),
@@ -197,8 +251,18 @@ class _InsightsScreenState extends State<InsightsScreen> {
       barsSpace: 4,
       x: x,
       barRods: [
-        BarChartRodData(toY: y1, color: MenudoColors.success, width: 8, borderRadius: BorderRadius.circular(4)),
-        BarChartRodData(toY: y2, color: MenudoColors.danger, width: 8, borderRadius: BorderRadius.circular(4)),
+        BarChartRodData(
+          toY: y1,
+          color: MenudoColors.success,
+          width: 8,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        BarChartRodData(
+          toY: y2,
+          color: MenudoColors.danger,
+          width: 8,
+          borderRadius: BorderRadius.circular(4),
+        ),
       ],
     );
   }
@@ -222,20 +286,68 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     sectionsSpace: 2,
                     centerSpaceRadius: 50,
                     sections: [
-                      PieChartSectionData(color: MenudoColors.danger, value: 40, title: '40%', radius: 30, titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
-                      PieChartSectionData(color: MenudoColors.warning, value: 30, title: '30%', radius: 30, titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
-                      PieChartSectionData(color: MenudoColors.primary, value: 15, title: '15%', radius: 30, titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
-                      PieChartSectionData(color: MenudoColors.success, value: 15, title: '15%', radius: 30, titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
+                      PieChartSectionData(
+                        color: MenudoColors.danger,
+                        value: 40,
+                        title: '40%',
+                        radius: 30,
+                        titleStyle: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      PieChartSectionData(
+                        color: MenudoColors.warning,
+                        value: 30,
+                        title: '30%',
+                        radius: 30,
+                        titleStyle: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      PieChartSectionData(
+                        color: MenudoColors.primary,
+                        value: 15,
+                        title: '15%',
+                        radius: 30,
+                        titleStyle: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      PieChartSectionData(
+                        color: MenudoColors.success,
+                        value: 15,
+                        title: '15%',
+                        radius: 30,
+                        titleStyle: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              _buildExpenseLegend('Vivienda', MenudoColors.danger, 'RD\$25,000'),
+              _buildExpenseLegend(
+                'Vivienda',
+                MenudoColors.danger,
+                'RD\$25,000',
+              ),
               const SizedBox(height: 8),
               _buildExpenseLegend('Comida', MenudoColors.warning, 'RD\$18,000'),
               const SizedBox(height: 8),
-              _buildExpenseLegend('Transporte', MenudoColors.primary, 'RD\$9,000'),
+              _buildExpenseLegend(
+                'Transporte',
+                MenudoColors.primary,
+                'RD\$9,000',
+              ),
               const SizedBox(height: 8),
               _buildExpenseLegend('Ocio', MenudoColors.success, 'RD\$9,000'),
             ],
@@ -251,12 +363,29 @@ class _InsightsScreenState extends State<InsightsScreen> {
       children: [
         Row(
           children: [
-            Container(width: 12, height: 12, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
             const SizedBox(width: 8),
-            Text(title, style: MenudoTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              title,
+              style: MenudoTextStyles.bodyMedium.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
-        Text(amount, style: MenudoTextStyles.amountSmall.copyWith(color: MenudoColors.textSecondary)),
+        Text(
+          amount,
+          style: MenudoTextStyles.amountSmall.copyWith(
+            color: MenudoColors.textSecondary,
+          ),
+        ),
       ],
     );
   }
@@ -273,7 +402,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
             children: [
               Text('Rendimiento global', style: MenudoTextStyles.h3),
               const SizedBox(height: 4),
-              const Text('+12.4% este año', style: TextStyle(color: MenudoColors.success, fontWeight: FontWeight.bold)),
+              const Text(
+                '+12.4% este año',
+                style: TextStyle(
+                  color: MenudoColors.success,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 24),
               SizedBox(
                 height: 200,
@@ -282,17 +417,29 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     gridData: FlGridData(
                       show: true,
                       drawVerticalLine: false,
-                      getDrawingHorizontalLine: (val) => const FlLine(color: MenudoColors.divider, strokeWidth: 1),
+                      getDrawingHorizontalLine: (val) => const FlLine(
+                        color: MenudoColors.divider,
+                        strokeWidth: 1,
+                      ),
                     ),
                     titlesData: const FlTitlesData(
-                      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      topTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
                     ),
                     borderData: FlBorderData(show: false),
                     lineBarsData: [
                       LineChartBarData(
                         spots: const [
-                          FlSpot(0, 1), FlSpot(1, 1.2), FlSpot(2, 1.1), FlSpot(3, 1.5), FlSpot(4, 1.4), FlSpot(5, 1.8),
+                          FlSpot(0, 1),
+                          FlSpot(1, 1.2),
+                          FlSpot(2, 1.1),
+                          FlSpot(3, 1.5),
+                          FlSpot(4, 1.4),
+                          FlSpot(5, 1.8),
                         ],
                         isCurved: true,
                         color: MenudoColors.primary,

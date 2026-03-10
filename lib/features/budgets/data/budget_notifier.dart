@@ -11,9 +11,10 @@ class BudgetNotifier extends AsyncNotifier<List<MenudoBudget>> {
 
   @override
   Future<List<MenudoBudget>> build() async {
-    // TODO: replace with Supabase fetch once backend is ready
-    // final uid = ref.watch(authProvider).userId;
-    // if (uid != null) return ref.read(budgetRepositoryProvider).fetchBudgets(int.parse(uid));
+    final uid = ref.watch(authProvider).userId;
+    if (uid != null) {
+      return ref.read(budgetRepositoryProvider).fetchBudgets(int.parse(uid));
+    }
     return mockBudgets;
   }
 
@@ -26,17 +27,23 @@ class BudgetNotifier extends AsyncNotifier<List<MenudoBudget>> {
     );
   }
 
-  Future<void> createBudget(MenudoBudget budget, Map<String, int> catSlugToId) async {
+  Future<void> createBudget(
+    MenudoBudget budget,
+    Map<String, int> catSlugToId,
+  ) async {
     final userId = _uid();
     if (userId == 0) return;
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      await ref.read(budgetRepositoryProvider).createBudget(userId, budget, catSlugToId);
+      await ref
+          .read(budgetRepositoryProvider)
+          .createBudget(userId, budget, catSlugToId);
       return ref.read(budgetRepositoryProvider).fetchBudgets(userId);
     });
   }
 }
 
-final budgetNotifierProvider = AsyncNotifierProvider<BudgetNotifier, List<MenudoBudget>>(
-  BudgetNotifier.new,
-);
+final budgetNotifierProvider =
+    AsyncNotifierProvider<BudgetNotifier, List<MenudoBudget>>(
+      BudgetNotifier.new,
+    );

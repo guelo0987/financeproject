@@ -1,50 +1,81 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../model/auth_session.dart';
+import '../../../services/api_service.dart';
+import '../../../utils/utils.dart';
 
 class AuthRepository {
-  static const _storage = FlutterSecureStorage();
-  static const _tokenKey = 'menudo_auth_token';
-  static const _userIdKey = 'menudo_user_id';
+  AuthRepository(this._api);
 
-  /// Attempt to restore a saved session from secure storage.
-  /// Returns [userId, token] or null if no session found.
-  Future<(int, String)?> restoreSession() async {
-    final token = await _storage.read(key: _tokenKey);
-    final userIdStr = await _storage.read(key: _userIdKey);
+  final ApiService _api;
+  static const _storage = FlutterSecureStorage();
+
+  Future<AuthSession?> restoreSession() async {
+    final token = await _storage.read(key: StorageKeys.authToken);
+    final refreshToken = await _storage.read(key: StorageKeys.refreshToken);
+    final userIdStr = await _storage.read(key: StorageKeys.userId);
     if (token == null || userIdStr == null) return null;
     final userId = int.tryParse(userIdStr);
     if (userId == null) return null;
-    return (userId, token);
+    return AuthSession(
+      userId: userId,
+      token: token,
+      refreshToken: refreshToken,
+    );
   }
 
-  /// Persist a session after successful login.
-  Future<void> saveSession({required int userId, required String token}) async {
-    await _storage.write(key: _tokenKey, value: token);
-    await _storage.write(key: _userIdKey, value: userId.toString());
+  Future<void> saveSession({
+    required int userId,
+    required String token,
+    String? refreshToken,
+  }) async {
+    await _storage.write(key: StorageKeys.authToken, value: token);
+    await _storage.write(key: StorageKeys.userId, value: userId.toString());
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      await _storage.write(key: StorageKeys.refreshToken, value: refreshToken);
+    }
   }
 
-  /// Clear the saved session on logout.
   Future<void> clearSession() async {
-    await _storage.delete(key: _tokenKey);
-    await _storage.delete(key: _userIdKey);
+    await _storage.delete(key: StorageKeys.authToken);
+    await _storage.delete(key: StorageKeys.refreshToken);
+    await _storage.delete(key: StorageKeys.userId);
   }
 
-  /// Login — calls backend API. TODO: replace placeholder URL with real backend endpoint.
-  /// Returns [userId, token] on success, throws on failure.
-  Future<(int, String)> login({required String email, required String password}) async {
-    // TODO: Replace with real HTTP call to backend
-    // final response = await http.post(
-    //   Uri.parse('https://your-backend.com/auth/login'),
-    //   body: jsonEncode({'email': email, 'password': password}),
-    //   headers: {'Content-Type': 'application/json'},
-    // );
-    // final data = jsonDecode(response.body);
-    // return (data['user_id'] as int, data['token'] as String);
+  Future<AuthSession> login({
+    required String email,
+    required String password,
+  }) async {
+    final response = await _api.post<Map<String, dynamic>>(
+      ApiPaths.authLogin,
+      authenticated: false,
+      body: {'email': email, 'password': password},
+      parser: asJsonMap,
+    );
+    return AuthSession.fromJson(response.requireData());
+  }
 
-    // Temporary stub for dev — simulate a successful login
-    await Future.delayed(const Duration(milliseconds: 800));
-    return (1, 'stub_token_dev');
+  Future<AuthSession> register({
+    required String name,
+    required String email,
+    required String password,
+    required String currency,
+  }) async {
+    final response = await _api.post<Map<String, dynamic>>(
+      ApiPaths.authRegister,
+      authenticated: false,
+      body: {
+        'nombre': name,
+        'email': email,
+        'password': password,
+        'moneda_base': currency,
+      },
+      parser: asJsonMap,
+    );
+    return AuthSession.fromJson(response.requireData());
   }
 }
 
-final authRepositoryProvider = Provider<AuthRepository>((ref) => AuthRepository());
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  return AuthRepository(ref.watch(apiServiceProvider));
+});

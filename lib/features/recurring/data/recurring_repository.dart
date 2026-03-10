@@ -1,49 +1,80 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/data/models.dart';
-import '../../../core/network/supabase_client.dart';
+import '../../../model/models.dart';
+import '../../../services/api_service.dart';
+import '../../../utils/utils.dart';
 
 class RecurringRepository {
-  final SupabaseClient _client;
-  RecurringRepository(this._client);
+  final ApiService _api;
+  RecurringRepository(this._api);
 
   Future<List<RecurringTransaction>> fetchRecurring(int userId) async {
-    final data = await _client
-        .from('transacciones_recurrentes')
-        .select('*, categorias(slug, icono)')
-        .eq('usuario_id', userId)
-        .order('recurrente_id');
-    return (data as List).map((row) {
-      final map = row as Map<String, dynamic>;
-      final catSlug = (map['categorias'] as Map<String, dynamic>?)?['slug'] as String? ?? '';
-      final catIcono = (map['categorias'] as Map<String, dynamic>?)?['icono'] as String? ?? 'circle';
-      return RecurringTransaction.fromJson({...map, 'categoria_icono': catIcono}, catKey: catSlug);
-    }).toList();
+    final response = await _api.get<List<dynamic>>(
+      ApiPaths.recurringTransactions,
+      parser: asJsonList,
+    );
+    return response
+        .requireData()
+        .map((row) => _recurringFromApi(asJsonMap(row)))
+        .toList();
   }
 
-  Future<RecurringTransaction> createRecurring(int userId, int categoriaId, RecurringTransaction rec) async {
-    final row = await _client
-        .from('transacciones_recurrentes')
-        .insert({...rec.toJson(), 'usuario_id': userId, 'categoria_id': categoriaId})
-        .select('*, categorias(slug, icono)')
-        .single();
-    final catSlug = (row['categorias'] as Map<String, dynamic>?)?['slug'] as String? ?? '';
-    final catIcono = (row['categorias'] as Map<String, dynamic>?)?['icono'] as String? ?? 'circle';
-    return RecurringTransaction.fromJson({...row, 'categoria_icono': catIcono}, catKey: catSlug);
+  Future<RecurringTransaction> createRecurring(
+    int userId,
+    int categoriaId,
+    RecurringTransaction rec,
+  ) async {
+    if (rec.presupuestoId == null) {
+      throw StateError(
+        'A recurring transaction requires a budgetId before it can be sent to the API.',
+      );
+    }
+
+    final response = await _api.post<Map<String, dynamic>>(
+      ApiPaths.recurringTransactions,
+      body: {
+        'budgetId': rec.presupuestoId,
+        'walletId': rec.accountId,
+        'catKey': rec.catKey.isEmpty ? null : rec.catKey,
+        'tipo': rec.tipo,
+        'monto': rec.monto.abs(),
+        'moneda': 'DOP',
+        'descripcion': rec.desc,
+        'nota': rec.nota,
+        'frecuencia': rec.frecuencia,
+        'diaEjecucion': rec.diaEjecucion,
+        'activo': rec.activo,
+      },
+      parser: asJsonMap,
+    );
+    return _recurringFromApi(response.requireData());
   }
 
   Future<void> toggleActive(int recurrenteId, bool activo) async {
-    await _client
-        .from('transacciones_recurrentes')
-        .update({'activo': activo})
-        .eq('recurrente_id', recurrenteId);
+    await _api.patch<void>(ApiPaths.toggleRecurring(recurrenteId));
   }
 
   Future<void> deleteRecurring(int recurrenteId) async {
-    await _client.from('transacciones_recurrentes').delete().eq('recurrente_id', recurrenteId);
+    await _api.delete<void>(ApiPaths.recurringById(recurrenteId));
+  }
+
+  RecurringTransaction _recurringFromApi(Map<String, dynamic> row) {
+    return RecurringTransaction.fromJson({
+      'recurrente_id': row['id'] ?? row['recurrente_id'],
+      'presupuesto_id': row['budgetId'] ?? row['presupuesto_id'],
+      'activo_id': row['walletId'] ?? row['activo_id'],
+      'categoria_id': row['categoriaId'] ?? row['categoria_id'],
+      'descripcion': row['descripcion'],
+      'tipo': row['tipo'],
+      'monto': row['monto'],
+      'categoria_icono': row['categoria_icono'] ?? 'circle',
+      'frecuencia': row['frecuencia'],
+      'dia_ejecucion': row['diaEjecucion'] ?? row['dia_ejecucion'],
+      'activo': row['activo'],
+      'nota': row['nota'],
+    }, catKey: row['catKey'] as String? ?? '');
   }
 }
 
 final recurringRepositoryProvider = Provider<RecurringRepository>((ref) {
-  return RecurringRepository(ref.watch(supabaseClientProvider));
+  return RecurringRepository(ref.watch(apiServiceProvider));
 });

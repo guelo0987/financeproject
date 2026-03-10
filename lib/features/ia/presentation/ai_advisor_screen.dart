@@ -16,9 +16,10 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
   final List<Map<String, dynamic>> _messages = [
     {
       'isUser': false,
-      'text': '¡Hola! Soy Claude, tu asesor financiero personal en WealthOS. ¿En qué puedo ayudarte a optimizar tu portafolio hoy?',
+      'text':
+          '¡Hola! Soy Claude, tu asesor financiero personal en WealthOS. ¿En qué puedo ayudarte a optimizar tu portafolio hoy?',
       'time': DateTime.now().subtract(const Duration(minutes: 1)),
-    }
+    },
   ];
   bool _isLoading = false;
 
@@ -27,11 +28,7 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
     if (text.isEmpty) return;
 
     setState(() {
-      _messages.add({
-        'isUser': true,
-        'text': text,
-        'time': DateTime.now(),
-      });
+      _messages.add({'isUser': true, 'text': text, 'time': DateTime.now()});
       _isLoading = true;
     });
 
@@ -44,7 +41,8 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
         _isLoading = false;
         _messages.add({
           'isUser': false,
-          'text': 'Esa es una excelente pregunta. Basado en tu portafolio actual y tu meta financiera, te recomendaría diversificar un poco más hacia instrumentos de renta fija en DOP para equilibrar tu exposición a Crypto. ¿Te gustaría que evaluemos las tasas actuales de los Certificados Financieros?',
+          'text':
+              'Esa es una excelente pregunta. Basado en tu portafolio actual y tu meta financiera, te recomendaría diversificar un poco más hacia instrumentos de renta fija en DOP para equilibrar tu exposición a Crypto. ¿Te gustaría que evaluemos las tasas actuales de los Certificados Financieros?',
           'time': DateTime.now(),
         });
       });
@@ -69,7 +67,11 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                 color: AppColors.accent.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.smart_toy, color: AppColors.accent, size: 20),
+              child: const Icon(
+                Icons.smart_toy,
+                color: AppColors.accent,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             Column(
@@ -94,7 +96,9 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                   final isUser = msg['isUser'] as bool;
 
                   return Align(
-                    alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                    alignment: isUser
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.all(16),
@@ -102,12 +106,20 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                         maxWidth: MediaQuery.of(context).size.width * 0.75,
                       ),
                       decoration: BoxDecoration(
-                        color: isUser ? AppColors.accent : AppColors.surfaceLight,
+                        color: isUser
+                            ? AppColors.accent
+                            : AppColors.surfaceLight,
                         borderRadius: BorderRadius.circular(20).copyWith(
-                          bottomRight: isUser ? const Radius.circular(4) : const Radius.circular(20),
-                          bottomLeft: !isUser ? const Radius.circular(4) : const Radius.circular(20),
+                          bottomRight: isUser
+                              ? const Radius.circular(4)
+                              : const Radius.circular(20),
+                          bottomLeft: !isUser
+                              ? const Radius.circular(4)
+                              : const Radius.circular(20),
                         ),
-                        border: isUser ? null : Border.all(color: AppColors.cardBorder),
+                        border: isUser
+                            ? null
+                            : Border.all(color: AppColors.cardBorder),
                       ),
                       child: Text(
                         msg['text'] as String,
@@ -126,7 +138,10 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceLight,
                       borderRadius: BorderRadius.circular(20),
@@ -140,11 +155,16 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                           height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.accent,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Text('Analizando portafolio...', style: AppTextStyles.bodySmall),
+                        Text(
+                          'Analizando portafolio...',
+                          style: AppTextStyles.bodySmall,
+                        ),
                       ],
                     ),
                   ).animate().fadeIn(),
@@ -188,7 +208,11 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                         color: AppColors.accent,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],

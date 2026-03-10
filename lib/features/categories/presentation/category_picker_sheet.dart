@@ -32,7 +32,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
       backgroundColor: Colors.transparent,
       builder: (_) => const AddCategorySheet(),
     );
-    setState(() {}); 
+    setState(() {});
   }
 
   @override
@@ -40,7 +40,9 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
     // Group categories
     final Map<MenudoCategory, List<MenudoCategory>> grouped = {};
     for (var parent in mockCategories.where((c) => c.esParent)) {
-      grouped[parent] = mockCategories.where((c) => c.categoriaParadreId == parent.id).toList();
+      grouped[parent] = mockCategories
+          .where((c) => c.categoriaParadreId == parent.id)
+          .toList();
     }
 
     return Container(
@@ -55,8 +57,12 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
           Center(
             child: Container(
               margin: const EdgeInsets.only(top: 12, bottom: 8),
-              height: 5, width: 40,
-              decoration: BoxDecoration(color: AppColors.g2, borderRadius: BorderRadius.circular(3)),
+              height: 5,
+              width: 40,
+              decoration: BoxDecoration(
+                color: AppColors.g2,
+                borderRadius: BorderRadius.circular(3),
+              ),
             ),
           ),
 
@@ -66,13 +72,28 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Categoría", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.e8, letterSpacing: -0.5)),
+                const Text(
+                  "Categoría",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.e8,
+                    letterSpacing: -0.5,
+                  ),
+                ),
                 IconButton(
                   onPressed: _showAddCategory,
                   icon: Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: AppColors.o1, shape: BoxShape.circle),
-                    child: const Icon(LucideIcons.plus, size: 18, color: AppColors.o5),
+                    decoration: BoxDecoration(
+                      color: AppColors.o1,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      LucideIcons.plus,
+                      size: 18,
+                      color: AppColors.o5,
+                    ),
                   ),
                 ),
               ],
@@ -91,86 +112,140 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4, bottom: 12),
-                        child: Row(
-                          children: [
-                            Icon(parent.icono, size: 16, color: parent.color),
-                            const SizedBox(width: 8),
-                            Text(
-                              parent.nombre.toUpperCase(),
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.g5, letterSpacing: 1.0),
-                            ),
-                          ],
-                        ),
-                      ),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.9,
-                        ),
-                        itemCount: subs.length,
-                        itemBuilder: (context, subIndex) {
-                          final cat = subs[subIndex];
-                          final bool isSelected = _selectedKey == cat.slug;
-
-                          return GestureDetector(
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              setState(() => _selectedKey = cat.slug);
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(22),
-                                border: Border.all(
-                                  color: isSelected ? cat.color : AppColors.g2,
-                                  width: isSelected ? 2.5 : 1.5,
+                  child:
+                      Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 4,
+                                  bottom: 12,
                                 ),
-                                boxShadow: isSelected
-                                    ? [BoxShadow(color: cat.color.withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, 4))]
-                                    : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))],
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 44, height: 44,
-                                    decoration: BoxDecoration(
-                                      color: isSelected ? cat.color.withValues(alpha: 0.1) : AppColors.g1,
-                                      borderRadius: BorderRadius.circular(14),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      parent.icono,
+                                      size: 16,
+                                      color: parent.color,
                                     ),
-                                    alignment: Alignment.center,
-                                    child: Icon(cat.icono, size: 22, color: isSelected ? cat.color : AppColors.g4),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    cat.nombre,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                                      color: isSelected ? cat.color : AppColors.e8,
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      parent.nombre.toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.g5,
+                                        letterSpacing: 1.0,
+                                      ),
                                     ),
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ).animate().fadeIn(duration: 400.ms, delay: (index * 50).ms).slideY(begin: 0.05, end: 0),
+                              GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 3,
+                                      mainAxisSpacing: 12,
+                                      crossAxisSpacing: 12,
+                                      childAspectRatio: 0.9,
+                                    ),
+                                itemCount: subs.length,
+                                itemBuilder: (context, subIndex) {
+                                  final cat = subs[subIndex];
+                                  final bool isSelected =
+                                      _selectedKey == cat.slug;
+
+                                  return GestureDetector(
+                                    onTap: () {
+                                      HapticFeedback.lightImpact();
+                                      setState(() => _selectedKey = cat.slug);
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(22),
+                                        border: Border.all(
+                                          color: isSelected
+                                              ? cat.color
+                                              : AppColors.g2,
+                                          width: isSelected ? 2.5 : 1.5,
+                                        ),
+                                        boxShadow: isSelected
+                                            ? [
+                                                BoxShadow(
+                                                  color: cat.color.withValues(
+                                                    alpha: 0.15,
+                                                  ),
+                                                  blurRadius: 12,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ]
+                                            : [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.02),
+                                                  blurRadius: 4,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ],
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            width: 44,
+                                            height: 44,
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? cat.color.withValues(
+                                                      alpha: 0.1,
+                                                    )
+                                                  : AppColors.g1,
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Icon(
+                                              cat.icono,
+                                              size: 22,
+                                              color: isSelected
+                                                  ? cat.color
+                                                  : AppColors.g4,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            cat.nombre,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: isSelected
+                                                  ? FontWeight.w800
+                                                  : FontWeight.w600,
+                                              color: isSelected
+                                                  ? cat.color
+                                                  : AppColors.e8,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          )
+                          .animate()
+                          .fadeIn(duration: 400.ms, delay: (index * 50).ms)
+                          .slideY(begin: 0.05, end: 0),
                 );
               },
             ),
@@ -178,7 +253,12 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
 
           // Confirm button
           Padding(
-            padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + MediaQuery.of(context).padding.bottom),
+            padding: EdgeInsets.fromLTRB(
+              24,
+              16,
+              24,
+              24 + MediaQuery.of(context).padding.bottom,
+            ),
             child: GestureDetector(
               onTap: _selectedKey != null
                   ? () {
@@ -194,7 +274,13 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
                   color: _selectedKey != null ? AppColors.e8 : AppColors.g2,
                   borderRadius: BorderRadius.circular(100),
                   boxShadow: _selectedKey != null
-                      ? [BoxShadow(color: AppColors.e8.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8))]
+                      ? [
+                          BoxShadow(
+                            color: AppColors.e8.withValues(alpha: 0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ]
                       : null,
                 ),
                 alignment: Alignment.center,
@@ -215,4 +301,3 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
     );
   }
 }
-

@@ -12,9 +12,10 @@ class WalletNotifier extends AsyncNotifier<List<WalletAccount>> {
 
   @override
   Future<List<WalletAccount>> build() async {
-    // TODO: replace with Supabase fetch once backend is ready
-    // final uid = ref.watch(authProvider).userId;
-    // if (uid != null) return ref.read(walletRepositoryProvider).fetchWallets(int.parse(uid));
+    final uid = ref.watch(authProvider).userId;
+    if (uid != null) {
+      return ref.read(walletRepositoryProvider).fetchWallets(int.parse(uid));
+    }
     return mockWallets;
   }
 
@@ -38,9 +39,10 @@ class WalletNotifier extends AsyncNotifier<List<WalletAccount>> {
   }
 }
 
-final walletNotifierProvider = AsyncNotifierProvider<WalletNotifier, List<WalletAccount>>(
-  WalletNotifier.new,
-);
+final walletNotifierProvider =
+    AsyncNotifierProvider<WalletNotifier, List<WalletAccount>>(
+      WalletNotifier.new,
+    );
 
 // Provider to manage the default wallet ID for new transactions
 final defaultWalletIdProvider = StateProvider<int?>((ref) {

@@ -1,4 +1,3 @@
-
 import 'package:go_router/go_router.dart';
 import 'main_shell.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
@@ -28,10 +27,11 @@ final appRouter = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/splash',
     redirect: (context, state) {
-      final isGoingToAuthOrOnboarding = state.matchedLocation == '/login' || 
-                            state.matchedLocation == '/register' ||
-                            state.matchedLocation == '/splash' ||
-                            state.matchedLocation == '/onboarding';
+      final isGoingToAuthOrOnboarding =
+          state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register' ||
+          state.matchedLocation == '/splash' ||
+          state.matchedLocation == '/onboarding';
 
       // If not logged in and not going to auth/onboarding pages, redirect to login
       if (!isAuth && !isGoingToAuthOrOnboarding) {
@@ -54,79 +54,69 @@ final appRouter = Provider<GoRouter>((ref) {
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),
       ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
       ),
       ShellRoute(
-      builder: (context, state, child) => MainShell(child: child),
-      routes: [
-        GoRoute(
-          path: '/',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: DashboardScreen(),
+        builder: (context, state, child) => MainShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: DashboardScreen()),
           ),
-        ),
-        GoRoute(
-          path: '/calendar',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: CalendarScreen(),
+          GoRoute(
+            path: '/calendar',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: CalendarScreen()),
           ),
-        ),
-        GoRoute(
-          path: '/budgets',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: BudgetsScreen(),
+          GoRoute(
+            path: '/budgets',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: BudgetsScreen()),
           ),
-        ),
-        GoRoute(
-          path: '/wallet',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: WalletScreen(),
+          GoRoute(
+            path: '/wallet',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: WalletScreen()),
           ),
-        ),
-      ],
-    ),
-    GoRoute(
-      path: '/history',
-      builder: (context, state) => const TransactionHistoryScreen(),
-    ),
-    GoRoute(
-      path: '/invest',
-      builder: (context, state) => const InvestScreen(),
-    ),
-    GoRoute(
-      path: '/quick-log',
-      builder: (context, state) => const QuickLogScreen(),
-    ),
-    GoRoute(
-      path: '/ai-advisor',
-      builder: (context, state) => const AiAdvisorScreen(),
-    ),
-    GoRoute(
-      path: '/spaces-manager',
-      builder: (context, state) => const SpacesManagerScreen(),
-    ),
-    GoRoute(
-      path: '/settings',
-      builder: (context, state) => const SettingsScreen(),
-    ),
-    GoRoute(
-      path: '/categories',
-      builder: (context, state) => const CategoriesScreen(),
-    ),
-    GoRoute(
-      path: '/tools',
-      builder: (context, state) => const ToolsScreen(),
-    ),
-    GoRoute(
-      path: '/recurring',
-      builder: (context, state) => const RecurringScreen(),
-    ),
-  ],
-);
+        ],
+      ),
+      GoRoute(
+        path: '/history',
+        builder: (context, state) => const TransactionHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/invest',
+        builder: (context, state) => const InvestScreen(),
+      ),
+      GoRoute(
+        path: '/quick-log',
+        builder: (context, state) => const QuickLogScreen(),
+      ),
+      GoRoute(
+        path: '/ai-advisor',
+        builder: (context, state) => const AiAdvisorScreen(),
+      ),
+      GoRoute(
+        path: '/spaces-manager',
+        builder: (context, state) => const SpacesManagerScreen(),
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/categories',
+        builder: (context, state) => const CategoriesScreen(),
+      ),
+      GoRoute(path: '/tools', builder: (context, state) => const ToolsScreen()),
+      GoRoute(
+        path: '/recurring',
+        builder: (context, state) => const RecurringScreen(),
+      ),
+    ],
+  );
 });

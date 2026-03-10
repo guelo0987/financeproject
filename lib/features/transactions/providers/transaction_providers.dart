@@ -11,9 +11,12 @@ class TransactionNotifier extends AsyncNotifier<List<MenudoTransaction>> {
 
   @override
   Future<List<MenudoTransaction>> build() async {
-    // TODO: replace with Supabase fetch once backend is ready
-    // final uid = ref.watch(authProvider).userId;
-    // if (uid != null) return ref.read(transactionRepositoryProvider).fetchTransactions(int.parse(uid));
+    final uid = ref.watch(authProvider).userId;
+    if (uid != null) {
+      return ref
+          .read(transactionRepositoryProvider)
+          .fetchTransactions(int.parse(uid));
+    }
     return mockTxns;
   }
 
@@ -22,7 +25,9 @@ class TransactionNotifier extends AsyncNotifier<List<MenudoTransaction>> {
     if (userId == 0) return;
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      await ref.read(transactionRepositoryProvider).createTransaction(userId, categoriaId, txn);
+      await ref
+          .read(transactionRepositoryProvider)
+          .createTransaction(userId, categoriaId, txn);
       return ref.read(transactionRepositoryProvider).fetchTransactions(userId);
     });
   }
@@ -39,8 +44,8 @@ class TransactionNotifier extends AsyncNotifier<List<MenudoTransaction>> {
 
 final transactionNotifierProvider =
     AsyncNotifierProvider<TransactionNotifier, List<MenudoTransaction>>(
-  TransactionNotifier.new,
-);
+      TransactionNotifier.new,
+    );
 
 // Filtered provider: only gastos for the current month
 final monthlyGastosProvider = Provider<List<MenudoTransaction>>((ref) {

@@ -31,7 +31,7 @@ abstract class MenudoTextStyles {
   );
 
   // Body
-  static final TextStyle bodyLarge  = GoogleFonts.plusJakartaSans(
+  static final TextStyle bodyLarge = GoogleFonts.plusJakartaSans(
     fontSize: 16,
     fontWeight: FontWeight.w600,
     color: MenudoColors.textMain,
@@ -41,7 +41,7 @@ abstract class MenudoTextStyles {
     fontWeight: FontWeight.w600,
     color: MenudoColors.textMain,
   );
-  static final TextStyle bodySmall  = GoogleFonts.plusJakartaSans(
+  static final TextStyle bodySmall = GoogleFonts.plusJakartaSans(
     fontSize: 12,
     fontWeight: FontWeight.w500,
     color: MenudoColors.textMain,
@@ -57,14 +57,14 @@ abstract class MenudoTextStyles {
     fontSize: 13,
     fontWeight: FontWeight.w700,
   );
-  
+
   // Amounts
   static final TextStyle amountMedium = GoogleFonts.plusJakartaSans(
     fontSize: 18,
     fontWeight: FontWeight.w800,
     letterSpacing: -0.5,
   );
-  static final TextStyle amountSmall  = GoogleFonts.plusJakartaSans(
+  static final TextStyle amountSmall = GoogleFonts.plusJakartaSans(
     fontSize: 14,
     fontWeight: FontWeight.w700,
   );
@@ -72,31 +72,40 @@ abstract class MenudoTextStyles {
 
 // --- LEGACY SHIMS FOR UNREFACTORED SCREENS ---
 abstract class AppTextStyles {
-  static TextStyle get displayLarge => MenudoTextStyles.h1.copyWith(fontSize: 32);
+  static TextStyle get displayLarge =>
+      MenudoTextStyles.h1.copyWith(fontSize: 32);
   static TextStyle get displayMedium => MenudoTextStyles.h1;
   static TextStyle get displaySmall => MenudoTextStyles.h2;
-  
+
   static TextStyle get headlineLarge => MenudoTextStyles.h3;
-  static TextStyle get headlineMedium => MenudoTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold);
-  static TextStyle get headlineSmall => MenudoTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold);
-  
+  static TextStyle get headlineMedium =>
+      MenudoTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold);
+  static TextStyle get headlineSmall =>
+      MenudoTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold);
+
   static TextStyle get titleLarge => MenudoTextStyles.h3;
-  static TextStyle get titleMedium => MenudoTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600);
-  static TextStyle get titleSmall => MenudoTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600);
-  
+  static TextStyle get titleMedium =>
+      MenudoTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600);
+  static TextStyle get titleSmall =>
+      MenudoTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600);
+
   static TextStyle get bodyLarge => MenudoTextStyles.bodyLarge;
   static TextStyle get bodyMedium => MenudoTextStyles.bodyMedium;
   static TextStyle get bodySmall => MenudoTextStyles.bodySmall;
-  
+
   static TextStyle get labelLarge => MenudoTextStyles.labelBold;
-  static TextStyle get labelMedium => MenudoTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600);
+  static TextStyle get labelMedium =>
+      MenudoTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600);
   static TextStyle get labelSmall => MenudoTextStyles.labelCaps;
-  
+
   static TextStyle get sectionTitle => MenudoTextStyles.labelCaps;
   static TextStyle get amountLarge => MenudoTextStyles.heroAmount;
-  static TextStyle get amountMedium => MenudoTextStyles.amountSmall.copyWith(fontSize: 24);
+  static TextStyle get amountMedium =>
+      MenudoTextStyles.amountSmall.copyWith(fontSize: 24);
   static TextStyle get cardValue => MenudoTextStyles.amountSmall;
   static TextStyle get numpadKey => MenudoTextStyles.h2;
-  static TextStyle get variationPositive => MenudoTextStyles.labelBold.copyWith(color: AppColors.positive);
-  static TextStyle get variationNegative => MenudoTextStyles.labelBold.copyWith(color: AppColors.negative);
+  static TextStyle get variationPositive =>
+      MenudoTextStyles.labelBold.copyWith(color: AppColors.positive);
+  static TextStyle get variationNegative =>
+      MenudoTextStyles.labelBold.copyWith(color: AppColors.negative);
 }

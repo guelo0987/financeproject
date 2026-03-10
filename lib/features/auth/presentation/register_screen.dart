@@ -31,15 +31,39 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
-  void _handleRegister() {
+  void _handleBack() {
+    final router = GoRouter.of(context);
+    if (router.canPop()) {
+      router.pop();
+      return;
+    }
+    context.go('/login');
+  }
+
+  Future<void> _handleRegister() async {
     setState(() => _isLoading = true);
-    // Simulate API call
-    Future.delayed(const Duration(seconds: 2), () {
+
+    try {
+      await ref
+          .read(authProvider.notifier)
+          .register(
+            name: _nameController.text.trim(),
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            currency: _isDop ? 'DOP' : 'USD',
+          );
       if (!mounted) return;
-      ref.read(authProvider.notifier).login('usr_mock_new', 'mock.jwt.token');
       context.go('/');
-      setState(() => _isLoading = false);
-    });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -51,7 +75,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: MenudoColors.textMain),
-          onPressed: () => context.pop(),
+          onPressed: _handleBack,
         ),
       ),
       body: SafeArea(
@@ -65,16 +89,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 'Crear cuenta',
                 style: MenudoTextStyles.h1,
               ).animate().fadeIn(delay: 100.ms),
-              
+
               const SizedBox(height: 8),
-              
+
               Text(
                 '5 días gratis, luego \$5 USD/mes',
-                style: MenudoTextStyles.bodyMedium.copyWith(color: MenudoColors.success),
+                style: MenudoTextStyles.bodyMedium.copyWith(
+                  color: MenudoColors.success,
+                ),
               ).animate().fadeIn(delay: 200.ms),
-              
+
               const SizedBox(height: 32),
-              
+
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -101,7 +127,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     prefixIcon: const Icon(Icons.lock_outline),
                     trailing: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
                         color: MenudoColors.textSecondary,
                       ),
                       onPressed: () {
@@ -112,8 +140,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
-                  Text('Moneda principal', style: MenudoTextStyles.bodyMedium.copyWith(color: MenudoColors.textMuted)),
+
+                  Text(
+                    'Moneda principal',
+                    style: MenudoTextStyles.bodyMedium.copyWith(
+                      color: MenudoColors.textMuted,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -134,23 +167,28 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 32),
                   MenudoPrimaryButton(
                     label: _isLoading ? 'Procesando...' : 'Crear mi cuenta',
-                    onTap: _isLoading ? null : _handleRegister,
+                    onTap: _isLoading ? null : () => _handleRegister(),
                     isDisabled: _isLoading,
                   ),
                 ],
               ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
-              
+
               const SizedBox(height: 24),
               Row(
                 children: [
                   const Expanded(child: Divider(color: MenudoColors.divider)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('o continúa con', style: MenudoTextStyles.bodySmall.copyWith(color: MenudoColors.textMuted)),
+                    child: Text(
+                      'o continúa con',
+                      style: MenudoTextStyles.bodySmall.copyWith(
+                        color: MenudoColors.textMuted,
+                      ),
+                    ),
                   ),
                   const Expanded(child: Divider(color: MenudoColors.divider)),
                 ],
@@ -162,10 +200,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   side: const BorderSide(color: MenudoColors.border),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 icon: const Icon(Icons.apple, size: 24),
-                label: const Text('Continuar con Apple', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                label: const Text(
+                  'Continuar con Apple',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
               const SizedBox(height: 40),
             ],
@@ -194,7 +237,9 @@ class _CurrencyOption extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? MenudoColors.cardBg.withValues(alpha: 0.1) : Colors.white,
+          color: isSelected
+              ? MenudoColors.cardBg.withValues(alpha: 0.1)
+              : Colors.white,
           border: Border.all(
             color: isSelected ? MenudoColors.cardBg : MenudoColors.border,
             width: isSelected ? 2 : 1,
@@ -204,19 +249,31 @@ class _CurrencyOption extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.monetization_on_outlined, size: 20, color: isSelected ? MenudoColors.cardBg : MenudoColors.textSecondary),
+            Icon(
+              Icons.monetization_on_outlined,
+              size: 20,
+              color: isSelected
+                  ? MenudoColors.cardBg
+                  : MenudoColors.textSecondary,
+            ),
             const SizedBox(width: 8),
             Text(
               currency,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: isSelected ? MenudoColors.cardBg : MenudoColors.textSecondary,
+                color: isSelected
+                    ? MenudoColors.cardBg
+                    : MenudoColors.textSecondary,
               ),
             ),
             if (isSelected) ...[
               const SizedBox(width: 8),
-              const Icon(Icons.check_circle, color: MenudoColors.cardBg, size: 16),
-            ]
+              const Icon(
+                Icons.check_circle,
+                color: MenudoColors.cardBg,
+                size: 16,
+              ),
+            ],
           ],
         ),
       ),

@@ -24,7 +24,8 @@ class _InvestScreenState extends State<InvestScreen> {
 
   List<InvestmentInstrument> get _filteredInstruments {
     return MockData.instruments.where((inst) {
-      final matchType = _selectedFilter == 'Todos' || inst.type == _selectedFilter;
+      final matchType =
+          _selectedFilter == 'Todos' || inst.type == _selectedFilter;
       final matchCurrency =
           _selectedCurrency == 'Todos' || inst.currency == _selectedCurrency;
       return matchType && matchCurrency;
@@ -85,17 +86,22 @@ class _InvestScreenState extends State<InvestScreen> {
                           final filter = _filters[index];
                           final isSelected = _selectedFilter == filter;
                           return GestureDetector(
-                            onTap: () => setState(() => _selectedFilter = filter),
+                            onTap: () =>
+                                setState(() => _selectedFilter = filter),
                             child: AnimatedContainer(
                               duration: AppConstants.animFast,
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? AppColors.accentSurface
                                     : AppColors.surfaceLight,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: isSelected ? AppColors.accent : AppColors.cardBorder,
+                                  color: isSelected
+                                      ? AppColors.accent
+                                      : AppColors.cardBorder,
                                 ),
                               ),
                               child: Center(
@@ -125,7 +131,9 @@ class _InvestScreenState extends State<InvestScreen> {
                             child: AnimatedContainer(
                               duration: AppConstants.animFast,
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? AppColors.surfaceLight
@@ -159,21 +167,19 @@ class _InvestScreenState extends State<InvestScreen> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final instrument = instruments[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _InstrumentCard(
-                        instrument: instrument,
-                        onCalculate: () => _showCalculator(instrument),
-                      ),
-                    ).animate()
-                        .fadeIn(duration: 400.ms, delay: (150 + 80 * index).ms)
-                        .slideY(begin: 0.05);
-                  },
-                  childCount: instruments.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final instrument = instruments[index];
+                  return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _InstrumentCard(
+                          instrument: instrument,
+                          onCalculate: () => _showCalculator(instrument),
+                        ),
+                      )
+                      .animate()
+                      .fadeIn(duration: 400.ms, delay: (150 + 80 * index).ms)
+                      .slideY(begin: 0.05);
+                }, childCount: instruments.length),
               ),
             ),
           ],
@@ -189,10 +195,7 @@ class _InstrumentCard extends StatelessWidget {
   final InvestmentInstrument instrument;
   final VoidCallback onCalculate;
 
-  const _InstrumentCard({
-    required this.instrument,
-    required this.onCalculate,
-  });
+  const _InstrumentCard({required this.instrument, required this.onCalculate});
 
   @override
   Widget build(BuildContext context) {
@@ -214,7 +217,9 @@ class _InstrumentCard extends StatelessWidget {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.surfaceLight,
                             borderRadius: BorderRadius.circular(6),
@@ -229,9 +234,13 @@ class _InstrumentCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
-                            color: instrument.risk.color.withValues(alpha: 0.15),
+                            color: instrument.risk.color.withValues(
+                              alpha: 0.15,
+                            ),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -246,13 +255,19 @@ class _InstrumentCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(instrument.name, style: AppTextStyles.headlineSmall),
                     const SizedBox(height: 2),
-                    Text(instrument.institution, style: AppTextStyles.bodySmall),
+                    Text(
+                      instrument.institution,
+                      style: AppTextStyles.bodySmall,
+                    ),
                   ],
                 ),
               ),
               // Yield badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -261,7 +276,9 @@ class _InstrumentCard extends StatelessWidget {
                     ],
                   ),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: AppColors.accent.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -287,20 +304,15 @@ class _InstrumentCard extends StatelessWidget {
           // Details row
           Row(
             children: [
-              _DetailChip(
-                label: 'Plazo',
-                value: instrument.term,
-              ),
+              _DetailChip(label: 'Plazo', value: instrument.term),
               const SizedBox(width: 12),
               _DetailChip(
                 label: 'Mínimo',
-                value: '${instrument.currency} ${formatter.format(instrument.minimumAmount)}',
+                value:
+                    '${instrument.currency} ${formatter.format(instrument.minimumAmount)}',
               ),
               const SizedBox(width: 12),
-              _DetailChip(
-                label: 'Moneda',
-                value: instrument.currency,
-              ),
+              _DetailChip(label: 'Moneda', value: instrument.currency),
             ],
           ),
           const SizedBox(height: 12),
@@ -369,7 +381,8 @@ class _YieldCalculatorSheet extends StatefulWidget {
 class _YieldCalculatorSheetState extends State<_YieldCalculatorSheet> {
   final _controller = TextEditingController(text: '100000');
 
-  double get _amount => double.tryParse(_controller.text.replaceAll(',', '')) ?? 0;
+  double get _amount =>
+      double.tryParse(_controller.text.replaceAll(',', '')) ?? 0;
   double get _yearlyReturn => _amount * (widget.instrument.annualYield / 100);
   double get _monthlyReturn => _yearlyReturn / 12;
 
@@ -386,7 +399,11 @@ class _YieldCalculatorSheetState extends State<_YieldCalculatorSheet> {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+        24,
+        24,
+        24,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -402,13 +419,14 @@ class _YieldCalculatorSheetState extends State<_YieldCalculatorSheet> {
             ),
           ),
           const SizedBox(height: 20),
-          Text('Calculadora de Rendimiento',
-              style: AppTextStyles.headlineLarge),
+          Text(
+            'Calculadora de Rendimiento',
+            style: AppTextStyles.headlineLarge,
+          ),
           const SizedBox(height: 4),
           Text(widget.instrument.name, style: AppTextStyles.bodyMedium),
           const SizedBox(height: 20),
-          Text('MONTO A INVERTIR ($prefix)',
-              style: AppTextStyles.sectionTitle),
+          Text('MONTO A INVERTIR ($prefix)', style: AppTextStyles.sectionTitle),
           const SizedBox(height: 8),
           TextField(
             controller: _controller,
@@ -439,7 +457,10 @@ class _YieldCalculatorSheetState extends State<_YieldCalculatorSheet> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Rendimiento mensual', style: AppTextStyles.bodyMedium),
+                    Text(
+                      'Rendimiento mensual',
+                      style: AppTextStyles.bodyMedium,
+                    ),
                     Text(
                       '$prefix ${formatter.format(_monthlyReturn)}',
                       style: AppTextStyles.cardValue.copyWith(

@@ -20,9 +20,16 @@ class BudgetsScreen extends ConsumerStatefulWidget {
 
 class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   String _filtro = "Todos";
-  final List<String> _filtros = ["Todos", "Mensual", "Quincenal", "Semanal", "Único"];
+  final List<String> _filtros = [
+    "Todos",
+    "Mensual",
+    "Quincenal",
+    "Semanal",
+    "Único",
+  ];
 
-  String _fmt(double val) => "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
+  String _fmt(double val) =>
+      "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
 
   void _showDetail(MenudoBudget b) {
     HapticFeedback.lightImpact();
@@ -46,12 +53,17 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final budgets = ref.watch(budgetNotifierProvider).valueOrNull ?? mockBudgets;
-    final selectedIdx = ref.watch(selectedBudgetIdxProvider).clamp(0, budgets.isEmpty ? 0 : budgets.length - 1);
+    final budgets =
+        ref.watch(budgetNotifierProvider).valueOrNull ?? mockBudgets;
+    final selectedIdx = ref
+        .watch(selectedBudgetIdxProvider)
+        .clamp(0, budgets.isEmpty ? 0 : budgets.length - 1);
 
     final filteredBudgets = _filtro == "Todos"
         ? budgets
-        : budgets.where((b) => b.periodo.toLowerCase() == _filtro.toLowerCase()).toList();
+        : budgets
+              .where((b) => b.periodo.toLowerCase() == _filtro.toLowerCase())
+              .toList();
 
     return Scaffold(
       backgroundColor: AppColors.g0,
@@ -65,7 +77,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
             backgroundColor: Colors.white,
             elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsetsDirectional.only(start: 20, bottom: 16),
+              titlePadding: const EdgeInsetsDirectional.only(
+                start: 20,
+                bottom: 16,
+              ),
               centerTitle: false,
               title: const Text(
                 'Presupuestos',
@@ -85,8 +100,15 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                   onPressed: _showCreate,
                   icon: Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: AppColors.o5, shape: BoxShape.circle),
-                    child: const Icon(LucideIcons.plus, color: Colors.white, size: 18),
+                    decoration: BoxDecoration(
+                      color: AppColors.o5,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      LucideIcons.plus,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
                 ),
               ),
@@ -107,9 +129,10 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                   const SizedBox(height: 20),
 
                   // Filters
-                  _buildFilters()
-                      .animate()
-                      .fadeIn(duration: 400.ms, delay: 100.ms),
+                  _buildFilters().animate().fadeIn(
+                    duration: 400.ms,
+                    delay: 100.ms,
+                  ),
 
                   const SizedBox(height: 24),
 
@@ -120,23 +143,33 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                       final b = entry.value;
                       final globalIdx = budgets.indexOf(b);
                       return _BudgetCard(
-                        budget: b,
-                        isDashboardActive: globalIdx == selectedIdx,
-                        onTap: () => _showDetail(b),
-                        onSetActive: () {
-                          HapticFeedback.mediumImpact();
-                          ref.read(selectedBudgetIdxProvider.notifier).state = globalIdx;
-                        },
-                        fmt: _fmt,
-                      ).animate().fadeIn(duration: 500.ms, delay: (200 + entry.key * 100).ms).slideY(begin: 0.05, end: 0, curve: Curves.easeOut);
+                            budget: b,
+                            isDashboardActive: globalIdx == selectedIdx,
+                            onTap: () => _showDetail(b),
+                            onSetActive: () {
+                              HapticFeedback.mediumImpact();
+                              ref
+                                      .read(selectedBudgetIdxProvider.notifier)
+                                      .state =
+                                  globalIdx;
+                            },
+                            fmt: _fmt,
+                          )
+                          .animate()
+                          .fadeIn(
+                            duration: 500.ms,
+                            delay: (200 + entry.key * 100).ms,
+                          )
+                          .slideY(begin: 0.05, end: 0, curve: Curves.easeOut);
                     }),
-                  
+
                   const SizedBox(height: 20),
-                  
-                  _buildCreateNewButton()
-                      .animate()
-                      .fadeIn(duration: 500.ms, delay: 400.ms),
-                  
+
+                  _buildCreateNewButton().animate().fadeIn(
+                    duration: 500.ms,
+                    delay: 400.ms,
+                  ),
+
                   const SizedBox(height: 120),
                 ],
               ),
@@ -159,19 +192,38 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-            child: const Icon(LucideIcons.layoutDashboard, size: 16, color: AppColors.e8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              LucideIcons.layoutDashboard,
+              size: 16,
+              color: AppColors.e8,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("VISUALIZACIÓN ACTIVA", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.e8, letterSpacing: 0.5)),
+                const Text(
+                  "VISUALIZACIÓN ACTIVA",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.e8,
+                    letterSpacing: 0.5,
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   budgets.isNotEmpty ? budgets[selectedIdx].nombre : 'Ninguno',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.e8),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.e8,
+                  ),
                 ),
               ],
             ),
@@ -188,7 +240,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: _filtros.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (_, i) {
           final p = _filtros[i];
           final selected = p == _filtro;
@@ -204,7 +256,9 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               decoration: BoxDecoration(
                 color: selected ? AppColors.e8 : Colors.white,
                 borderRadius: BorderRadius.circular(100),
-                border: Border.all(color: selected ? AppColors.e8 : AppColors.g2),
+                border: Border.all(
+                  color: selected ? AppColors.e8 : AppColors.g2,
+                ),
               ),
               alignment: Alignment.center,
               child: Text(
@@ -228,11 +282,25 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         padding: const EdgeInsets.only(top: 60),
         child: Column(
           children: [
-            const Icon(LucideIcons.clipboardList, size: 48, color: AppColors.g3),
+            const Icon(
+              LucideIcons.clipboardList,
+              size: 48,
+              color: AppColors.g3,
+            ),
             const SizedBox(height: 16),
-            const Text("No hay presupuestos", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.e8)),
+            const Text(
+              "No hay presupuestos",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.e8,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text("No se encontraron presupuestos en la categoría '$_filtro'", style: const TextStyle(fontSize: 14, color: AppColors.g5)),
+            Text(
+              "No se encontraron presupuestos en la categoría '$_filtro'",
+              style: const TextStyle(fontSize: 14, color: AppColors.g5),
+            ),
           ],
         ),
       ),
@@ -247,17 +315,36 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.o5.withValues(alpha: 0.3), width: 1.5, style: BorderStyle.solid),
+          border: Border.all(
+            color: AppColors.o5.withValues(alpha: 0.3),
+            width: 1.5,
+            style: BorderStyle.solid,
+          ),
         ),
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: AppColors.o1, shape: BoxShape.circle),
-              child: const Icon(LucideIcons.plus, size: 24, color: AppColors.o5),
+              decoration: BoxDecoration(
+                color: AppColors.o1,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                LucideIcons.plus,
+                size: 24,
+                color: AppColors.o5,
+              ),
             ),
             const SizedBox(height: 12),
-            const Text("NUEVO PRESUPUESTO", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.e8, letterSpacing: 0.5)),
+            const Text(
+              "NUEVO PRESUPUESTO",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                color: AppColors.e8,
+                letterSpacing: 0.5,
+              ),
+            ),
           ],
         ),
       ),
@@ -272,13 +359,22 @@ class _BudgetCard extends StatelessWidget {
   final VoidCallback onSetActive;
   final String Function(double) fmt;
 
-  const _BudgetCard({required this.budget, required this.isDashboardActive, required this.onTap, required this.onSetActive, required this.fmt});
+  const _BudgetCard({
+    required this.budget,
+    required this.isDashboardActive,
+    required this.onTap,
+    required this.onSetActive,
+    required this.fmt,
+  });
 
   @override
   Widget build(BuildContext context) {
     final double spent = budget.cats.values.fold(0, (s, c) => s + c.gastado);
     final double remaining = budget.ingresos - spent;
-    final double pct = min(spent / (budget.ingresos > 0 ? budget.ingresos : 1), 1.0);
+    final double pct = min(
+      spent / (budget.ingresos > 0 ? budget.ingresos : 1),
+      1.0,
+    );
 
     return GestureDetector(
       onTap: onTap,
@@ -288,13 +384,17 @@ class _BudgetCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: isDashboardActive ? AppColors.e8 : AppColors.g2, width: isDashboardActive ? 2 : 1),
+          border: Border.all(
+            color: isDashboardActive ? AppColors.e8 : AppColors.g2,
+            width: isDashboardActive ? 2 : 1,
+          ),
           boxShadow: [
             BoxShadow(
-              color: (isDashboardActive ? AppColors.e8 : AppColors.g4).withValues(alpha: 0.08),
+              color: (isDashboardActive ? AppColors.e8 : AppColors.g4)
+                  .withValues(alpha: 0.08),
               blurRadius: 15,
               offset: const Offset(0, 8),
-            )
+            ),
           ],
         ),
         child: Column(
@@ -303,7 +403,9 @@ class _BudgetCard extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: isDashboardActive ? AppColors.e8 : AppColors.g0,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(26),
+                ),
               ),
               child: Row(
                 children: [
@@ -315,8 +417,12 @@ class _BudgetCard extends StatelessWidget {
                           children: [
                             MenudoChip.custom(
                               label: budget.periodo.toUpperCase(),
-                              color: isDashboardActive ? Colors.white.withValues(alpha: 0.8) : AppColors.g5,
-                              bgColor: isDashboardActive ? Colors.white.withValues(alpha: 0.15) : AppColors.g2,
+                              color: isDashboardActive
+                                  ? Colors.white.withValues(alpha: 0.8)
+                                  : AppColors.g5,
+                              bgColor: isDashboardActive
+                                  ? Colors.white.withValues(alpha: 0.15)
+                                  : AppColors.g2,
                               isSmall: true,
                             ),
                           ],
@@ -327,7 +433,9 @@ class _BudgetCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w900,
-                            color: isDashboardActive ? Colors.white : AppColors.e8,
+                            color: isDashboardActive
+                                ? Colors.white
+                                : AppColors.e8,
                             letterSpacing: -0.4,
                           ),
                         ),
@@ -345,9 +453,23 @@ class _BudgetCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _BudgetStat(label: "GASTADO", value: fmt(spent), color: AppColors.r5),
-                      _BudgetStat(label: "DISPONIBLE", value: fmt(remaining), color: AppColors.e6, center: true),
-                      _BudgetStat(label: "TOTAL", value: fmt(budget.ingresos), color: AppColors.e8, right: true),
+                      _BudgetStat(
+                        label: "GASTADO",
+                        value: fmt(spent),
+                        color: AppColors.r5,
+                      ),
+                      _BudgetStat(
+                        label: "DISPONIBLE",
+                        value: fmt(remaining),
+                        color: AppColors.e6,
+                        center: true,
+                      ),
+                      _BudgetStat(
+                        label: "TOTAL",
+                        value: fmt(budget.ingresos),
+                        color: AppColors.e8,
+                        right: true,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -358,9 +480,16 @@ class _BudgetCard extends StatelessWidget {
                     children: [
                       Text(
                         "${(pct * 100).round()}% utilizado",
-                        style: const TextStyle(fontSize: 11, color: AppColors.g4, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.g4,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                      _DashboardToggleButton(isActive: isDashboardActive, onToggle: onSetActive),
+                      _DashboardToggleButton(
+                        isActive: isDashboardActive,
+                        onToggle: onSetActive,
+                      ),
                     ],
                   ),
                 ],
@@ -380,15 +509,28 @@ class _BudgetCard extends StatelessWidget {
         return Align(
           widthFactor: 0.7,
           child: Container(
-            width: 32, height: 32,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               color: m.c,
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 2),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 4,
+                ),
+              ],
             ),
             alignment: Alignment.center,
-            child: Text(m.i, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)),
+            child: Text(
+              m.i,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ),
         );
       }),
@@ -401,16 +543,42 @@ class _BudgetStat extends StatelessWidget {
   final Color color;
   final bool center, right;
 
-  const _BudgetStat({required this.label, required this.value, required this.color, this.center = false, this.right = false});
+  const _BudgetStat({
+    required this.label,
+    required this.value,
+    required this.color,
+    this.center = false,
+    this.right = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: right ? CrossAxisAlignment.end : center ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      crossAxisAlignment: right
+          ? CrossAxisAlignment.end
+          : center
+          ? CrossAxisAlignment.center
+          : CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.g4, letterSpacing: 0.5)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: AppColors.g4,
+            letterSpacing: 0.5,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: color, letterSpacing: -0.4)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+            color: color,
+            letterSpacing: -0.4,
+          ),
+        ),
       ],
     );
   }
@@ -426,7 +594,10 @@ class _ProgressBar extends StatelessWidget {
     return Container(
       height: 8,
       width: double.infinity,
-      decoration: BoxDecoration(color: AppColors.g1, borderRadius: BorderRadius.circular(4)),
+      decoration: BoxDecoration(
+        color: AppColors.g1,
+        borderRadius: BorderRadius.circular(4),
+      ),
       child: LayoutBuilder(
         builder: (_, constraints) => AnimatedContainer(
           duration: const Duration(milliseconds: 800),
@@ -434,7 +605,9 @@ class _ProgressBar extends StatelessWidget {
           width: constraints.maxWidth * pct,
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: pct > 0.9 ? [AppColors.r5, AppColors.r5.withValues(alpha: 0.7)] : [AppColors.o5, AppColors.o5.withValues(alpha: 0.7)],
+              colors: pct > 0.9
+                  ? [AppColors.r5, AppColors.r5.withValues(alpha: 0.7)]
+                  : [AppColors.o5, AppColors.o5.withValues(alpha: 0.7)],
             ),
             borderRadius: BorderRadius.circular(4),
           ),
@@ -448,7 +621,10 @@ class _DashboardToggleButton extends StatelessWidget {
   final bool isActive;
   final VoidCallback onToggle;
 
-  const _DashboardToggleButton({required this.isActive, required this.onToggle});
+  const _DashboardToggleButton({
+    required this.isActive,
+    required this.onToggle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -484,4 +660,3 @@ class _DashboardToggleButton extends StatelessWidget {
     );
   }
 }
-

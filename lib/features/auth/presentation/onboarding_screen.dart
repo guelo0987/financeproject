@@ -69,7 +69,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         width: _currentPage == index ? 24 : 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color: _currentPage == index ? MenudoColors.primary : MenudoColors.border,
+                          color: _currentPage == index
+                              ? MenudoColors.primary
+                              : MenudoColors.border,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -84,7 +86,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   if (_currentPage == 2)
                     TextButton(
                       onPressed: () => context.go('/login'),
-                      style: TextButton.styleFrom(foregroundColor: MenudoColors.textSecondary),
+                      style: TextButton.styleFrom(
+                        foregroundColor: MenudoColors.textSecondary,
+                      ),
                       child: const Text('Ya tengo cuenta — Iniciar sesión'),
                     )
                   else
@@ -98,23 +102,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildPage({required String title, required String subtitle, required IconData icon}) {
+  Widget _buildPage({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+  }) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 120, color: MenudoColors.cardBg.withValues(alpha: 0.1)),
-          const SizedBox(height: 40),
-          Text(
-            title,
-            style: MenudoTextStyles.h1,
-            textAlign: TextAlign.center,
+          Icon(
+            icon,
+            size: 120,
+            color: MenudoColors.cardBg.withValues(alpha: 0.1),
           ),
+          const SizedBox(height: 40),
+          Text(title, style: MenudoTextStyles.h1, textAlign: TextAlign.center),
           const SizedBox(height: 16),
           Text(
             subtitle,
-            style: MenudoTextStyles.bodyLarge.copyWith(color: MenudoColors.textSecondary),
+            style: MenudoTextStyles.bodyLarge.copyWith(
+              color: MenudoColors.textSecondary,
+            ),
             textAlign: TextAlign.center,
           ),
         ],

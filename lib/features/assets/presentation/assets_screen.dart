@@ -37,7 +37,11 @@ class AssetsScreen extends StatelessWidget {
                       children: [
                         Text('Activos', style: MenudoTextStyles.h1),
                         IconButton(
-                          icon: const Icon(Icons.add_circle, color: MenudoColors.primary, size: 28),
+                          icon: const Icon(
+                            Icons.add_circle,
+                            color: MenudoColors.primary,
+                            size: 28,
+                          ),
                           onPressed: () {},
                         ),
                       ],
@@ -46,7 +50,10 @@ class AssetsScreen extends StatelessWidget {
                     const MenudoTextField(
                       label: '',
                       hint: 'Buscar activo...',
-                      prefixIcon: Icon(Icons.search, color: MenudoColors.textSecondary),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: MenudoColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -56,12 +63,18 @@ class AssetsScreen extends StatelessWidget {
             // Doughnut Chart
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 child: MenudoCard(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      Text('Distribución del Portafolio', style: MenudoTextStyles.h3),
+                      Text(
+                        'Distribución del Portafolio',
+                        style: MenudoTextStyles.h3,
+                      ),
                       const SizedBox(height: 24),
                       SizedBox(
                         height: 200,
@@ -72,10 +85,30 @@ class AssetsScreen extends StatelessWidget {
                                 sectionsSpace: 4,
                                 centerSpaceRadius: 60,
                                 sections: [
-                                  PieChartSectionData(color: MenudoColors.success, value: 40, title: '', radius: 24),
-                                  PieChartSectionData(color: MenudoColors.primary, value: 30, title: '', radius: 24),
-                                  PieChartSectionData(color: MenudoColors.warning, value: 20, title: '', radius: 24),
-                                  PieChartSectionData(color: MenudoColors.danger, value: 10, title: '', radius: 24),
+                                  PieChartSectionData(
+                                    color: MenudoColors.success,
+                                    value: 40,
+                                    title: '',
+                                    radius: 24,
+                                  ),
+                                  PieChartSectionData(
+                                    color: MenudoColors.primary,
+                                    value: 30,
+                                    title: '',
+                                    radius: 24,
+                                  ),
+                                  PieChartSectionData(
+                                    color: MenudoColors.warning,
+                                    value: 20,
+                                    title: '',
+                                    radius: 24,
+                                  ),
+                                  PieChartSectionData(
+                                    color: MenudoColors.danger,
+                                    value: 10,
+                                    title: '',
+                                    radius: 24,
+                                  ),
                                 ],
                               ),
                             ),
@@ -83,11 +116,16 @@ class AssetsScreen extends StatelessWidget {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text('Total', style: MenudoTextStyles.bodySmall.copyWith(color: MenudoColors.textMuted)),
+                                  Text(
+                                    'Total',
+                                    style: MenudoTextStyles.bodySmall.copyWith(
+                                      color: MenudoColors.textMuted,
+                                    ),
+                                  ),
                                   Text('RD\$1.2M', style: MenudoTextStyles.h2),
                                 ],
                               ),
-                            )
+                            ),
                           ],
                         ),
                       ),
@@ -98,11 +136,15 @@ class AssetsScreen extends StatelessWidget {
                         alignment: WrapAlignment.center,
                         children: [
                           _buildLegend('Efectivo', MenudoColors.success, '40%'),
-                          _buildLegend('Inversiones', MenudoColors.primary, '30%'),
+                          _buildLegend(
+                            'Inversiones',
+                            MenudoColors.primary,
+                            '30%',
+                          ),
                           _buildLegend('Bienes', MenudoColors.warning, '20%'),
                           _buildLegend('Otros', MenudoColors.danger, '10%'),
                         ],
-                      )
+                      ),
                     ],
                   ),
                 ).animate().fadeIn(delay: 100.ms),
@@ -111,62 +153,94 @@ class AssetsScreen extends StatelessWidget {
 
             // Asset List
             SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final entry = groupedAssets.entries.elementAt(index);
-                  final category = entry.key;
-                  final assets = entry.value;
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final entry = groupedAssets.entries.elementAt(index);
+                final category = entry.key;
+                final assets = entry.value;
 
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(category.name.toUpperCase(), style: MenudoTextStyles.labelCaps.copyWith(color: MenudoColors.textMuted)),
-                        const SizedBox(height: 12),
-                        ...assets.map((asset) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: MenudoCard(
-                                padding: const EdgeInsets.all(16),
-                                child: Row(
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category.name.toUpperCase(),
+                        style: MenudoTextStyles.labelCaps.copyWith(
+                          color: MenudoColors.textMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ...assets.map(
+                        (asset) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: MenudoCard(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: MenudoColors.primaryLight.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: const Icon(
+                                    Icons.account_balance,
+                                    color: MenudoColors.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        asset.name,
+                                        style: MenudoTextStyles.bodyLarge
+                                            .copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                      Text(
+                                        asset.currency,
+                                        style: MenudoTextStyles.bodySmall
+                                            .copyWith(
+                                              color: MenudoColors.textMuted,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: MenudoColors.primaryLight.withValues(alpha: 0.3),
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      child: const Icon(Icons.account_balance, color: MenudoColors.primary),
+                                    Text(
+                                      '\$${asset.currentValue.toStringAsFixed(2)}',
+                                      style: MenudoTextStyles.amountSmall,
                                     ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(asset.name, style: MenudoTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
-                                          Text(asset.currency, style: MenudoTextStyles.bodySmall.copyWith(color: MenudoColors.textMuted)),
-                                        ],
-                                      ),
-                                    ),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text('\$${asset.currentValue.toStringAsFixed(2)}', style: MenudoTextStyles.amountSmall),
-                                        const SizedBox(height: 4),
-                                        const MenudoChip('+1.2%', variant: MenudoChipVariant.success, isSmall: true),
-                                      ],
+                                    const SizedBox(height: 4),
+                                    const MenudoChip(
+                                      '+1.2%',
+                                      variant: MenudoChipVariant.success,
+                                      isSmall: true,
                                     ),
                                   ],
                                 ),
-                              ),
-                            )),
-                      ],
-                    ),
-                  ).animate().fadeIn(duration: 400.ms, delay: (200 + index * 100).ms);
-                },
-                childCount: groupedAssets.length,
-              ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(
+                  duration: 400.ms,
+                  delay: (200 + index * 100).ms,
+                );
+              }, childCount: groupedAssets.length),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
@@ -179,7 +253,11 @@ class AssetsScreen extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 6),
         Text('$label $percent', style: MenudoTextStyles.bodySmall),
       ],

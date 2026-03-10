@@ -6,11 +6,7 @@ class AssetCategoryIcon extends StatelessWidget {
   final AssetCategory category;
   final double size;
 
-  const AssetCategoryIcon({
-    super.key,
-    required this.category,
-    this.size = 40,
-  });
+  const AssetCategoryIcon({super.key, required this.category, this.size = 40});
 
   @override
   Widget build(BuildContext context) {
@@ -22,11 +18,7 @@ class AssetCategoryIcon extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Center(
-        child: Icon(
-          category.icon,
-          color: category.color,
-          size: size * 0.5,
-        ),
+        child: Icon(category.icon, color: category.color, size: size * 0.5),
       ),
     );
   }

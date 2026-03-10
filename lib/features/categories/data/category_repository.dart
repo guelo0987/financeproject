@@ -1,73 +1,71 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/data/models.dart';
-import '../../../core/network/supabase_client.dart';
+import '../../../model/models.dart';
+import '../../../services/api_service.dart';
+import '../../../utils/utils.dart';
+import '../../../core/utils/icon_utils.dart';
 
 class CategoryRepository {
-  final SupabaseClient _client;
-  CategoryRepository(this._client);
+  final ApiService _api;
+  CategoryRepository(this._api);
 
-  /// Fetch system categories (global, available to all users).
   Future<List<MenudoCategory>> fetchSystemCategories() async {
-    final data = await _client
-        .from('categorias')
-        .select()
-        .eq('es_sistema', true)
-        .order('categoria_id');
-    return (data as List)
-        .map((row) => MenudoCategory.fromJson(row as Map<String, dynamic>))
+    final response = await _api.get<List<dynamic>>(
+      '${ApiPaths.categories}/system',
+      parser: asJsonList,
+    );
+    return response
+        .requireData()
+        .map((row) => MenudoCategory.fromJson(asJsonMap(row)))
         .toList();
   }
 
-  /// Fetch categories visible to a user: system + their own custom ones.
   Future<List<MenudoCategory>> fetchCategoriesForUser(int userId) async {
-    final data = await _client
-        .from('categorias')
-        .select()
-        .or('es_sistema.eq.true,usuario_id.eq.$userId')
-        .order('es_sistema', ascending: false) // system first
-        .order('categoria_id');
-    return (data as List)
-        .map((row) => MenudoCategory.fromJson(row as Map<String, dynamic>))
+    final response = await _api.get<List<dynamic>>(
+      ApiPaths.categories,
+      queryParameters: {'formato': 'flat'},
+      parser: asJsonList,
+    );
+    return response
+        .requireData()
+        .map((row) => MenudoCategory.fromJson(asJsonMap(row)))
         .toList();
   }
 
-  /// Create a user-owned custom category.
-  Future<MenudoCategory> createCategory(int userId, MenudoCategory category) async {
-    final row = await _client
-        .from('categorias')
-        .insert({
-          ...category.toJson(),
-          'usuario_id': userId,
-          'es_sistema': false,
-        })
-        .select()
-        .single();
-    return MenudoCategory.fromJson(row);
+  Future<MenudoCategory> createCategory(
+    int userId,
+    MenudoCategory category,
+  ) async {
+    final response = await _api.post<Map<String, dynamic>>(
+      ApiPaths.categories,
+      body: {
+        'nombre': category.nombre,
+        'icono': iconToKey(category.icono),
+        if (category.categoriaParadreId != null)
+          'categoria_padre_id': category.categoriaParadreId,
+      },
+      parser: asJsonMap,
+    );
+    return MenudoCategory.fromJson(response.requireData());
   }
 
-  /// Update a user-owned category (cannot update system categories).
   Future<MenudoCategory> updateCategory(MenudoCategory category) async {
-    final row = await _client
-        .from('categorias')
-        .update(category.toJson())
-        .eq('categoria_id', category.id)
-        .eq('es_sistema', false) // safety: never update system cats
-        .select()
-        .single();
-    return MenudoCategory.fromJson(row);
+    final response = await _api.put<Map<String, dynamic>>(
+      ApiPaths.categoryById(category.id),
+      body: {
+        'nombre': category.nombre,
+        'icono': iconToKey(category.icono),
+        'categoria_padre_id': category.categoriaParadreId,
+      },
+      parser: asJsonMap,
+    );
+    return MenudoCategory.fromJson(response.requireData());
   }
 
-  /// Delete a user-owned category.
   Future<void> deleteCategory(int categoryId) async {
-    await _client
-        .from('categorias')
-        .delete()
-        .eq('categoria_id', categoryId)
-        .eq('es_sistema', false); // safety
+    await _api.delete<void>(ApiPaths.categoryById(categoryId));
   }
 }
 
 final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
-  return CategoryRepository(ref.watch(supabaseClientProvider));
+  return CategoryRepository(ref.watch(apiServiceProvider));
 });

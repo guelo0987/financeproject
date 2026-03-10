@@ -30,8 +30,12 @@ class _MenudoButtonState extends State<MenudoButton> {
     final textColor = widget.isDisabled ? AppColors.g4 : AppColors.white;
 
     return GestureDetector(
-      onTapDown: widget.isDisabled ? null : (_) => setState(() => _isPressed = true),
-      onTapUp: widget.isDisabled ? null : (_) => setState(() => _isPressed = false),
+      onTapDown: widget.isDisabled
+          ? null
+          : (_) => setState(() => _isPressed = true),
+      onTapUp: widget.isDisabled
+          ? null
+          : (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
       onTap: widget.isDisabled ? null : widget.onTap,
       child: AnimatedScale(
@@ -45,13 +49,15 @@ class _MenudoButtonState extends State<MenudoButton> {
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: widget.isDisabled ? null : [
-              const BoxShadow(
-                color: Color(0x44F97316),
-                blurRadius: 32,
-                offset: Offset(0, 8),
-              )
-            ],
+            boxShadow: widget.isDisabled
+                ? null
+                : [
+                    const BoxShadow(
+                      color: Color(0x44F97316),
+                      blurRadius: 32,
+                      offset: Offset(0, 8),
+                    ),
+                  ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -86,21 +92,21 @@ class MenudoPrimaryButton extends StatelessWidget {
   final bool isDisabled;
 
   const MenudoPrimaryButton({
-    super.key, 
-    required this.label, 
+    super.key,
+    required this.label,
     this.onTap,
     this.icon,
     this.isDisabled = false,
   });
-  
+
   @override
   Widget build(BuildContext context) => MenudoButton(
-        label: label, 
-        onTap: onTap, 
-        isFullWidth: true,
-        icon: icon,
-        isDisabled: isDisabled,
-      );
+    label: label,
+    onTap: onTap,
+    isFullWidth: true,
+    icon: icon,
+    isDisabled: isDisabled,
+  );
 }
 
 // Legacy alias to prevent compilation errors
@@ -110,17 +116,17 @@ class MenudoSecondaryButton extends StatelessWidget {
   final bool isDisabled;
 
   const MenudoSecondaryButton({
-    super.key, 
-    required this.label, 
+    super.key,
+    required this.label,
     required this.onTap,
     this.isDisabled = false,
   });
 
   @override
   Widget build(BuildContext context) => MenudoButton(
-        label: label, 
-        onTap: onTap, 
-        isFullWidth: true,
-        isDisabled: isDisabled,
-      );
+    label: label,
+    onTap: onTap,
+    isFullWidth: true,
+    isDisabled: isDisabled,
+  );
 }

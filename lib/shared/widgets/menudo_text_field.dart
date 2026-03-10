@@ -36,12 +36,17 @@ class MenudoTextField extends StatelessWidget {
           style: MenudoTextStyles.bodyLarge,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: MenudoTextStyles.bodyLarge.copyWith(color: MenudoColors.textMuted),
+            hintStyle: MenudoTextStyles.bodyLarge.copyWith(
+              color: MenudoColors.textMuted,
+            ),
             prefixIcon: prefixIcon,
             suffixIcon: trailing,
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(color: MenudoColors.border),
@@ -52,7 +57,10 @@ class MenudoTextField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: MenudoColors.borderActive, width: 2),
+              borderSide: const BorderSide(
+                color: MenudoColors.borderActive,
+                width: 2,
+              ),
             ),
           ),
         ),

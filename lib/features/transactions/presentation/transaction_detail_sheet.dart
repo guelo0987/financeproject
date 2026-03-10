@@ -11,15 +11,20 @@ class TransactionDetailSheet extends StatelessWidget {
 
   const TransactionDetailSheet({super.key, required this.transaction});
 
-  String fmt(double val) => "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
+  String fmt(double val) =>
+      "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
 
   @override
   Widget build(BuildContext context) {
     final t = transaction;
-    final activeBudget = mockBudgets.firstWhere((b) => b.activo, orElse: () => mockBudgets.first);
+    final activeBudget = mockBudgets.firstWhere(
+      (b) => b.activo,
+      orElse: () => mockBudgets.first,
+    );
     final BudgetCategory? budgetCat = activeBudget.cats[t.catKey];
 
-    final String catLabel = budgetCat?.label ?? (t.catKey[0].toUpperCase() + t.catKey.substring(1));
+    final String catLabel =
+        budgetCat?.label ?? (t.catKey[0].toUpperCase() + t.catKey.substring(1));
     final IconData catIcon = budgetCat?.icono ?? t.icono;
     final Color catColor = budgetCat?.color ?? AppColors.g4;
 
@@ -30,9 +35,24 @@ class TransactionDetailSheet extends StatelessWidget {
 
     // Format date in Spanish
     final parts = t.dateString.split('-');
-    final months = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    final months = [
+      '',
+      'enero',
+      'febrero',
+      'marzo',
+      'abril',
+      'mayo',
+      'junio',
+      'julio',
+      'agosto',
+      'septiembre',
+      'octubre',
+      'noviembre',
+      'diciembre',
+    ];
     final int monthIdx = int.tryParse(parts[1]) ?? 0;
-    final String formattedDate = "${int.parse(parts[2])} de ${months[monthIdx]} de ${parts[0]}";
+    final String formattedDate =
+        "${int.parse(parts[2])} de ${months[monthIdx]} de ${parts[0]}";
 
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
@@ -68,14 +88,25 @@ class TransactionDetailSheet extends StatelessWidget {
                     // Type label
                     Center(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: isGasto ? AppColors.r1 : AppColors.e1,
                           borderRadius: BorderRadius.circular(100),
                         ),
                         child: Text(
-                          isGasto ? 'Gasto' : (t.tipo == 'ingreso' ? 'Ingreso' : 'Transferencia'),
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: amountColor),
+                          isGasto
+                              ? 'Gasto'
+                              : (t.tipo == 'ingreso'
+                                    ? 'Ingreso'
+                                    : 'Transferencia'),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: amountColor,
+                          ),
                         ),
                       ),
                     ).animate().fadeIn(duration: 300.ms),
@@ -84,133 +115,227 @@ class TransactionDetailSheet extends StatelessWidget {
 
                     // Large amount
                     Center(
-                      child: Text(
-                        "$amountPrefix ${fmt(t.monto.abs())}",
-                        style: TextStyle(fontSize: 40, fontWeight: FontWeight.w800, color: amountColor, letterSpacing: -1.5),
-                      ),
-                    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.08, end: 0, duration: 400.ms),
+                          child: Text(
+                            "$amountPrefix ${fmt(t.monto.abs())}",
+                            style: TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.w800,
+                              color: amountColor,
+                              letterSpacing: -1.5,
+                            ),
+                          ),
+                        )
+                        .animate()
+                        .fadeIn(duration: 400.ms)
+                        .slideY(begin: 0.08, end: 0, duration: 400.ms),
 
                     const SizedBox(height: 6),
 
                     // Description
                     Center(
-                      child: Text(t.desc, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.g5), textAlign: TextAlign.center),
+                      child: Text(
+                        t.desc,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.g5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
 
                     const SizedBox(height: 24),
 
                     // Detail card
                     Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
-                      ),
-                      padding: const EdgeInsets.all(4),
-                      child: Column(
-                        children: [
-                          // Category row
-                          _buildDetailRow(
-                            icon: catIcon,
-                            iconColor: catColor,
-                            label: 'Categoria',
-                            value: catLabel,
-                          ),
-                          const Divider(height: 1, color: Color(0xFFF3F4F6), indent: 16, endIndent: 16),
-
-                          // Date row
-                          _buildDetailRow(
-                            icon: LucideIcons.calendar,
-                            iconColor: AppColors.b5,
-                            label: 'Fecha',
-                            value: formattedDate,
-                          ),
-                          const Divider(height: 1, color: Color(0xFFF3F4F6), indent: 16, endIndent: 16),
-
-                          // Account row
-                          _buildDetailRow(
-                            icon: LucideIcons.landmark,
-                            iconColor: AppColors.e7,
-                            label: 'Cuenta',
-                            value: 'BHD Leon \u2014 Nomina',
-                          ),
-                          const Divider(height: 1, color: Color(0xFFF3F4F6), indent: 16, endIndent: 16),
-
-                          // Performed by row
-                          if (t.userName != null) ...[
-                            _buildDetailRow(
-                              icon: LucideIcons.user,
-                              iconColor: AppColors.o5,
-                              label: 'Realizado por',
-                              value: t.userName!,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(
+                              color: const Color(0xFFF3F4F6),
+                              width: 1.5,
                             ),
-                            const Divider(height: 1, color: Color(0xFFF3F4F6), indent: 16, endIndent: 16),
-                          ],
-
-                          // ID row
-                          _buildDetailRow(
-                            icon: LucideIcons.hash,
-                            iconColor: AppColors.g4,
-                            label: 'ID',
-                            value: '#${t.id.toString().padLeft(4, '0')}',
                           ),
-                          const Divider(height: 1, color: Color(0xFFF3F4F6), indent: 16, endIndent: 16),
+                          padding: const EdgeInsets.all(4),
+                          child: Column(
+                            children: [
+                              // Category row
+                              _buildDetailRow(
+                                icon: catIcon,
+                                iconColor: catColor,
+                                label: 'Categoria',
+                                value: catLabel,
+                              ),
+                              const Divider(
+                                height: 1,
+                                color: Color(0xFFF3F4F6),
+                                indent: 16,
+                                endIndent: 16,
+                              ),
 
-                          // Budget / space row
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 40, height: 40,
-                                  decoration: BoxDecoration(
-                                    color: (isSharedBudget ? AppColors.e6 : AppColors.p5).withValues(alpha: 0.13),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Icon(
-                                    isSharedBudget ? LucideIcons.users : LucideIcons.layoutGrid,
-                                    size: 18,
-                                    color: isSharedBudget ? AppColors.e6 : AppColors.p5,
-                                  ),
+                              // Date row
+                              _buildDetailRow(
+                                icon: LucideIcons.calendar,
+                                iconColor: AppColors.b5,
+                                label: 'Fecha',
+                                value: formattedDate,
+                              ),
+                              const Divider(
+                                height: 1,
+                                color: Color(0xFFF3F4F6),
+                                indent: 16,
+                                endIndent: 16,
+                              ),
+
+                              // Account row
+                              _buildDetailRow(
+                                icon: LucideIcons.landmark,
+                                iconColor: AppColors.e7,
+                                label: 'Cuenta',
+                                value: 'BHD Leon \u2014 Nomina',
+                              ),
+                              const Divider(
+                                height: 1,
+                                color: Color(0xFFF3F4F6),
+                                indent: 16,
+                                endIndent: 16,
+                              ),
+
+                              // Performed by row
+                              if (t.userName != null) ...[
+                                _buildDetailRow(
+                                  icon: LucideIcons.user,
+                                  iconColor: AppColors.o5,
+                                  label: 'Realizado por',
+                                  value: t.userName!,
                                 ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        isSharedBudget ? 'Espacio compartido' : 'Presupuesto',
-                                        style: const TextStyle(fontSize: 11, color: AppColors.g4, fontWeight: FontWeight.w600, letterSpacing: 0.3),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        activeBudget.nombre,
-                                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.e8),
-                                      ),
-                                    ],
-                                  ),
+                                const Divider(
+                                  height: 1,
+                                  color: Color(0xFFF3F4F6),
+                                  indent: 16,
+                                  endIndent: 16,
                                 ),
-                                if (isSharedBudget)
-                                  Row(
-                                    children: activeBudget.miembros.take(3).map((m) => Container(
-                                      width: 26, height: 26,
-                                      margin: const EdgeInsets.only(left: 3),
+                              ],
+
+                              // ID row
+                              _buildDetailRow(
+                                icon: LucideIcons.hash,
+                                iconColor: AppColors.g4,
+                                label: 'ID',
+                                value: '#${t.id.toString().padLeft(4, '0')}',
+                              ),
+                              const Divider(
+                                height: 1,
+                                color: Color(0xFFF3F4F6),
+                                indent: 16,
+                                endIndent: 16,
+                              ),
+
+                              // Budget / space row
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 40,
+                                      height: 40,
                                       decoration: BoxDecoration(
-                                        color: m.c,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 1.5),
+                                        color:
+                                            (isSharedBudget
+                                                    ? AppColors.e6
+                                                    : AppColors.p5)
+                                                .withValues(alpha: 0.13),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                       alignment: Alignment.center,
-                                      child: Text(m.i, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
-                                    )).toList(),
-                                  ),
-                              ],
-                            ),
+                                      child: Icon(
+                                        isSharedBudget
+                                            ? LucideIcons.users
+                                            : LucideIcons.layoutGrid,
+                                        size: 18,
+                                        color: isSharedBudget
+                                            ? AppColors.e6
+                                            : AppColors.p5,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            isSharedBudget
+                                                ? 'Espacio compartido'
+                                                : 'Presupuesto',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.g4,
+                                              fontWeight: FontWeight.w600,
+                                              letterSpacing: 0.3,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            activeBudget.nombre,
+                                            style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.e8,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (isSharedBudget)
+                                      Row(
+                                        children: activeBudget.miembros
+                                            .take(3)
+                                            .map(
+                                              (m) => Container(
+                                                width: 26,
+                                                height: 26,
+                                                margin: const EdgeInsets.only(
+                                                  left: 3,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: m.c,
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 1.5,
+                                                  ),
+                                                ),
+                                                alignment: Alignment.center,
+                                                child: Text(
+                                                  m.i,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
+                                                ),
+                                              ),
+                                            )
+                                            .toList(),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ).animate().fadeIn(duration: 400.ms, delay: 200.ms).slideY(begin: 0.06, end: 0, duration: 400.ms, delay: 200.ms),
+                        )
+                        .animate()
+                        .fadeIn(duration: 400.ms, delay: 200.ms)
+                        .slideY(
+                          begin: 0.06,
+                          end: 0,
+                          duration: 400.ms,
+                          delay: 200.ms,
+                        ),
 
                     const SizedBox(height: 24),
 
@@ -226,19 +351,34 @@ class TransactionDetailSheet extends StatelessWidget {
                                 context: context,
                                 isScrollControlled: true,
                                 backgroundColor: Colors.transparent,
-                                builder: (_) => RegisterTransactionSheet(transaction: t),
+                                builder: (_) =>
+                                    RegisterTransactionSheet(transaction: t),
                               );
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              decoration: BoxDecoration(color: AppColors.e8, borderRadius: BorderRadius.circular(16)),
+                              decoration: BoxDecoration(
+                                color: AppColors.e8,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                               alignment: Alignment.center,
                               child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(LucideIcons.pencil, size: 16, color: Colors.white),
+                                  Icon(
+                                    LucideIcons.pencil,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
                                   SizedBox(width: 8),
-                                  Text("Editar", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+                                  Text(
+                                    "Editar",
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -255,23 +395,50 @@ class TransactionDetailSheet extends StatelessWidget {
                                 Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: const Text('Transaccion eliminada', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    content: const Text(
+                                      'Transaccion eliminada',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                     backgroundColor: AppColors.r5,
                                     behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
                                 );
                               },
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                decoration: BoxDecoration(color: AppColors.r1, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.r5.withValues(alpha: 0.2), width: 1.5)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.r1,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: AppColors.r5.withValues(alpha: 0.2),
+                                    width: 1.5,
+                                  ),
+                                ),
                                 alignment: Alignment.center,
                                 child: const Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(LucideIcons.trash2, size: 16, color: AppColors.r5),
+                                    Icon(
+                                      LucideIcons.trash2,
+                                      size: 16,
+                                      color: AppColors.r5,
+                                    ),
                                     SizedBox(width: 8),
-                                    Text("Eliminar", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.r5)),
+                                    Text(
+                                      "Eliminar",
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.r5,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -301,8 +468,12 @@ class TransactionDetailSheet extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.13), borderRadius: BorderRadius.circular(12)),
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.13),
+              borderRadius: BorderRadius.circular(12),
+            ),
             alignment: Alignment.center,
             child: Icon(icon, size: 18, color: iconColor),
           ),
@@ -311,9 +482,24 @@ class TransactionDetailSheet extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 11, color: AppColors.g4, fontWeight: FontWeight.w600, letterSpacing: 0.3)),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.g4,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.e8)),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.e8,
+                  ),
+                ),
               ],
             ),
           ),

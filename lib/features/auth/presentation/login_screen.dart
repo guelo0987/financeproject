@@ -28,17 +28,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
-    if (_emailController.text.isNotEmpty && _passwordController.text.isNotEmpty) {
+  Future<void> _handleLogin() async {
+    if (_emailController.text.isNotEmpty &&
+        _passwordController.text.isNotEmpty) {
       setState(() => _isLoading = true);
-      
-      // Simulate API call
-      Future.delayed(const Duration(seconds: 2), () {
+
+      try {
+        await ref
+            .read(authProvider.notifier)
+            .login(_emailController.text.trim(), _passwordController.text);
         if (!mounted) return;
-        ref.read(authProvider.notifier).login('usr_mock_123', 'mock.jwt.token');
-        setState(() => _isLoading = false);
         context.go('/');
-      });
+      } catch (error) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -87,25 +97,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ).animate().scale(delay: 200.ms, duration: 400.ms),
-                
+
                 const SizedBox(height: 32),
-                
+
                 Text(
                   'Bienvenido a Menudo',
                   style: MenudoTextStyles.h1,
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 300.ms),
-                
+
                 const SizedBox(height: 8),
-                
+
                 Text(
                   'Inicia sesión para gestionar tu patrimonio',
-                  style: MenudoTextStyles.bodyMedium.copyWith(color: MenudoColors.textMuted),
+                  style: MenudoTextStyles.bodyMedium.copyWith(
+                    color: MenudoColors.textMuted,
+                  ),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 400.ms),
-                
+
                 const SizedBox(height: 40),
-                
+
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -125,7 +137,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       prefixIcon: const Icon(Icons.lock_outline),
                       trailing: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
                           color: MenudoColors.textSecondary,
                         ),
                         onPressed: () {
@@ -149,28 +163,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 24),
                     MenudoPrimaryButton(
                       label: _isLoading ? 'Cargando...' : 'Iniciar Sesión',
-                      onTap: _isLoading ? null : _handleLogin,
+                      onTap: _isLoading ? null : () => _handleLogin(),
                       isDisabled: _isLoading,
                     ),
                   ],
                 ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
-                
+
                 const SizedBox(height: 30),
-                
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('¿No tienes cuenta?', style: MenudoTextStyles.bodyMedium),
+                    Text(
+                      '¿No tienes cuenta?',
+                      style: MenudoTextStyles.bodyMedium,
+                    ),
                     TextButton(
                       onPressed: () => context.push('/register'),
                       style: TextButton.styleFrom(
                         foregroundColor: MenudoColors.primary,
                       ),
-                      child: const Text('Regístrate', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Regístrate',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ],
                 ).animate().fadeIn(delay: 600.ms),
-                
+
                 const SizedBox(height: 40),
               ],
             ),

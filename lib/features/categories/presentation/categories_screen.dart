@@ -36,7 +36,12 @@ class CategoriesScreen extends ConsumerWidget {
         ),
         title: const Text(
           'Categorías',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.e8, letterSpacing: -0.8),
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: AppColors.e8,
+            letterSpacing: -0.8,
+          ),
         ),
         actions: [
           Padding(
@@ -45,8 +50,15 @@ class CategoriesScreen extends ConsumerWidget {
               onPressed: () => _showAddCategory(context),
               icon: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: AppColors.o5, shape: BoxShape.circle),
-                child: const Icon(LucideIcons.plus, color: Colors.white, size: 18),
+                decoration: BoxDecoration(
+                  color: AppColors.o5,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  LucideIcons.plus,
+                  color: Colors.white,
+                  size: 18,
+                ),
               ),
             ),
           ),
@@ -102,75 +114,109 @@ class _CategoryGroupState extends State<_CategoryGroup> {
     final subs = widget.subcategories;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            setState(() => _expanded = !_expanded);
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            margin: const EdgeInsets.only(bottom: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.g2),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44, height: 44,
-                  decoration: BoxDecoration(color: parent.color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
-                  alignment: Alignment.center,
-                  child: Icon(parent.icono, size: 20, color: parent.color),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(parent.nombre, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.e8)),
-                      Text('${subs.length} subcategorías', style: const TextStyle(fontSize: 12, color: AppColors.g4, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-                AnimatedRotation(
-                  turns: _expanded ? 0 : -0.25,
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(LucideIcons.chevronDown, size: 18, color: AppColors.g3),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        if (_expanded)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.85,
-              ),
-              itemCount: subs.length + 1,
-              itemBuilder: (context, i) {
-                if (i == subs.length) {
-                  return _AddSubcategoryTile(onTap: widget.onAddSub);
-                }
-                return _SubcategoryTile(category: subs[i]);
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                setState(() => _expanded = !_expanded);
               },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.g2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: parent.color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(parent.icono, size: 20, color: parent.color),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            parent.nombre,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.e8,
+                            ),
+                          ),
+                          Text(
+                            '${subs.length} subcategorías',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.g4,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    AnimatedRotation(
+                      turns: _expanded ? 0 : -0.25,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        LucideIcons.chevronDown,
+                        size: 18,
+                        color: AppColors.g3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
 
-        const SizedBox(height: 14),
-      ],
-    ).animate().fadeIn(duration: 350.ms, delay: widget.animDelay.ms).slideY(begin: 0.05, end: 0);
+            if (_expanded)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 0.85,
+                  ),
+                  itemCount: subs.length + 1,
+                  itemBuilder: (context, i) {
+                    if (i == subs.length) {
+                      return _AddSubcategoryTile(onTap: widget.onAddSub);
+                    }
+                    return _SubcategoryTile(category: subs[i]);
+                  },
+                ),
+              ),
+
+            const SizedBox(height: 14),
+          ],
+        )
+        .animate()
+        .fadeIn(duration: 350.ms, delay: widget.animDelay.ms)
+        .slideY(begin: 0.05, end: 0);
   }
 }
 
@@ -185,18 +231,35 @@ class _SubcategoryTile extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: 56, height: 56,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: category.color.withValues(alpha: 0.15)),
-              boxShadow: [BoxShadow(color: category.color.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3))],
+              boxShadow: [
+                BoxShadow(
+                  color: category.color.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             alignment: Alignment.center,
             child: Icon(category.icono, size: 22, color: category.color),
           ),
           const SizedBox(height: 8),
-          Text(category.nombre, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.e8)),
+          Text(
+            category.nombre,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: AppColors.e8,
+            ),
+          ),
         ],
       ),
     );
@@ -214,7 +277,8 @@ class _AddSubcategoryTile extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: 56, height: 56,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
               color: AppColors.g1.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(18),
@@ -224,7 +288,14 @@ class _AddSubcategoryTile extends StatelessWidget {
             child: const Icon(LucideIcons.plus, size: 20, color: AppColors.g4),
           ),
           const SizedBox(height: 8),
-          const Text('Nueva', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.g4)),
+          const Text(
+            'Nueva',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: AppColors.g4,
+            ),
+          ),
         ],
       ),
     );
@@ -242,7 +313,7 @@ class AddCategorySheet extends StatefulWidget {
 
 class _AddCategorySheetState extends State<AddCategorySheet> {
   final _nameCtrl = TextEditingController();
-  IconData _icon = LucideIcons.tag;
+  final IconData _icon = LucideIcons.tag;
   Color _color = AppColors.e8;
 
   @override
@@ -257,14 +328,32 @@ class _AddCategorySheetState extends State<AddCategorySheet> {
   Widget build(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
-      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
       child: Column(
         children: [
-          Container(width: 40, height: 5, decoration: BoxDecoration(color: AppColors.g2, borderRadius: BorderRadius.circular(3)), margin: const EdgeInsets.only(bottom: 24)),
-          Text(widget.parent == null ? "Nueva Categoría" : "Nueva Subcategoría", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.e8)),
+          Container(
+            width: 40,
+            height: 5,
+            decoration: BoxDecoration(
+              color: AppColors.g2,
+              borderRadius: BorderRadius.circular(3),
+            ),
+            margin: const EdgeInsets.only(bottom: 24),
+          ),
+          Text(
+            widget.parent == null ? "Nueva Categoría" : "Nueva Subcategoría",
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: AppColors.e8,
+            ),
+          ),
           const SizedBox(height: 24),
-          
+
           // Icon & Color Picker
           GestureDetector(
             onTap: () {
@@ -272,8 +361,12 @@ class _AddCategorySheetState extends State<AddCategorySheet> {
               // Show icon picker
             },
             child: Container(
-              width: 80, height: 80,
-              decoration: BoxDecoration(color: _color.withValues(alpha: 0.1), shape: BoxShape.circle),
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: _color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
               alignment: Alignment.center,
               child: Icon(_icon, size: 32, color: _color),
             ),
@@ -288,7 +381,10 @@ class _AddCategorySheetState extends State<AddCategorySheet> {
               hintText: "Nombre de la categoría",
               filled: true,
               fillColor: AppColors.g0,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
           const Spacer(),

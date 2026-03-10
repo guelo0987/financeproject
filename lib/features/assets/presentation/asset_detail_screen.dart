@@ -54,24 +54,37 @@ class AssetDetailScreen extends StatelessWidget {
                             Row(
                               children: [
                                 Expanded(
-                                  child: Text(asset.name, style: AppTextStyles.headlineLarge),
+                                  child: Text(
+                                    asset.name,
+                                    style: AppTextStyles.headlineLarge,
+                                  ),
                                 ),
                                 if (asset.tickerSymbol != null)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: AppColors.surfaceLight,
                                       borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: AppColors.cardBorder),
+                                      border: Border.all(
+                                        color: AppColors.cardBorder,
+                                      ),
                                     ),
                                     child: Text(
                                       asset.tickerSymbol!,
-                                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.accent),
+                                      style: AppTextStyles.labelSmall.copyWith(
+                                        color: AppColors.accent,
+                                      ),
                                     ),
                                   ),
                               ],
                             ),
-                            Text(asset.institution, style: AppTextStyles.bodyMedium),
+                            Text(
+                              asset.institution,
+                              style: AppTextStyles.bodyMedium,
+                            ),
                           ],
                         ),
                       ),
@@ -92,11 +105,17 @@ class AssetDetailScreen extends StatelessWidget {
                       if (asset.lastSynced != null)
                         Row(
                           children: [
-                            const Icon(Icons.sync, color: AppColors.textTertiary, size: 14),
+                            const Icon(
+                              Icons.sync,
+                              color: AppColors.textTertiary,
+                              size: 14,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               'Sincronizado hace ${DateTime.now().difference(asset.lastSynced!).inMinutes} min',
-                              style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
+                              style: AppTextStyles.bodySmall.copyWith(
+                                fontSize: 10,
+                              ),
                             ),
                           ],
                         ),
@@ -168,10 +187,11 @@ class AssetDetailScreen extends StatelessWidget {
                             ),
                             belowBarData: BarAreaData(
                               show: true,
-                              color: (asset.isPositive
-                                      ? AppColors.positive
-                                      : AppColors.negative)
-                                  .withValues(alpha: 0.1),
+                              color:
+                                  (asset.isPositive
+                                          ? AppColors.positive
+                                          : AppColors.negative)
+                                      .withValues(alpha: 0.1),
                             ),
                           ),
                         ],
@@ -191,12 +211,18 @@ class AssetDetailScreen extends StatelessWidget {
                   _DetailRow('Categoría', asset.category.label),
                   _DetailRow('Institución', asset.institution),
                   _DetailRow('Moneda', asset.currency),
-                  _DetailRow('Valor anterior',
-                      '$prefix ${formatter.format(asset.previousValue)}'),
-                  _DetailRow('Variación',
-                      '${asset.isPositive ? '+' : ''}$prefix ${formatter.format(asset.variation.abs())}'),
-                  _DetailRow('ROI',
-                      '${asset.variationPercent >= 0 ? '+' : ''}${asset.variationPercent.toStringAsFixed(2)}%'),
+                  _DetailRow(
+                    'Valor anterior',
+                    '$prefix ${formatter.format(asset.previousValue)}',
+                  ),
+                  _DetailRow(
+                    'Variación',
+                    '${asset.isPositive ? '+' : ''}$prefix ${formatter.format(asset.variation.abs())}',
+                  ),
+                  _DetailRow(
+                    'ROI',
+                    '${asset.variationPercent >= 0 ? '+' : ''}${asset.variationPercent.toStringAsFixed(2)}%',
+                  ),
                 ],
               ),
             ).animate().fadeIn(duration: 400.ms, delay: 200.ms),

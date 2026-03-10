@@ -6,7 +6,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/app_constants.dart';
 
-
 class QuickLogScreen extends StatefulWidget {
   const QuickLogScreen({super.key});
 
@@ -68,7 +67,7 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
 
   void _suggestCategoryWithIa() {
     if (_description.isEmpty) return;
-    
+
     setState(() {
       _isRecommendingCategory = true;
       _selectedCategory = null;
@@ -78,22 +77,30 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
     // Mock API Call to Claude
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (!mounted) return;
-      
+
       setState(() {
         _isRecommendingCategory = false;
-        
+
         // Simple mock matching based on words
         final lowerDesc = _description.toLowerCase();
-        if (lowerDesc.contains('supermercado') || lowerDesc.contains('comida') || lowerDesc.contains('restaurante')) {
+        if (lowerDesc.contains('supermercado') ||
+            lowerDesc.contains('comida') ||
+            lowerDesc.contains('restaurante')) {
           _selectedCategory = 'Alimentación';
           _iaConfidence = 0.95;
-        } else if (lowerDesc.contains('uber') || lowerDesc.contains('gasolina') || lowerDesc.contains('transporte')) {
+        } else if (lowerDesc.contains('uber') ||
+            lowerDesc.contains('gasolina') ||
+            lowerDesc.contains('transporte')) {
           _selectedCategory = 'Transporte';
           _iaConfidence = 0.92;
-        } else if (lowerDesc.contains('netflix') || lowerDesc.contains('cine') || lowerDesc.contains('suscripción')) {
+        } else if (lowerDesc.contains('netflix') ||
+            lowerDesc.contains('cine') ||
+            lowerDesc.contains('suscripción')) {
           _selectedCategory = 'Entretenimiento';
           _iaConfidence = 0.98;
-        } else if (lowerDesc.contains('pago') || lowerDesc.contains('salario') || lowerDesc.contains('sueldo')) {
+        } else if (lowerDesc.contains('pago') ||
+            lowerDesc.contains('salario') ||
+            lowerDesc.contains('sueldo')) {
           _selectedCategory = 'Salario';
           _iaConfidence = 0.90;
         } else {
@@ -117,7 +124,9 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
           ),
           backgroundColor: _isIncome ? AppColors.positive : AppColors.negative,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
       setState(() {
@@ -151,7 +160,9 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                     height: 48,
                     decoration: BoxDecoration(
                       color: AppColors.surfaceLight,
-                      borderRadius: BorderRadius.circular(AppConstants.radiusRound),
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.radiusRound,
+                      ),
                       border: Border.all(color: AppColors.cardBorder),
                     ),
                     child: Row(
@@ -171,7 +182,9 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                                 color: _isIncome
                                     ? AppColors.positive.withValues(alpha: 0.2)
                                     : Colors.transparent,
-                                borderRadius: BorderRadius.circular(AppConstants.radiusRound),
+                                borderRadius: BorderRadius.circular(
+                                  AppConstants.radiusRound,
+                                ),
                               ),
                               child: Center(
                                 child: Text(
@@ -201,7 +214,9 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                                 color: !_isIncome
                                     ? AppColors.negative.withValues(alpha: 0.2)
                                     : Colors.transparent,
-                                borderRadius: BorderRadius.circular(AppConstants.radiusRound),
+                                borderRadius: BorderRadius.circular(
+                                  AppConstants.radiusRound,
+                                ),
                               ),
                               child: Center(
                                 child: Text(
@@ -234,11 +249,11 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    parsedAmount > 0
-                        ? formatter.format(parsedAmount)
-                        : '0',
+                    parsedAmount > 0 ? formatter.format(parsedAmount) : '0',
                     style: AppTextStyles.displayLarge.copyWith(
-                      color: _isIncome ? AppColors.positive : AppColors.negative,
+                      color: _isIncome
+                          ? AppColors.positive
+                          : AppColors.negative,
                       fontSize: 52,
                     ),
                   ),
@@ -264,7 +279,9 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                         style: AppTextStyles.bodyMedium,
                         decoration: InputDecoration(
                           hintText: 'Descripción (ej. "Uber al trabajo")',
-                          hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textTertiary),
+                          hintStyle: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.textTertiary,
+                          ),
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
@@ -273,14 +290,21 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                     ),
                     if (_description.isNotEmpty)
                       GestureDetector(
-                        onTap: _isRecommendingCategory ? null : _suggestCategoryWithIa,
+                        onTap: _isRecommendingCategory
+                            ? null
+                            : _suggestCategoryWithIa,
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.accent.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+                            border: Border.all(
+                              color: AppColors.accent.withValues(alpha: 0.3),
+                            ),
                           ),
                           child: _isRecommendingCategory
                               ? const SizedBox(
@@ -293,9 +317,18 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                                 )
                               : Row(
                                   children: [
-                                    const Icon(Icons.smart_toy, size: 16, color: AppColors.accent),
+                                    const Icon(
+                                      Icons.smart_toy,
+                                      size: 16,
+                                      color: AppColors.accent,
+                                    ),
                                     const SizedBox(width: 4),
-                                    Text('Sugerir con IA', style: AppTextStyles.labelSmall.copyWith(color: AppColors.accent)),
+                                    Text(
+                                      'Sugerir con IA',
+                                      style: AppTextStyles.labelSmall.copyWith(
+                                        color: AppColors.accent,
+                                      ),
+                                    ),
                                   ],
                                 ),
                         ),
@@ -304,7 +337,7 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                 ),
               ),
             ).animate().fadeIn(duration: 300.ms, delay: 150.ms),
-            
+
             const SizedBox(height: 24),
 
             // ── Category Selector ──
@@ -328,12 +361,16 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                       width: 72,
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? (_isIncome ? AppColors.positiveDim : AppColors.negativeDim)
+                            ? (_isIncome
+                                  ? AppColors.positiveDim
+                                  : AppColors.negativeDim)
                             : AppColors.surfaceLight,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color: isSelected
-                              ? (_isIncome ? AppColors.positive : AppColors.negative)
+                              ? (_isIncome
+                                    ? AppColors.positive
+                                    : AppColors.negative)
                               : AppColors.cardBorder,
                           width: isSelected ? 1.5 : 1,
                         ),
@@ -345,7 +382,9 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                             cat.icon,
                             size: 22,
                             color: isSelected
-                                ? (_isIncome ? AppColors.positive : AppColors.negative)
+                                ? (_isIncome
+                                      ? AppColors.positive
+                                      : AppColors.negative)
                                 : AppColors.textSecondary,
                           ),
                           const SizedBox(height: 4),
@@ -363,16 +402,23 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                           if (isSelected && _iaConfidence != null) ...[
                             const SizedBox(height: 2),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceLight.withValues(alpha: 0.8),
+                                color: AppColors.surfaceLight.withValues(
+                                  alpha: 0.8,
+                                ),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 '${(_iaConfidence! * 100).toInt()}% IA',
                                 style: TextStyle(
                                   fontSize: 8,
-                                  color: _iaConfidence! > 0.8 ? AppColors.positive : AppColors.accent,
+                                  color: _iaConfidence! > 0.8
+                                      ? AppColors.positive
+                                      : AppColors.accent,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -405,25 +451,37 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                         children: row.map((key) {
                           return Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
                               child: Material(
                                 color: Colors.transparent,
                                 child: InkWell(
                                   onTap: () => _onKeyTap(key),
                                   borderRadius: BorderRadius.circular(14),
-                                  splashColor: AppColors.accent.withValues(alpha: 0.1),
+                                  splashColor: AppColors.accent.withValues(
+                                    alpha: 0.1,
+                                  ),
                                   child: Container(
                                     height: 56,
                                     decoration: BoxDecoration(
                                       color: AppColors.surfaceLight,
                                       borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(color: AppColors.cardBorder),
+                                      border: Border.all(
+                                        color: AppColors.cardBorder,
+                                      ),
                                     ),
                                     child: Center(
                                       child: key == 'DEL'
-                                          ? const Icon(Icons.backspace_outlined,
-                                              color: AppColors.textSecondary, size: 22)
-                                          : Text(key, style: AppTextStyles.numpadKey),
+                                          ? const Icon(
+                                              Icons.backspace_outlined,
+                                              color: AppColors.textSecondary,
+                                              size: 22,
+                                            )
+                                          : Text(
+                                              key,
+                                              style: AppTextStyles.numpadKey,
+                                            ),
                                     ),
                                   ),
                                 ),
@@ -448,7 +506,9 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                       ? _onSave
                       : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _isIncome ? AppColors.positive : AppColors.negative,
+                    backgroundColor: _isIncome
+                        ? AppColors.positive
+                        : AppColors.negative,
                     foregroundColor: AppColors.background,
                     disabledBackgroundColor: AppColors.surfaceLight,
                     disabledForegroundColor: AppColors.textTertiary,

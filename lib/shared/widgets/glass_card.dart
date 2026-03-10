@@ -38,10 +38,7 @@ class GlassCard extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: gradientColors ?? AppColors.glassGradient,
             ),
-            border: Border.all(
-              color: AppColors.glassBorder,
-              width: 1,
-            ),
+            border: Border.all(color: AppColors.glassBorder, width: 1),
           ),
           child: child,
         ),
@@ -49,10 +46,7 @@ class GlassCard extends StatelessWidget {
     );
 
     if (onTap != null) {
-      return GestureDetector(
-        onTap: onTap,
-        child: card,
-      );
+      return GestureDetector(onTap: onTap, child: card);
     }
     return card;
   }

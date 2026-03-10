@@ -75,7 +75,7 @@ abstract class AppColors {
   static const categoryShopping = r5;
   static const categoryHealth = e6;
   static const categoryServices = a5;
-  
+
   static const categoryBankAccounts = b5;
   static const categoryInvestments = e6;
   static const categoryCrypto = a5;
@@ -113,4 +113,3 @@ abstract class MenudoColors {
 
   static const Color orangeDark = Color(0xFFEA580C);
 }
-

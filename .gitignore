@@ -47,7 +47,11 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+.env
+!.env.example
 *.md
+!AGENTS.md
+
 
 *.sql
 

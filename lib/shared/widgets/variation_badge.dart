@@ -40,8 +40,13 @@ class VariationBadge extends StatelessWidget {
           Text(
             '$arrow $sign${percentage.toStringAsFixed(2)}%',
             style: compact
-                ? AppTextStyles.labelSmall.copyWith(color: color, fontWeight: FontWeight.w600)
-                : (isPositive ? AppTextStyles.variationPositive : AppTextStyles.variationNegative),
+                ? AppTextStyles.labelSmall.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  )
+                : (isPositive
+                      ? AppTextStyles.variationPositive
+                      : AppTextStyles.variationNegative),
           ),
         ],
       ),

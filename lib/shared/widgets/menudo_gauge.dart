@@ -13,7 +13,8 @@ class MenudoGauge extends StatefulWidget {
   State<MenudoGauge> createState() => _MenudoGaugeState();
 }
 
-class _MenudoGaugeState extends State<MenudoGauge> with SingleTickerProviderStateMixin {
+class _MenudoGaugeState extends State<MenudoGauge>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _sweepAnimation;
 
@@ -44,7 +45,6 @@ class _MenudoGaugeState extends State<MenudoGauge> with SingleTickerProviderStat
     final double ingresos = budget.ingresos > 0 ? budget.ingresos : 1;
     final List<BudgetCategory> cats = budget.cats.values.toList();
     final double totalSpent = cats.fold(0.0, (s, c) => s + c.gastado);
-    final double totalLimitLimit = cats.fold(0.0, (s, c) => s + c.limite);
 
     return RepaintBoundary(
       child: SizedBox(
@@ -60,7 +60,9 @@ class _MenudoGaugeState extends State<MenudoGauge> with SingleTickerProviderStat
                 CustomPaint(
                   size: const Size(260, 160),
                   painter: _GaugePainter(
-                    color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.g2,
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : AppColors.g2,
                     strokeWidth: 18,
                     startAngle: 180,
                     sweepAngle: 180,
@@ -71,10 +73,7 @@ class _MenudoGaugeState extends State<MenudoGauge> with SingleTickerProviderStat
                 ..._buildSegments(cats, ingresos, progress),
 
                 // Center Text
-                Positioned(
-                  bottom: 10,
-                  child: child!,
-                ),
+                Positioned(bottom: 10, child: child!),
               ],
             );
           },
@@ -86,7 +85,9 @@ class _MenudoGaugeState extends State<MenudoGauge> with SingleTickerProviderStat
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white.withValues(alpha: 0.5) : AppColors.g4,
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.5)
+                      : AppColors.g4,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -107,10 +108,14 @@ class _MenudoGaugeState extends State<MenudoGauge> with SingleTickerProviderStat
     );
   }
 
-  List<Widget> _buildSegments(List<BudgetCategory> cats, double ingresos, double progress) {
+  List<Widget> _buildSegments(
+    List<BudgetCategory> cats,
+    double ingresos,
+    double progress,
+  ) {
     List<Widget> segments = [];
     double currentAngle = 180.0;
-    
+
     final double totalSpent = cats.fold(0.0, (s, c) => s + c.gastado);
     // Normalize if spent > income to fit in 180 degrees visually, but usually we want to show overflow?
     // Let's normalize to totalSpent if totalSpent > ingresos to keep it within the semi-circle
@@ -180,8 +185,8 @@ class _GaugePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _GaugePainter oldDelegate) {
     return oldDelegate.color != color ||
-           oldDelegate.strokeWidth != strokeWidth ||
-           oldDelegate.startAngle != startAngle ||
-           oldDelegate.sweepAngle != sweepAngle;
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.startAngle != startAngle ||
+        oldDelegate.sweepAngle != sweepAngle;
   }
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 /// Maps icon key strings (stored in DB) to LucideIcons IconData.
-/// Used when deserializing categories and wallet accounts from Supabase.
+/// Used when deserializing categories and wallet accounts from the HTTP API.
 IconData iconFromKey(String key) {
   return _iconMap[key] ?? LucideIcons.circle;
 }
@@ -11,7 +11,10 @@ IconData iconFromKey(String key) {
 /// Since LucideIcons are static fields, we use the reverse lookup map.
 String iconToKey(IconData icon) {
   return _iconMap.entries
-      .firstWhere((e) => e.value == icon, orElse: () => const MapEntry('circle', LucideIcons.circle))
+      .firstWhere(
+        (e) => e.value == icon,
+        orElse: () => const MapEntry('circle', LucideIcons.circle),
+      )
       .key;
 }
 

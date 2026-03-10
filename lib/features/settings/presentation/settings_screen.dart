@@ -31,7 +31,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   children: [
                     Text('Perfil', style: MenudoTextStyles.h1),
                     const SizedBox(height: 32),
-                    
+
                     // Avatar & Info
                     Center(
                       child: Column(
@@ -41,8 +41,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             height: 80,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: MenudoColors.primaryLight.withValues(alpha: 0.5),
-                              border: Border.all(color: MenudoColors.primaryLight, width: 2),
+                              color: MenudoColors.primaryLight.withValues(
+                                alpha: 0.5,
+                              ),
+                              border: Border.all(
+                                color: MenudoColors.primaryLight,
+                                width: 2,
+                              ),
                             ),
                             child: const Center(
                               child: Text(
@@ -56,9 +61,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                           ).animate().scale(duration: 400.ms),
                           const SizedBox(height: 16),
-                          Text('Miguel Cruz', style: MenudoTextStyles.h2).animate().fadeIn(delay: 100.ms),
+                          Text(
+                            'Miguel Cruz',
+                            style: MenudoTextStyles.h2,
+                          ).animate().fadeIn(delay: 100.ms),
                           const SizedBox(height: 8),
-                          const MenudoChip('Plan Premium', variant: MenudoChipVariant.primary).animate().fadeIn(delay: 200.ms),
+                          const MenudoChip(
+                            'Plan Premium',
+                            variant: MenudoChipVariant.primary,
+                          ).animate().fadeIn(delay: 200.ms),
                         ],
                       ),
                     ),
@@ -79,7 +90,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       padding: EdgeInsets.zero,
                       child: Column(
                         children: [
-                          _buildListTile(Icons.person_outline, 'Tus datos', () {}),
+                          _buildListTile(
+                            Icons.person_outline,
+                            'Tus datos',
+                            () {},
+                          ),
                           const Divider(height: 1, color: MenudoColors.divider),
                           _buildListTile(Icons.security, 'Seguridad', () {}),
                           const Divider(height: 1, color: MenudoColors.divider),
@@ -95,17 +110,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       padding: EdgeInsets.zero,
                       child: Column(
                         children: [
-                          _buildListTile(Icons.group, 'Gestionar Espacios Compartidos', () {
-                            context.push('/spaces-manager');
-                          }),
+                          _buildListTile(
+                            Icons.group,
+                            'Gestionar Espacios Compartidos',
+                            () {
+                              context.push('/spaces-manager');
+                            },
+                          ),
                           const Divider(height: 1, color: MenudoColors.divider),
-                          _buildListTile(Icons.repeat, 'Transacciones Automáticas', () {
-                            context.push('/recurring');
-                          }),
+                          _buildListTile(
+                            Icons.repeat,
+                            'Transacciones Automáticas',
+                            () {
+                              context.push('/recurring');
+                            },
+                          ),
                           const Divider(height: 1, color: MenudoColors.divider),
-                          _buildListTile(Icons.grid_view, 'Herramientas de categorías', () {
-                            context.push('/tools');
-                          }),
+                          _buildListTile(
+                            Icons.grid_view,
+                            'Herramientas de categorías',
+                            () {
+                              context.push('/tools');
+                            },
+                          ),
                         ],
                       ),
                     ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.05),
@@ -117,11 +144,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       padding: EdgeInsets.zero,
                       child: Column(
                         children: [
-                          _buildListTile(Icons.notifications_none, 'Notificaciones', () {}),
+                          _buildListTile(
+                            Icons.notifications_none,
+                            'Notificaciones',
+                            () {},
+                          ),
                           const Divider(height: 1, color: MenudoColors.divider),
-                          _buildListTile(Icons.dark_mode_outlined, 'Tema (Claro/Oscuro)', () {}),
+                          _buildListTile(
+                            Icons.dark_mode_outlined,
+                            'Tema (Claro/Oscuro)',
+                            () {},
+                          ),
                           const Divider(height: 1, color: MenudoColors.divider),
-                          _buildListTile(Icons.help_outline, 'Centro de Ayuda', () {}),
+                          _buildListTile(
+                            Icons.help_outline,
+                            'Centro de Ayuda',
+                            () {},
+                          ),
                         ],
                       ),
                     ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.05),
@@ -141,7 +180,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ],
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -153,7 +192,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       padding: const EdgeInsets.only(bottom: 12, left: 4),
       child: Text(
         title.toUpperCase(),
-        style: MenudoTextStyles.labelCaps.copyWith(color: MenudoColors.textMuted),
+        style: MenudoTextStyles.labelCaps.copyWith(
+          color: MenudoColors.textMuted,
+        ),
       ),
     );
   }
@@ -168,9 +209,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             Icon(icon, size: 22, color: MenudoColors.textSecondary),
             const SizedBox(width: 16),
             Expanded(
-              child: Text(title, style: MenudoTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w500)),
+              child: Text(
+                title,
+                style: MenudoTextStyles.bodyLarge.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
-            const Icon(Icons.chevron_right, color: MenudoColors.textMuted, size: 20),
+            const Icon(
+              Icons.chevron_right,
+              color: MenudoColors.textMuted,
+              size: 20,
+            ),
           ],
         ),
       ),

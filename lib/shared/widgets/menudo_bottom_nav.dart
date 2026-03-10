@@ -22,7 +22,12 @@ class MenudoBottomNav extends StatelessWidget {
       height: 94,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.85),
-        border: Border(top: BorderSide(color: AppColors.g2.withValues(alpha: 0.5), width: 0.5)),
+        border: Border(
+          top: BorderSide(
+            color: AppColors.g2.withValues(alpha: 0.5),
+            width: 0.5,
+          ),
+        ),
       ),
       child: ClipRRect(
         child: BackdropFilter(
@@ -50,7 +55,7 @@ class MenudoBottomNav extends StatelessWidget {
                   _NavItem(
                     icon: LucideIcons.pieChart,
                     label: 'Presupuestos',
-                    isActive: currentIndex == 2, 
+                    isActive: currentIndex == 2,
                     onTap: () => onTabTap(2),
                   ),
                   _NavItem(
@@ -85,7 +90,7 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = isActive ? AppColors.e8 : AppColors.g4;
-    
+
     return Expanded(
       child: InkWell(
         onTap: () {
@@ -117,7 +122,8 @@ class _NavItem extends StatelessWidget {
             const SizedBox(height: 6),
             AnimatedContainer(
               duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOut, // Changed from easeOutBack to prevent negative width
+              curve: Curves
+                  .easeOut, // Changed from easeOutBack to prevent negative width
               width: isActive ? 4 : 0,
               height: 4,
               decoration: BoxDecoration(
@@ -141,7 +147,8 @@ class _FabItem extends StatefulWidget {
   State<_FabItem> createState() => _FabItemState();
 }
 
-class _FabItemState extends State<_FabItem> with SingleTickerProviderStateMixin {
+class _FabItemState extends State<_FabItem>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -152,9 +159,10 @@ class _FabItemState extends State<_FabItem> with SingleTickerProviderStateMixin 
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.88).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.88,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -199,10 +207,14 @@ class _FabItemState extends State<_FabItem> with SingleTickerProviderStateMixin 
                     color: AppColors.o5.withValues(alpha: 0.4),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
-                  )
+                  ),
                 ],
               ),
-              child: const Icon(LucideIcons.plus, color: Colors.white, size: 28),
+              child: const Icon(
+                LucideIcons.plus,
+                color: Colors.white,
+                size: 28,
+              ),
             ),
           ),
         ),
@@ -210,4 +222,3 @@ class _FabItemState extends State<_FabItem> with SingleTickerProviderStateMixin 
     );
   }
 }
-

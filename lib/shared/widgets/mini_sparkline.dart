@@ -22,7 +22,8 @@ class MiniSparkline extends StatelessWidget {
     if (data.isEmpty) return SizedBox(width: width, height: height);
 
     final isPositive = data.last >= data.first;
-    final lineColor = color ?? (isPositive ? AppColors.positive : AppColors.negative);
+    final lineColor =
+        color ?? (isPositive ? AppColors.positive : AppColors.negative);
 
     return SizedBox(
       width: width,
