@@ -12,10 +12,11 @@ import '../utils/icon_utils.dart';
 class WalletAccount {
   final int id;
   final String nombre;
-  final String tipo; // "ahorro", "gasto", "deuda"
+  final String tipo; // DB: "cuentas", "gastos", "deudas"
   final double saldo;
   final Color color;
   final IconData icono;
+  final String moneda;
 
   const WalletAccount({
     required this.id,
@@ -24,28 +25,31 @@ class WalletAccount {
     required this.saldo,
     required this.color,
     required this.icono,
+    this.moneda = 'DOP',
   });
 
   factory WalletAccount.fromJson(Map<String, dynamic> json) {
-    final subtipo = json['subtipo'] as String? ?? 'ahorro';
+    final tipoDb = json['tipo'] as String? ?? 'cuentas';
     final valorActual = (json['valor_actual'] as num).toDouble();
     return WalletAccount(
       id: (json['activo_id'] as num).toInt(),
       nombre: json['nombre'] as String,
-      tipo: subtipo, // "ahorro"/"gasto"/"deuda" mapped from subtipo
-      saldo: subtipo == 'deuda' ? -valorActual : valorActual,
+      tipo: tipoDb, 
+      saldo: tipoDb == 'deudas' ? -valorActual : valorActual,
       color: colorFromHex(json['color_hex'] as String? ?? '#4F46E5'),
       icono: iconFromKey(json['icono'] as String? ?? 'landmark'),
+      moneda: json['moneda'] as String? ?? 'DOP',
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'nombre': nombre,
-      'subtipo': tipo,
+      'tipo': tipo,
       'valor_actual': saldo.abs(),
       'color_hex': colorToHex(color),
       'icono': iconToKey(icono),
+      'moneda': moneda,
     };
   }
 }
@@ -53,44 +57,57 @@ class WalletAccount {
 // ── Transaction ─────────────────────────────────
 class MenudoTransaction {
   final int id;
-  final String dateString; // "YYYY-MM-DD" e.g "2026-03-05"
+  final String dateString; // "YYYY-MM-DD"
   final String desc;
-  final String catKey;
+  final String catKey; // slug
+  final int? categoryId;
   final double monto;
   final String tipo; // "gasto", "ingreso", "transferencia"
   final IconData icono;
-  final int? fromAccountId; // For transfers
-  final int? toAccountId;   // For transfers
+  final int? fromAccountId; 
+  final int? toAccountId;   
   final String? nota;
+  final String moneda;
+  final int? usuarioId;
+  final String? userName;
 
   const MenudoTransaction({
     required this.id,
     required this.dateString,
     required this.desc,
     required this.catKey,
+    this.categoryId,
     required this.monto,
     required this.tipo,
     required this.icono,
     this.fromAccountId,
     this.toAccountId,
     this.nota,
+    this.moneda = 'DOP',
+    this.usuarioId,
+    this.userName,
   });
 
   factory MenudoTransaction.fromJson(Map<String, dynamic> json, {String catKey = ''}) {
     final tipo = json['tipo'] as String;
     final rawMonto = (json['monto'] as num).toDouble();
+    // In DB monto is always positive. We sign it for UI convenience.
     final monto = tipo == 'ingreso' ? rawMonto : -rawMonto;
     return MenudoTransaction(
       id: (json['transaccion_id'] as num).toInt(),
       dateString: json['fecha'] as String,
       desc: json['descripcion'] as String? ?? '',
-      catKey: catKey, // Resolved externally from category slug
+      catKey: catKey,
+      categoryId: json['categoria_id'] != null ? (json['categoria_id'] as num).toInt() : null,
       monto: monto,
       tipo: tipo,
       icono: iconFromKey(json['categoria_icono'] as String? ?? 'circle'),
       fromAccountId: json['activo_id'] != null ? (json['activo_id'] as num).toInt() : null,
       toAccountId: json['activo_destino_id'] != null ? (json['activo_destino_id'] as num).toInt() : null,
       nota: json['nota'] as String?,
+      moneda: json['moneda'] as String? ?? 'DOP',
+      usuarioId: json['usuario_id'] != null ? (json['usuario_id'] as num).toInt() : null,
+      userName: json['user_name'] as String?,
     );
   }
 
@@ -98,11 +115,14 @@ class MenudoTransaction {
     return {
       'fecha': dateString,
       'descripcion': desc,
-      'monto': monto.abs(), // Always positive in DB
+      'monto': monto.abs(), 
       'tipo': tipo,
       'nota': nota,
+      'moneda': moneda,
       if (fromAccountId != null) 'activo_id': fromAccountId,
       if (toAccountId != null) 'activo_destino_id': toAccountId,
+      if (categoryId != null) 'categoria_id': categoryId,
+      if (usuarioId != null) 'usuario_id': usuarioId,
     };
   }
 
@@ -116,6 +136,8 @@ class MenudoTransaction {
     int? fromAccountId,
     int? toAccountId,
     String? nota,
+    int? usuarioId,
+    String? userName,
   }) {
     return MenudoTransaction(
       id: id,
@@ -128,6 +150,8 @@ class MenudoTransaction {
       fromAccountId: fromAccountId ?? this.fromAccountId,
       toAccountId: toAccountId ?? this.toAccountId,
       nota: nota ?? this.nota,
+      usuarioId: usuarioId ?? this.usuarioId,
+      userName: userName ?? this.userName,
     );
   }
 }
@@ -144,6 +168,8 @@ class RecurringTransaction {
   final int diaEjecucion; // Day of month or week
   final bool activo;
   final String? nota;
+  final int? accountId;
+  final int? presupuestoId;
 
   const RecurringTransaction({
     required this.id,
@@ -156,6 +182,8 @@ class RecurringTransaction {
     required this.diaEjecucion,
     this.activo = true,
     this.nota,
+    this.accountId,
+    this.presupuestoId,
   });
 
   factory RecurringTransaction.fromJson(Map<String, dynamic> json, {String catKey = ''}) {
@@ -170,6 +198,8 @@ class RecurringTransaction {
       diaEjecucion: (json['dia_ejecucion'] as num).toInt(),
       activo: json['activo'] as bool? ?? true,
       nota: json['nota'] as String?,
+      accountId: json['activo_id'] != null ? (json['activo_id'] as num).toInt() : null,
+      presupuestoId: json['presupuesto_id'] != null ? (json['presupuesto_id'] as num).toInt() : null,
     );
   }
 
@@ -182,12 +212,15 @@ class RecurringTransaction {
       'dia_ejecucion': diaEjecucion,
       'activo': activo,
       if (nota != null) 'nota': nota,
+      if (accountId != null) 'activo_id': accountId,
+      if (presupuestoId != null) 'presupuesto_id': presupuestoId,
     };
   }
 }
 
 // ── Budget Category & Member ────────────────────
 class BudgetCategory {
+  final int? categoryId; // Link to public.categorias
   final String label;
   final IconData icono;
   final Color color;
@@ -195,6 +228,7 @@ class BudgetCategory {
   double gastado;
 
   BudgetCategory({
+    this.categoryId,
     required this.label,
     required this.icono,
     required this.color,
@@ -204,16 +238,18 @@ class BudgetCategory {
 
   factory BudgetCategory.fromJson(Map<String, dynamic> json) {
     return BudgetCategory(
-      label: json['nombre'] as String,
+      categoryId: json['categoria_id'] != null ? (json['categoria_id'] as num).toInt() : null,
+      label: json['nombre'] as String? ?? '',
       icono: iconFromKey(json['icono'] as String? ?? 'circle'),
       color: colorFromHex(json['color_hex'] as String? ?? '#4F46E5'),
-      limite: (json['limite'] as num).toDouble(),
+      limite: (json['limite'] as num? ?? 0).toDouble(),
       gastado: (json['gastado'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      if (categoryId != null) 'categoria_id': categoryId,
       'nombre': label,
       'icono': iconToKey(icono),
       'color_hex': colorToHex(color),
@@ -245,70 +281,73 @@ class BudgetMember {
 // ── Category ──────────────────────────────────────
 class MenudoCategory {
   final int id;
-  final String slug;       // Used as catKey throughout the app
+  final String slug;            // Used as catKey throughout the app
   final String nombre;
-  final String tipo;       // "gasto", "ingreso", "transferencia"
   final IconData icono;
   final Color color;
   final bool esSistema;
-  final int? usuarioId;    // null = system category
+  final int? usuarioId;         // null = system category
+  final int? categoriaParadreId; // null = this IS a parent category
 
   const MenudoCategory({
     required this.id,
     required this.slug,
     required this.nombre,
-    required this.tipo,
     required this.icono,
     required this.color,
     required this.esSistema,
     this.usuarioId,
+    this.categoriaParadreId,
   });
+
+  bool get esParent => categoriaParadreId == null;
 
   factory MenudoCategory.fromJson(Map<String, dynamic> json) {
     return MenudoCategory(
       id: (json['categoria_id'] as num).toInt(),
       slug: json['slug'] as String? ?? (json['nombre'] as String).toLowerCase(),
       nombre: json['nombre'] as String,
-      tipo: json['tipo'] as String,
       icono: iconFromKey(json['icono'] as String? ?? 'circle'),
       color: colorFromHex(json['color_hex'] as String? ?? '#4F46E5'),
       esSistema: json['es_sistema'] as bool? ?? false,
       usuarioId: json['usuario_id'] != null ? (json['usuario_id'] as num).toInt() : null,
+      categoriaParadreId: json['categoria_padre_id'] != null ? (json['categoria_padre_id'] as num).toInt() : null,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'categoria_id': id,
       'slug': slug,
       'nombre': nombre,
-      'tipo': tipo,
       'icono': iconToKey(icono),
       'color_hex': colorToHex(color),
-      'es_sistema': esSistema,
-      'usuario_id': usuarioId,
+      if (categoriaParadreId != null) 'categoria_padre_id': categoriaParadreId,
     };
   }
 }
 
 class MenudoBudget {
   final int id;
+  final int? espacioId; 
   final String nombre;
-  final String periodo; // "mensual", "quincenal", etc
+  final String periodo; // "mensual", "quincenal", "semanal", "unico"
   final int diaInicio;
   final bool activo;
   final List<BudgetMember> miembros;
   final double ingresos;
+  final double ahorroObjetivo;
   final Map<String, BudgetCategory> cats;
 
   const MenudoBudget({
     required this.id,
+    this.espacioId,
     required this.nombre,
     required this.periodo,
     required this.diaInicio,
     required this.activo,
     required this.miembros,
     required this.ingresos,
+    this.ahorroObjetivo = 0,
     required this.cats,
   });
 
@@ -318,11 +357,13 @@ class MenudoBudget {
   }) {
     return MenudoBudget(
       id: (json['presupuesto_id'] as num).toInt(),
+      espacioId: json['espacio_id'] != null ? (json['espacio_id'] as num).toInt() : null,
       nombre: json['nombre'] as String,
       periodo: json['periodo'] as String,
       diaInicio: (json['dia_inicio'] as num).toInt(),
       activo: json['activo'] as bool? ?? false,
-      ingresos: (json['ingresos'] as num).toDouble(),
+      ingresos: (json['ingresos'] as num? ?? 0).toDouble(),
+      ahorroObjetivo: (json['ahorro_objetivo'] as num? ?? 0).toDouble(),
       miembros: miembros,
       cats: cats,
     );
@@ -330,11 +371,13 @@ class MenudoBudget {
 
   Map<String, dynamic> toJson() {
     return {
+      if (espacioId != null) 'espacio_id': espacioId,
       'nombre': nombre,
       'periodo': periodo,
       'dia_inicio': diaInicio,
       'activo': activo,
       'ingresos': ingresos,
+      'ahorro_objetivo': ahorroObjetivo,
     };
   }
 }
@@ -344,18 +387,18 @@ class MenudoBudget {
 // ==========================================
 
 final List<WalletAccount> mockWallets = [
-  const WalletAccount(id: 1, nombre: "BHD León — Nómina", tipo: "ahorro", saldo: 45000, color: AppColors.b5, icono: LucideIcons.landmark),
-  const WalletAccount(id: 2, nombre: "Popular — Crédito", tipo: "deuda", saldo: -12500, color: AppColors.r5, icono: LucideIcons.creditCard),
-  const WalletAccount(id: 3, nombre: "Efectivo",          tipo: "gasto",  saldo: 3200, color: AppColors.e6, icono: LucideIcons.banknote),
-  const WalletAccount(id: 4, nombre: "Fondo Emergencia",  tipo: "ahorro", saldo: 100000, color: AppColors.a5, icono: LucideIcons.shieldAlert),
+  const WalletAccount(id: 1, nombre: "BHD León — Nómina", tipo: "cuentas", saldo: 45000, color: AppColors.b5, icono: LucideIcons.landmark, moneda: 'DOP'),
+  const WalletAccount(id: 2, nombre: "Popular — Crédito", tipo: "deudas",  saldo: -12500, color: AppColors.r5, icono: LucideIcons.creditCard, moneda: 'DOP'),
+  const WalletAccount(id: 3, nombre: "Efectivo",          tipo: "gastos",  saldo: 3200, color: AppColors.e6, icono: LucideIcons.banknote, moneda: 'DOP'),
+  const WalletAccount(id: 4, nombre: "Fondo Emergencia",  tipo: "cuentas", saldo: 100000, color: AppColors.a5, icono: LucideIcons.shieldAlert, moneda: 'DOP'),
 ];
 
 Map<String, BudgetCategory> _createInitCats() {
   return {
-    "vivienda": BudgetCategory(label: "Vivienda", icono: LucideIcons.home, color: AppColors.e7, limite: 25000, gastado: 25000),
-    "comida": BudgetCategory(label: "Comida", icono: LucideIcons.utensils, color: AppColors.o5, limite: 15000, gastado: 8500),
-    "transporte": BudgetCategory(label: "Transporte", icono: LucideIcons.car, color: AppColors.p5, limite: 8000, gastado: 4200),
-    "estiloVida": BudgetCategory(label: "Estilo", icono: LucideIcons.sparkles, color: AppColors.pk, limite: 12000, gastado: 6300),
+    "vivienda": BudgetCategory(categoryId: 1, label: "Vivienda", icono: LucideIcons.home, color: AppColors.e7, limite: 25000, gastado: 25000),
+    "comida": BudgetCategory(categoryId: 2, label: "Comida", icono: LucideIcons.utensils, color: AppColors.o5, limite: 15000, gastado: 8500),
+    "transporte": BudgetCategory(categoryId: 3, label: "Transporte", icono: LucideIcons.car, color: AppColors.p5, limite: 8000, gastado: 4200),
+    "estiloVida": BudgetCategory(categoryId: 4, label: "Estilo", icono: LucideIcons.sparkles, color: AppColors.pk, limite: 12000, gastado: 6300),
   };
 }
 
@@ -363,7 +406,7 @@ final List<MenudoBudget> mockBudgets = [
   MenudoBudget(
     id: 1,
     nombre: "Mi Mes",
-    periodo: "Mensual",
+    periodo: "mensual",
     diaInicio: 1,
     activo: true,
     miembros: const [
@@ -371,39 +414,41 @@ final List<MenudoBudget> mockBudgets = [
       BudgetMember(n: "Laura", i: "L", c: AppColors.o5)
     ],
     ingresos: 95000,
+    ahorroObjetivo: 15000,
     cats: _createInitCats(),
   ),
   MenudoBudget(
     id: 2,
     nombre: "Viaje a Punta Cana",
-    periodo: "Único",
+    periodo: "unico",
     diaInicio: 15,
     activo: false,
     miembros: const [BudgetMember(n: "Marcos", i: "M", c: AppColors.e8)],
     ingresos: 40000,
+    ahorroObjetivo: 0,
     cats: {
-      "comida": BudgetCategory(label: "Comida", icono: LucideIcons.utensils, color: AppColors.o5, limite: 10000, gastado: 2500),
-      "estiloVida": BudgetCategory(label: "Tours", icono: LucideIcons.plane, color: AppColors.b5, limite: 15000, gastado: 0),
+      "comida": BudgetCategory(categoryId: 2, label: "Comida", icono: LucideIcons.utensils, color: AppColors.o5, limite: 10000, gastado: 2500),
+      "estiloVida": BudgetCategory(categoryId: 4, label: "Tours", icono: LucideIcons.plane, color: AppColors.b5, limite: 15000, gastado: 0),
     },
   )
 ];
 
 final List<MenudoTransaction> mockTxns = [
   // Ingresos
-  const MenudoTransaction(id: 10, dateString: "2026-03-01", desc: "Salario BHD León", catKey: "ingreso", monto: 85000, tipo: "ingreso", icono: LucideIcons.landmark, nota: "Nómina mensual"),
-  const MenudoTransaction(id: 11, dateString: "2026-03-01", desc: "Freelance diseño web", catKey: "ingreso", monto: 10000, tipo: "ingreso", icono: LucideIcons.monitor),
+  const MenudoTransaction(id: 10, dateString: "2026-03-01", desc: "Salario BHD León", catKey: "ingreso", categoryId: 8, monto: 85000, tipo: "ingreso", icono: LucideIcons.landmark, nota: "Nómina mensual", moneda: 'DOP', userName: "Miguel"),
+  const MenudoTransaction(id: 11, dateString: "2026-03-01", desc: "Freelance diseño web", catKey: "ingreso", categoryId: 8, monto: 10000, tipo: "ingreso", icono: LucideIcons.monitor, moneda: 'DOP', userName: "Miguel"),
   // Transferencias
-  const MenudoTransaction(id: 20, dateString: "2026-03-03", desc: "Ahorro mensual", catKey: "transferencia", monto: -5000, tipo: "transferencia", icono: LucideIcons.arrowLeftRight, fromAccountId: 1, toAccountId: 4, nota: "Aporte al fondo de emergencia"),
+  const MenudoTransaction(id: 20, dateString: "2026-03-03", desc: "Ahorro mensual", catKey: "transferencia", categoryId: 9, monto: -5000, tipo: "transferencia", icono: LucideIcons.arrowLeftRight, fromAccountId: 1, toAccountId: 4, nota: "Aporte al fondo de emergencia", moneda: 'DOP', userName: "Miguel"),
   // Gastos
-  const MenudoTransaction(id: 1, dateString: "2026-03-01", desc: "Pago alquiler", catKey: "vivienda", monto: -25000, tipo: "gasto", icono: LucideIcons.home),
-  const MenudoTransaction(id: 2, dateString: "2026-03-02", desc: "Supermercado Nacional", catKey: "comida", monto: -4500, tipo: "gasto", icono: LucideIcons.shoppingCart),
-  const MenudoTransaction(id: 3, dateString: "2026-03-05", desc: "Gasolina Shell", catKey: "transporte", monto: -2000, tipo: "gasto", icono: LucideIcons.fuel),
-  const MenudoTransaction(id: 4, dateString: "2026-03-07", desc: "Cena en SBG", catKey: "comida", monto: -4000, tipo: "gasto", icono: LucideIcons.wine),
-  const MenudoTransaction(id: 5, dateString: "2026-03-07", desc: "Uber a casa", catKey: "transporte", monto: -450, tipo: "gasto", icono: LucideIcons.car),
-  const MenudoTransaction(id: 6, dateString: "2026-03-07", desc: "Netflix Múltiple", catKey: "estiloVida", monto: -750, tipo: "gasto", icono: LucideIcons.tv),
-  const MenudoTransaction(id: 7, dateString: "2026-03-04", desc: "Farmacia Carol", catKey: "salud", monto: -1200, tipo: "gasto", icono: LucideIcons.pill),
-  const MenudoTransaction(id: 8, dateString: "2026-03-06", desc: "Libro programación", catKey: "educacion", monto: -850, tipo: "gasto", icono: LucideIcons.bookOpen),
-  const MenudoTransaction(id: 9, dateString: "2026-03-02", desc: "Spotify Premium", catKey: "entretenimiento", monto: -350, tipo: "gasto", icono: LucideIcons.music),
+  const MenudoTransaction(id: 1, dateString: "2026-03-01", desc: "Pago alquiler", catKey: "vivienda", categoryId: 1, monto: -25000, tipo: "gasto", icono: LucideIcons.home, moneda: 'DOP', userName: "Miguel"),
+  const MenudoTransaction(id: 2, dateString: "2026-03-02", desc: "Supermercado Nacional", catKey: "comida", categoryId: 2, monto: -4500, tipo: "gasto", icono: LucideIcons.shoppingCart, moneda: 'DOP', userName: "Sarah"),
+  const MenudoTransaction(id: 3, dateString: "2026-03-05", desc: "Gasolina Shell", catKey: "transporte", categoryId: 3, monto: -2000, tipo: "gasto", icono: LucideIcons.fuel, moneda: 'DOP', userName: "Miguel"),
+  const MenudoTransaction(id: 4, dateString: "2026-03-07", desc: "Cena en SBG", catKey: "comida", categoryId: 2, monto: -4000, tipo: "gasto", icono: LucideIcons.wine, moneda: 'DOP', userName: "Sarah"),
+  const MenudoTransaction(id: 5, dateString: "2026-03-07", desc: "Uber a casa", catKey: "transporte", categoryId: 3, monto: -450, tipo: "gasto", icono: LucideIcons.car, moneda: 'DOP', userName: "Sarah"),
+  const MenudoTransaction(id: 6, dateString: "2026-03-07", desc: "Netflix Múltiple", catKey: "estiloVida", categoryId: 4, monto: -750, tipo: "gasto", icono: LucideIcons.tv, moneda: 'DOP', userName: "Miguel"),
+  const MenudoTransaction(id: 7, dateString: "2026-03-04", desc: "Farmacia Carol", catKey: "salud", categoryId: 5, monto: -1200, tipo: "gasto", icono: LucideIcons.pill, moneda: 'DOP', userName: "Sarah"),
+  const MenudoTransaction(id: 8, dateString: "2026-03-06", desc: "Libro programación", catKey: "educacion", categoryId: 6, monto: -850, tipo: "gasto", icono: LucideIcons.bookOpen, moneda: 'DOP', userName: "Miguel"),
+  const MenudoTransaction(id: 9, dateString: "2026-03-02", desc: "Spotify Premium", catKey: "entretenimiento", categoryId: 7, monto: -350, tipo: "gasto", icono: LucideIcons.music, moneda: 'DOP', userName: "Sarah"),
 ];
 
 final List<RecurringTransaction> mockRecurring = [
@@ -411,6 +456,72 @@ final List<RecurringTransaction> mockRecurring = [
   const RecurringTransaction(id: 2, desc: "Pago alquiler", catKey: "vivienda", monto: 25000, tipo: "gasto", icono: LucideIcons.home, frecuencia: "mensual", diaEjecucion: 1),
   const RecurringTransaction(id: 3, desc: "Netflix Múltiple", catKey: "entretenimiento", monto: 750, tipo: "gasto", icono: LucideIcons.tv, frecuencia: "mensual", diaEjecucion: 7),
   const RecurringTransaction(id: 4, desc: "Spotify Premium", catKey: "entretenimiento", monto: 350, tipo: "gasto", icono: LucideIcons.music, frecuencia: "mensual", diaEjecucion: 2, activo: false),
+];
+
+// ── Mock categories (parent + subcategories) ─────────────────────────────────
+// Parents: categoriaParadreId = null
+// Subcategories: categoriaParadreId = parent id
+final List<MenudoCategory> mockCategories = [
+  // ── Parents ──────────────────────────────────────────────────────────────
+  const MenudoCategory(id: 8, slug: 'ingreso',         nombre: 'Ingresos',        icono: LucideIcons.trendingUp,     color: Color(0xFF10B981), esSistema: true),
+  const MenudoCategory(id: 1, slug: 'vivienda',        nombre: 'Vivienda',        icono: LucideIcons.home,            color: Color(0xFF065F46), esSistema: true),
+  const MenudoCategory(id: 2, slug: 'comida',          nombre: 'Comida',          icono: LucideIcons.utensils,        color: Color(0xFFF97316), esSistema: true),
+  const MenudoCategory(id: 3, slug: 'transporte',      nombre: 'Transporte',      icono: LucideIcons.car,             color: Color(0xFF7C3AED), esSistema: true),
+  const MenudoCategory(id: 4, slug: 'estiloVida',      nombre: 'Estilo de Vida',  icono: LucideIcons.sparkles,        color: Color(0xFFEC4899), esSistema: true),
+  const MenudoCategory(id: 5, slug: 'salud',           nombre: 'Salud',           icono: LucideIcons.pill,            color: Color(0xFFEF4444), esSistema: true),
+  const MenudoCategory(id: 6, slug: 'educacion',       nombre: 'Educacion',       icono: LucideIcons.bookOpen,        color: Color(0xFF3B82F6), esSistema: true),
+  const MenudoCategory(id: 7, slug: 'entretenimiento', nombre: 'Entretenimiento', icono: LucideIcons.tv,              color: Color(0xFF8B5CF6), esSistema: true),
+  const MenudoCategory(id: 9, slug: 'transferencia',   nombre: 'Transferencia',   icono: LucideIcons.arrowLeftRight,  color: Color(0xFF6B7280), esSistema: true),
+
+  // ── Ingresos subcategories (padre=8) ────────────────────────────────────
+  const MenudoCategory(id: 20, slug: 'salario',      nombre: 'Salario',      icono: LucideIcons.briefcase,  color: Color(0xFF10B981), esSistema: true, categoriaParadreId: 8),
+  const MenudoCategory(id: 21, slug: 'freelance',    nombre: 'Freelance',    icono: LucideIcons.laptop,     color: Color(0xFF10B981), esSistema: true, categoriaParadreId: 8),
+  const MenudoCategory(id: 22, slug: 'inversiones',  nombre: 'Inversiones',  icono: LucideIcons.barChart2,  color: Color(0xFF10B981), esSistema: true, categoriaParadreId: 8),
+  const MenudoCategory(id: 23, slug: 'negocio',      nombre: 'Negocio',      icono: LucideIcons.store,      color: Color(0xFF10B981), esSistema: true, categoriaParadreId: 8),
+  const MenudoCategory(id: 24, slug: 'bono',         nombre: 'Bono',         icono: LucideIcons.gift,       color: Color(0xFF10B981), esSistema: true, categoriaParadreId: 8),
+
+  // ── Vivienda subcategories (padre=1) ────────────────────────────────────
+  const MenudoCategory(id: 25, slug: 'alquiler',      nombre: 'Alquiler',       icono: LucideIcons.keySquare, color: Color(0xFF065F46), esSistema: true, categoriaParadreId: 1),
+  const MenudoCategory(id: 26, slug: 'electricidad',  nombre: 'Electricidad',   icono: LucideIcons.zap,       color: Color(0xFF065F46), esSistema: true, categoriaParadreId: 1),
+  const MenudoCategory(id: 27, slug: 'agua',          nombre: 'Agua',           icono: LucideIcons.droplets,  color: Color(0xFF065F46), esSistema: true, categoriaParadreId: 1),
+  const MenudoCategory(id: 28, slug: 'internet',      nombre: 'Internet',       icono: LucideIcons.wifi,      color: Color(0xFF065F46), esSistema: true, categoriaParadreId: 1),
+  const MenudoCategory(id: 29, slug: 'seguros',       nombre: 'Seguros',        icono: LucideIcons.shield,    color: Color(0xFF065F46), esSistema: true, categoriaParadreId: 1),
+  const MenudoCategory(id: 30, slug: 'mantenimiento', nombre: 'Mantenimiento',  icono: LucideIcons.wrench,    color: Color(0xFF065F46), esSistema: true, categoriaParadreId: 1),
+
+  // ── Comida subcategories (padre=2) ──────────────────────────────────────
+  const MenudoCategory(id: 31, slug: 'restaurante',  nombre: 'Restaurante',  icono: LucideIcons.utensils,     color: Color(0xFFF97316), esSistema: true, categoriaParadreId: 2),
+  const MenudoCategory(id: 32, slug: 'supermercado', nombre: 'Supermercado', icono: LucideIcons.shoppingCart,  color: Color(0xFFF97316), esSistema: true, categoriaParadreId: 2),
+  const MenudoCategory(id: 33, slug: 'cafe',         nombre: 'Café',         icono: LucideIcons.coffee,        color: Color(0xFFF97316), esSistema: true, categoriaParadreId: 2),
+  const MenudoCategory(id: 34, slug: 'delivery',     nombre: 'Delivery',     icono: LucideIcons.package,       color: Color(0xFFF97316), esSistema: true, categoriaParadreId: 2),
+
+  // ── Transporte subcategories (padre=3) ──────────────────────────────────
+  const MenudoCategory(id: 35, slug: 'gasolina', nombre: 'Gasolina',    icono: LucideIcons.fuel,  color: Color(0xFF7C3AED), esSistema: true, categoriaParadreId: 3),
+  const MenudoCategory(id: 36, slug: 'taxi',     nombre: 'Taxi / Uber', icono: LucideIcons.car,   color: Color(0xFF7C3AED), esSistema: true, categoriaParadreId: 3),
+  const MenudoCategory(id: 37, slug: 'transito', nombre: 'Tránsito',    icono: LucideIcons.bus,   color: Color(0xFF7C3AED), esSistema: true, categoriaParadreId: 3),
+  const MenudoCategory(id: 38, slug: 'avion',    nombre: 'Avión',       icono: LucideIcons.plane, color: Color(0xFF7C3AED), esSistema: true, categoriaParadreId: 3),
+
+  // ── Estilo de Vida subcategories (padre=4) ──────────────────────────────
+  const MenudoCategory(id: 39, slug: 'ropa',          nombre: 'Ropa',          icono: LucideIcons.shirt,      color: Color(0xFFEC4899), esSistema: true, categoriaParadreId: 4),
+  const MenudoCategory(id: 40, slug: 'belleza',        nombre: 'Belleza',       icono: LucideIcons.sparkles,   color: Color(0xFFEC4899), esSistema: true, categoriaParadreId: 4),
+  const MenudoCategory(id: 41, slug: 'suscripciones',  nombre: 'Suscripciones', icono: LucideIcons.creditCard, color: Color(0xFFEC4899), esSistema: true, categoriaParadreId: 4),
+  const MenudoCategory(id: 42, slug: 'mascotas',       nombre: 'Mascotas',      icono: LucideIcons.heart,      color: Color(0xFFEC4899), esSistema: true, categoriaParadreId: 4),
+
+  // ── Salud subcategories (padre=5) ───────────────────────────────────────
+  const MenudoCategory(id: 43, slug: 'farmacia',  nombre: 'Farmacia',  icono: LucideIcons.pill,         color: Color(0xFFEF4444), esSistema: true, categoriaParadreId: 5),
+  const MenudoCategory(id: 44, slug: 'medico',    nombre: 'Médico',    icono: LucideIcons.stethoscope,  color: Color(0xFFEF4444), esSistema: true, categoriaParadreId: 5),
+  const MenudoCategory(id: 45, slug: 'dentista',  nombre: 'Dentista',  icono: LucideIcons.smile,        color: Color(0xFFEF4444), esSistema: true, categoriaParadreId: 5),
+  const MenudoCategory(id: 46, slug: 'gimnasio',  nombre: 'Gimnasio',  icono: LucideIcons.dumbbell,     color: Color(0xFFEF4444), esSistema: true, categoriaParadreId: 5),
+
+  // ── Educacion subcategories (padre=6) ───────────────────────────────────
+  const MenudoCategory(id: 47, slug: 'cursos',      nombre: 'Cursos',      icono: LucideIcons.monitorPlay,   color: Color(0xFF3B82F6), esSistema: true, categoriaParadreId: 6),
+  const MenudoCategory(id: 48, slug: 'libros',      nombre: 'Libros',      icono: LucideIcons.book,          color: Color(0xFF3B82F6), esSistema: true, categoriaParadreId: 6),
+  const MenudoCategory(id: 49, slug: 'universidad', nombre: 'Universidad', icono: LucideIcons.graduationCap, color: Color(0xFF3B82F6), esSistema: true, categoriaParadreId: 6),
+
+  // ── Entretenimiento subcategories (padre=7) ─────────────────────────────
+  const MenudoCategory(id: 50, slug: 'cine',      nombre: 'Cine',      icono: LucideIcons.film,     color: Color(0xFF8B5CF6), esSistema: true, categoriaParadreId: 7),
+  const MenudoCategory(id: 51, slug: 'concierto', nombre: 'Concierto', icono: LucideIcons.music,    color: Color(0xFF8B5CF6), esSistema: true, categoriaParadreId: 7),
+  const MenudoCategory(id: 52, slug: 'viajes',    nombre: 'Viajes',    icono: LucideIcons.map,      color: Color(0xFF8B5CF6), esSistema: true, categoriaParadreId: 7),
+  const MenudoCategory(id: 53, slug: 'juegos',    nombre: 'Juegos',    icono: LucideIcons.gamepad2, color: Color(0xFF8B5CF6), esSistema: true, categoriaParadreId: 7),
 ];
 
 

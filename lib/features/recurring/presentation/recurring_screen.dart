@@ -266,6 +266,11 @@ class _AddRecurringSheetState extends State<_AddRecurringSheet> {
   String _frecuencia = "mensual";
   int _dia = 1;
   final _descController = TextEditingController();
+  
+  String _cat = "Seleccionar";
+  String? _catKey;
+  int? _accountId;
+  int? _presupuestoId;
 
   @override
   void dispose() {
@@ -283,34 +288,86 @@ class _AddRecurringSheetState extends State<_AddRecurringSheet> {
       } else {
         if (_amount == "0") {
           _amount = key;
-        } else if (_amount.length < 10) {
+        } else if (_amount.length < 9) {
           _amount += key;
         }
       }
     });
   }
 
+  String _accountName(int? id) {
+    if (id == null) return "Seleccionar";
+    return mockWallets.firstWhere((w) => w.id == id, orElse: () => mockWallets.first).nombre;
+  }
+
+  String _budgetName(int? id) {
+    if (id == null) return "Seleccionar";
+    return mockBudgets.firstWhere((b) => b.id == id, orElse: () => mockBudgets.first).nombre;
+  }
+
+  void _pickAccount() {
+    // Reusing the simple list logic for demo purposes
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 5, decoration: BoxDecoration(color: AppColors.g2, borderRadius: BorderRadius.circular(3)), margin: const EdgeInsets.only(bottom: 24)),
+            const Text("Cuenta origen", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.e8)),
+            const SizedBox(height: 24),
+            ...mockWallets.map((w) => GestureDetector(
+              onTap: () { HapticFeedback.lightImpact(); Navigator.pop(context, w.id); },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: w.id == _accountId ? AppColors.e8 : AppColors.g0, borderRadius: BorderRadius.circular(20)),
+                child: Row(
+                  children: [
+                    Icon(w.icono, color: w.id == _accountId ? Colors.white : w.color),
+                    const SizedBox(width: 16),
+                    Text(w.nombre, style: TextStyle(fontWeight: FontWeight.w700, color: w.id == _accountId ? Colors.white : AppColors.e8)),
+                    const Spacer(),
+                    if (w.id == _accountId) const Icon(LucideIcons.check, color: Colors.white, size: 18),
+                  ],
+                ),
+              ),
+            )),
+          ],
+        ),
+      )
+    ).then((id) {
+      if (id != null) setState(() => _accountId = id);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final amountValue = double.tryParse(_amount) ?? 0;
+    final accentColor = _typeIndex == 1 ? AppColors.e6 : AppColors.e8;
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.92,
+      initialChildSize: 0.95,
       minChildSize: 0.5,
       maxChildSize: 0.95,
       expand: false,
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
-            color: Color(0xFFF9FAFB),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+            color: AppColors.g0,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
           ),
           child: Column(
             children: [
               Center(
                 child: Container(
                   margin: const EdgeInsets.only(top: 12, bottom: 8),
-                  height: 5, width: 48,
+                  height: 5, width: 40,
                   decoration: BoxDecoration(color: AppColors.g2, borderRadius: BorderRadius.circular(3)),
                 ),
               ),
@@ -320,10 +377,14 @@ class _AddRecurringSheetState extends State<_AddRecurringSheet> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Nueva automática", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.e8)),
+                    const Text("Nueva automática", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.e8, letterSpacing: -0.5)),
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: const Icon(LucideIcons.x, color: AppColors.g4, size: 22),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: AppColors.g1, borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(LucideIcons.x, color: AppColors.g5, size: 18),
+                      ),
                     ),
                   ],
                 ),
@@ -332,7 +393,7 @@ class _AddRecurringSheetState extends State<_AddRecurringSheet> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Container(
-                  decoration: BoxDecoration(color: AppColors.g1, borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(color: AppColors.g1, borderRadius: BorderRadius.circular(14)),
                   padding: const EdgeInsets.all(4),
                   child: Row(
                     children: [
@@ -351,45 +412,80 @@ class _AddRecurringSheetState extends State<_AddRecurringSheet> {
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
-                    const Text('RD\$', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.g3)),
+                    Text(_typeIndex == 1 ? '+RD\$' : '-RD\$', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: accentColor.withValues(alpha: 0.4))),
                     const SizedBox(width: 8),
                     Text(
-                      _amount.isEmpty ? "0" : _amount,
-                      style: const TextStyle(fontSize: 52, fontWeight: FontWeight.w800, letterSpacing: -2, color: AppColors.e8),
+                      _amount.isEmpty ? "0" : _amount.replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},'),
+                      style: TextStyle(fontSize: 52, fontWeight: FontWeight.w900, letterSpacing: -2, color: accentColor),
                     ),
                   ],
-                ),
+                ).animate(key: ValueKey(_typeIndex)).fadeIn().scale(begin: const Offset(0.95, 0.95)),
               ),
               Expanded(
                 child: ListView(
                   controller: scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   children: [
+                    // Detalles (Category, Account, Budget)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: AppColors.g2),
+                      ),
+                      child: Column(
+                        children: [
+                          _DetailRow(
+                            icon: LucideIcons.tag, color: AppColors.o5, label: "Categoría", value: _cat,
+                            onTap: () {
+                              // In a real app, open CategoryPickerSheet
+                              HapticFeedback.lightImpact();
+                              setState(() { _catKey = 'suscripciones'; _cat = 'Suscripciones'; });
+                            },
+                          ),
+                          _DetailRow(
+                            icon: LucideIcons.landmark, color: AppColors.b5, label: "Cuenta", value: _accountName(_accountId),
+                            onTap: _pickAccount,
+                          ),
+                          _DetailRow(
+                            icon: LucideIcons.layoutGrid, color: AppColors.p5, label: "Presupuesto", value: _budgetName(_presupuestoId),
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              setState(() => _presupuestoId = mockBudgets.first.id);
+                            },
+                            isLast: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
                     // Descripción
                     TextField(
                       controller: _descController,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.e8),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.e8),
                       decoration: InputDecoration(
                         hintText: "Descripción (ej. Sueldo, Netflix)",
-                        hintStyle: const TextStyle(color: AppColors.g4),
+                        hintStyle: const TextStyle(color: AppColors.g4, fontWeight: FontWeight.w600),
                         filled: true,
                         fillColor: Colors.white,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: AppColors.g2)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFF3F4F6), width: 1.5)),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.o5, width: 1.5)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide(color: AppColors.g2)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: const BorderSide(color: Color(0xFFF3F4F6), width: 1.5)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: const BorderSide(color: AppColors.e8, width: 2.0)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     // Frecuencia
                     Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5), borderRadius: BorderRadius.circular(18)),
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5), borderRadius: BorderRadius.circular(24)),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text("Frecuencia", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.g4)),
-                          const SizedBox(height: 10),
+                          const Text("Frecuencia", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.g4, letterSpacing: 0.5)),
+                          const SizedBox(height: 12),
                           Row(
                             children: ['mensual', 'quincenal', 'semanal'].map((f) {
                               final isSel = _frecuencia == f;
@@ -399,34 +495,34 @@ class _AddRecurringSheetState extends State<_AddRecurringSheet> {
                                   child: AnimatedContainer(
                                     duration: const Duration(milliseconds: 200),
                                     margin: const EdgeInsets.only(right: 6),
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
                                     decoration: BoxDecoration(
                                       color: isSel ? AppColors.e8 : AppColors.g1,
-                                      borderRadius: BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: Text(f[0].toUpperCase() + f.substring(1), textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isSel ? Colors.white : AppColors.g5)),
+                                    child: Text(f[0].toUpperCase() + f.substring(1), textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: isSel ? FontWeight.w800 : FontWeight.w600, color: isSel ? Colors.white : AppColors.g5)),
                                   ),
                                 ),
                               );
                             }).toList(),
                           ),
                           if (_frecuencia != 'quincenal') ...[
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 16),
                             Row(
                               children: [
-                                Text(_frecuencia == 'mensual' ? "Día del mes:" : "Día de semana:", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.g4)),
-                                const SizedBox(width: 12),
+                                Text(_frecuencia == 'mensual' ? "Día del mes:" : "Día de semana:", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.e8)),
+                                const Spacer(),
                                 GestureDetector(
                                   onTap: () { HapticFeedback.selectionClick(); setState(() => _dia = (_dia - 1).clamp(1, _frecuencia == 'mensual' ? 28 : 7)); },
-                                  child: Container(width: 32, height: 32, decoration: BoxDecoration(color: AppColors.g1, borderRadius: BorderRadius.circular(8)), alignment: Alignment.center, child: const Icon(LucideIcons.minus, size: 16, color: AppColors.g5)),
+                                  child: Container(width: 36, height: 36, decoration: BoxDecoration(color: AppColors.g1, borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: const Icon(LucideIcons.minus, size: 18, color: AppColors.g5)),
                                 ),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: Text("$_dia", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.e8)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  child: Text("$_dia", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.e8)),
                                 ),
                                 GestureDetector(
                                   onTap: () { HapticFeedback.selectionClick(); setState(() => _dia = (_dia + 1).clamp(1, _frecuencia == 'mensual' ? 28 : 7)); },
-                                  child: Container(width: 32, height: 32, decoration: BoxDecoration(color: AppColors.g1, borderRadius: BorderRadius.circular(8)), alignment: Alignment.center, child: const Icon(LucideIcons.plus, size: 16, color: AppColors.g5)),
+                                  child: Container(width: 36, height: 36, decoration: BoxDecoration(color: AppColors.g1, borderRadius: BorderRadius.circular(10)), alignment: Alignment.center, child: const Icon(LucideIcons.plus, size: 18, color: AppColors.g5)),
                                 ),
                               ],
                             ),
@@ -434,53 +530,54 @@ class _AddRecurringSheetState extends State<_AddRecurringSheet> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     // Numpad
                     GridView.count(
                       crossAxisCount: 3,
-                      childAspectRatio: 2.1,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
+                      childAspectRatio: 1.8,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       children: [
-                        _buildKey('1'), _buildKey('2'), _buildKey('3'),
-                        _buildKey('4'), _buildKey('5'), _buildKey('6'),
-                        _buildKey('7'), _buildKey('8'), _buildKey('9'),
-                        _buildKey('.'), _buildKey('0'), _buildKey('backspace', isIcon: true),
-                      ],
+                        ...'123456789.0'.split(''),
+                        'backspace',
+                      ].map((k) => _NumpadKey(value: k, onTap: () => _onKeyTap(k))).toList(),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
                   ],
                 ),
               ),
               Container(
-                padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + MediaQuery.of(context).padding.bottom),
+                padding: EdgeInsets.fromLTRB(20, 0, 20, 24 + MediaQuery.of(context).padding.bottom),
                 child: GestureDetector(
                   onTap: amountValue > 0 && _descController.text.trim().isNotEmpty ? () {
                     HapticFeedback.mediumImpact();
                     final r = RecurringTransaction(
                       id: DateTime.now().millisecondsSinceEpoch,
                       desc: _descController.text.trim(),
-                      catKey: _typeIndex == 1 ? 'ingreso' : 'otro',
+                      catKey: _catKey ?? (_typeIndex == 1 ? 'ingreso' : 'otro'),
                       monto: amountValue,
                       tipo: _typeIndex == 1 ? 'ingreso' : 'gasto',
                       icono: _typeIndex == 1 ? LucideIcons.trendingUp : LucideIcons.tag,
                       frecuencia: _frecuencia,
                       diaEjecucion: _dia,
+                      accountId: _accountId,
+                      presupuestoId: _presupuestoId,
                     );
                     Navigator.pop(context, r);
                   } : null,
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      color: amountValue > 0 && _descController.text.trim().isNotEmpty ? AppColors.o5 : AppColors.g2,
+                      color: amountValue > 0 && _descController.text.trim().isNotEmpty ? AppColors.e8 : AppColors.g2,
                       borderRadius: BorderRadius.circular(100),
-                      boxShadow: amountValue > 0 ? [const BoxShadow(color: Color(0x44F97316), blurRadius: 16, offset: Offset(0, 6))] : [],
+                      boxShadow: amountValue > 0 ? [BoxShadow(color: AppColors.e8.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8))] : [],
                     ),
                     alignment: Alignment.center,
-                    child: Text("Guardar automática", style: TextStyle(color: amountValue > 0 ? Colors.white : AppColors.g4, fontSize: 16, fontWeight: FontWeight.w800)),
+                    child: Text("GUARDAR AUTOMÁTICA", style: TextStyle(color: amountValue > 0 ? Colors.white : AppColors.g4, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                   ),
                 ),
               ),
@@ -495,30 +592,90 @@ class _AddRecurringSheetState extends State<_AddRecurringSheet> {
     final isSelected = _typeIndex == index;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _typeIndex = index),
+        onTap: () { HapticFeedback.selectionClick(); setState(() => _typeIndex = index); },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: isSelected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: isSelected ? [const BoxShadow(color: Color(0x11000000), blurRadius: 8, offset: Offset(0, 2))] : null,
+            borderRadius: BorderRadius.circular(11),
+            boxShadow: isSelected ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))] : null,
           ),
-          child: Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: isSelected ? AppColors.e8 : AppColors.g4)),
+          child: Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600, color: isSelected ? AppColors.e8 : AppColors.g4)),
         ),
       ),
     );
   }
+}
 
-  Widget _buildKey(String value, {bool isIcon = false}) {
+class _DetailRow extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label, value;
+  final VoidCallback? onTap;
+  final bool isLast;
+
+  const _DetailRow({required this.icon, required this.color, required this.label, required this.value, this.onTap, this.isLast = false});
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => _onKeyTap(value),
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                  child: Icon(icon, size: 18, color: color),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.g4, letterSpacing: 0.5)),
+                      const SizedBox(height: 2),
+                      Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.e8)),
+                    ],
+                  ),
+                ),
+                if (onTap != null) Icon(LucideIcons.chevronRight, size: 16, color: AppColors.g3),
+              ],
+            ),
+          ),
+          if (!isLast) Divider(height: 1, color: AppColors.g1, indent: 56, endIndent: 16),
+        ],
+      ),
+    );
+  }
+}
+
+class _NumpadKey extends StatelessWidget {
+  final String value;
+  final VoidCallback onTap;
+
+  const _NumpadKey({required this.value, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isBack = value == 'backspace';
+    return GestureDetector(
+      onTapDown: (_) => onTap(),
       child: Container(
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), boxShadow: const [BoxShadow(color: Color(0x05000000), blurRadius: 8, offset: Offset(0, 2))]),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
         alignment: Alignment.center,
-        child: isIcon
-            ? const Icon(Icons.backspace_outlined, color: AppColors.e8, size: 22)
-            : Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.e8)),
+        child: isBack 
+          ? const Icon(LucideIcons.delete, color: AppColors.e8, size: 22)
+          : Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.e8)),
       ),
     );
   }

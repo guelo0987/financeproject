@@ -11,9 +11,10 @@ class TransactionNotifier extends AsyncNotifier<List<MenudoTransaction>> {
 
   @override
   Future<List<MenudoTransaction>> build() async {
-    final uid = ref.watch(authProvider).userId;
-    if (uid == null) return [];
-    return ref.read(transactionRepositoryProvider).fetchTransactions(int.parse(uid));
+    // TODO: replace with Supabase fetch once backend is ready
+    // final uid = ref.watch(authProvider).userId;
+    // if (uid != null) return ref.read(transactionRepositoryProvider).fetchTransactions(int.parse(uid));
+    return mockTxns;
   }
 
   Future<void> addTransaction(int categoriaId, MenudoTransaction txn) async {
@@ -43,7 +44,7 @@ final transactionNotifierProvider =
 
 // Filtered provider: only gastos for the current month
 final monthlyGastosProvider = Provider<List<MenudoTransaction>>((ref) {
-  final txns = ref.watch(transactionNotifierProvider).valueOrNull ?? [];
+  final txns = ref.watch(transactionNotifierProvider).valueOrNull ?? mockTxns;
   final now = DateTime.now();
   return txns.where((t) {
     if (t.tipo != 'gasto') return false;
@@ -60,7 +61,7 @@ final monthlySpentProvider = Provider<double>((ref) {
 
 // Total income this month
 final monthlyIncomeProvider = Provider<double>((ref) {
-  final txns = ref.watch(transactionNotifierProvider).valueOrNull ?? [];
+  final txns = ref.watch(transactionNotifierProvider).valueOrNull ?? mockTxns;
   final now = DateTime.now();
   return txns
       .where((t) {

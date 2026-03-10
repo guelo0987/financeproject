@@ -1,27 +1,12 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-
-// Default category definition
-class _CategoryDef {
-  final String key;
-  final String label;
-  final IconData icono;
-  final Color color;
-  final String descripcion;
-  final bool isDefault;
-
-  const _CategoryDef({
-    required this.key,
-    required this.label,
-    required this.icono,
-    required this.color,
-    required this.descripcion,
-    this.isDefault = true,
-  });
-}
+import '../../categories/presentation/categories_screen.dart';
+import '../../recurring/presentation/recurring_screen.dart';
 
 class ToolsScreen extends StatefulWidget {
   const ToolsScreen({super.key});
@@ -31,66 +16,31 @@ class ToolsScreen extends StatefulWidget {
 }
 
 class _ToolsScreenState extends State<ToolsScreen> {
-  final List<_CategoryDef> _defaults = const [
-    _CategoryDef(key: 'vivienda',       label: 'Vivienda',        icono: LucideIcons.home,          color: AppColors.e7,  descripcion: 'Alquiler, hipoteca, mantenimiento del hogar'),
-    _CategoryDef(key: 'comida',         label: 'Comida',          icono: LucideIcons.utensils,      color: AppColors.o5,  descripcion: 'Supermercado, restaurantes, delivery'),
-    _CategoryDef(key: 'transporte',     label: 'Transporte',      icono: LucideIcons.car,           color: AppColors.p5,  descripcion: 'Gasolina, Uber, metro, parking'),
-    _CategoryDef(key: 'estiloVida',     label: 'Estilo de vida',  icono: LucideIcons.sparkles,      color: AppColors.pk,  descripcion: 'Ropa, accesorios, suscripciones lifestyle'),
-    _CategoryDef(key: 'salud',          label: 'Salud',           icono: LucideIcons.heartPulse,    color: AppColors.e6,  descripcion: 'Médico, farmacia, seguro médico'),
-    _CategoryDef(key: 'educacion',      label: 'Educación',       icono: LucideIcons.graduationCap, color: AppColors.b5,  descripcion: 'Cursos, libros, universidades'),
-    _CategoryDef(key: 'entretenimiento',label: 'Entretenimiento', icono: LucideIcons.gamepad2,      color: AppColors.pk,  descripcion: 'Streaming, cine, conciertos, juegos'),
-    _CategoryDef(key: 'servicios',      label: 'Servicios',       icono: LucideIcons.lightbulb,     color: AppColors.a5,  descripcion: 'Luz, agua, internet, teléfono'),
-    _CategoryDef(key: 'inversion',      label: 'Inversión',       icono: LucideIcons.trendingUp,    color: AppColors.e8,  descripcion: 'CDPs, acciones, fondos mutuos'),
-    _CategoryDef(key: 'otro',           label: 'Otro',            icono: LucideIcons.moreHorizontal, color: AppColors.g4, descripcion: 'Gastos no clasificados'),
-  ];
+  // Loan calculator state
+  bool _loanExpanded = false;
+  double _loanMonto = 100000;
+  double _loanTasa = 18;
+  int _loanMeses = 12;
 
-  final List<_CategoryDef> _custom = [];
-  bool _showAddForm = false;
-  final _nameController = TextEditingController();
-  IconData _selectedIcon = LucideIcons.tag;
-  Color _selectedColor = AppColors.e6;
+  // CDP calculator state
+  bool _cdpExpanded = false;
+  double _cdpMonto = 50000;
+  double _cdpTasa = 10;
+  int _cdpMeses = 12;
 
-  final List<IconData> _iconOptions = [
-    LucideIcons.tag, LucideIcons.gift, LucideIcons.coffee, LucideIcons.shoppingBag,
-    LucideIcons.dumbbell, LucideIcons.plane, LucideIcons.dog, LucideIcons.baby,
-    LucideIcons.music, LucideIcons.camera, LucideIcons.wrench, LucideIcons.briefcase,
-  ];
-
-  final List<Color> _colorOptions = [
-    AppColors.e6, AppColors.o5, AppColors.b5, AppColors.p5,
-    AppColors.pk, AppColors.a5, AppColors.r5, AppColors.e8,
-  ];
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
+  double get _loanCuota {
+    final r = _loanTasa / 100 / 12;
+    if (r == 0) return _loanMonto / _loanMeses;
+    return _loanMonto * r * pow(1 + r, _loanMeses) / (pow(1 + r, _loanMeses) - 1);
   }
 
-  void _addCustomCategory() {
-    if (_nameController.text.trim().isEmpty) return;
-    HapticFeedback.mediumImpact();
-    setState(() {
-      _custom.add(_CategoryDef(
-        key: _nameController.text.trim().toLowerCase().replaceAll(' ', '_'),
-        label: _nameController.text.trim(),
-        icono: _selectedIcon,
-        color: _selectedColor,
-        descripcion: 'Categoría personalizada',
-        isDefault: false,
-      ));
-      _nameController.clear();
-      _showAddForm = false;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Categoría creada', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.e6,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
+  double get _loanTotal => _loanCuota * _loanMeses;
+  double get _loanIntereses => _loanTotal - _loanMonto;
+
+  double get _cdpRendimiento => _cdpMonto * (_cdpTasa / 100) * (_cdpMeses / 12);
+  double get _cdpTotal => _cdpMonto + _cdpRendimiento;
+
+  String _fmt(double val) => "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
 
   @override
   Widget build(BuildContext context) {
@@ -113,314 +63,387 @@ class _ToolsScreenState extends State<ToolsScreen> {
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
         children: [
-          // Hero card
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.e8,
-              borderRadius: BorderRadius.circular(22),
-              boxShadow: [const BoxShadow(color: Color(0x33065F46), blurRadius: 32, offset: Offset(0, 10))],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 52, height: 52,
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(16)),
-                  alignment: Alignment.center,
-                  child: const Icon(LucideIcons.layoutGrid, size: 26, color: Colors.white),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Categorías", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
-                      const SizedBox(height: 4),
-                      Text("${_defaults.length} por defecto · ${_custom.length} tuyas", style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.6))),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0, duration: 400.ms),
 
-          const SizedBox(height: 24),
+          // ── Quick Links ────────────────────────────────────────────
+          const Text("Accesos rápidos", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.g4, letterSpacing: 0.3))
+              .animate().fadeIn(duration: 300.ms),
+          const SizedBox(height: 10),
 
-          // Default categories
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Categorías por defecto", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.e8)),
-              Text("${_defaults.length}", style: const TextStyle(fontSize: 13, color: AppColors.g4, fontWeight: FontWeight.w600)),
-            ],
-          ).animate().fadeIn(duration: 300.ms, delay: 100.ms),
-          const SizedBox(height: 4),
-          const Text("Disponibles en todos tus presupuestos", style: TextStyle(fontSize: 12, color: AppColors.g4)),
-          const SizedBox(height: 12),
-
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: Column(
-              children: List.generate(_defaults.length, (i) {
-                final cat = _defaults[i];
-                return Column(
-                  children: [
-                    if (i > 0) const Divider(height: 1, color: Color(0xFFF3F4F6), indent: 68, endIndent: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40, height: 40,
-                            decoration: BoxDecoration(color: cat.color.withValues(alpha: 0.13), borderRadius: BorderRadius.circular(12)),
-                            alignment: Alignment.center,
-                            child: Icon(cat.icono, size: 19, color: cat.color),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(cat.label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.e8)),
-                                const SizedBox(height: 2),
-                                Text(cat.descripcion, style: const TextStyle(fontSize: 11, color: AppColors.g4), maxLines: 1, overflow: TextOverflow.ellipsis),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(color: AppColors.e1, borderRadius: BorderRadius.circular(6)),
-                            child: const Text("Default", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.e6)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              }),
-            ),
-          ).animate().fadeIn(duration: 400.ms, delay: 150.ms).slideY(begin: 0.04, end: 0, duration: 400.ms, delay: 150.ms),
-
-          const SizedBox(height: 24),
-
-          // Custom categories header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text("Mis categorías", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.e8)),
-              GestureDetector(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  setState(() => _showAddForm = !_showAddForm);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.o5,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [const BoxShadow(color: Color(0x44F97316), blurRadius: 12, offset: Offset(0, 4))],
-                  ),
-                  child: const Text("+ Nueva", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
-                ),
+              _quickLink(
+                icon: LucideIcons.pieChart,
+                label: "Categorías",
+                color: AppColors.e6,
+                bg: AppColors.e1,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CategoriesScreen())),
+              ),
+              const SizedBox(width: 10),
+              _quickLink(
+                icon: LucideIcons.repeat2,
+                label: "Automáticas",
+                color: AppColors.o5,
+                bg: AppColors.o1,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecurringScreen())),
+              ),
+              const SizedBox(width: 10),
+              _quickLink(
+                icon: LucideIcons.clock,
+                label: "Historial",
+                color: AppColors.p5,
+                bg: const Color(0xFFF3EEFF),
+                onTap: () { Navigator.pop(context); context.push('/history'); },
+              ),
+              const SizedBox(width: 10),
+              _quickLink(
+                icon: LucideIcons.wallet,
+                label: "Cuentas",
+                color: AppColors.b5,
+                bg: const Color(0xFFEFF6FF),
+                onTap: () { Navigator.pop(context); context.go('/wallet'); },
               ),
             ],
-          ).animate().fadeIn(duration: 300.ms, delay: 250.ms),
+          ).animate().fadeIn(duration: 380.ms, delay: 50.ms),
 
-          // Add form
-          if (_showAddForm) ...[
-            const SizedBox(height: 12),
-            Container(
+          const SizedBox(height: 28),
+
+          // ── Loan calculator ────────────────────────────────────────
+          const Text("Calculadoras financieras", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.g4, letterSpacing: 0.3))
+              .animate().fadeIn(duration: 300.ms, delay: 100.ms),
+          const SizedBox(height: 10),
+
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              setState(() => _loanExpanded = !_loanExpanded);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: Colors.white,
-                border: Border.all(color: AppColors.o5.withValues(alpha: 0.4), width: 1.5),
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: _loanExpanded ? AppColors.r5.withValues(alpha: 0.3) : const Color(0xFFF3F4F6),
+                  width: 1.5,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Nueva categoría", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.e8)),
-                  const SizedBox(height: 14),
-                  // Name field
-                  TextField(
-                    controller: _nameController,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.e8),
-                    decoration: InputDecoration(
-                      hintText: "Nombre de la categoría",
-                      hintStyle: const TextStyle(color: AppColors.g4),
-                      filled: true,
-                      fillColor: AppColors.g0,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  // Icon selector
-                  const Text("Icono", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.g4)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _iconOptions.map((icon) {
-                      final isSelected = icon == _selectedIcon;
-                      return GestureDetector(
-                        onTap: () { HapticFeedback.selectionClick(); setState(() => _selectedIcon = icon); },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: 44, height: 44,
-                          decoration: BoxDecoration(
-                            color: isSelected ? _selectedColor.withValues(alpha: 0.15) : AppColors.g1,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: isSelected ? _selectedColor : Colors.transparent, width: 2),
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(icon, size: 20, color: isSelected ? _selectedColor : AppColors.g4),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 14),
-                  // Color selector
-                  const Text("Color", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.g4)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: _colorOptions.map((color) {
-                      final isSelected = color == _selectedColor;
-                      return GestureDetector(
-                        onTap: () { HapticFeedback.selectionClick(); setState(() => _selectedColor = color); },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: 34, height: 34,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: isSelected ? AppColors.e8 : Colors.transparent, width: 3),
-                          ),
-                          alignment: Alignment.center,
-                          child: isSelected ? const Icon(LucideIcons.check, size: 16, color: Colors.white) : null,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
                   Row(
                     children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _showAddForm = false),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(color: AppColors.g1, borderRadius: BorderRadius.circular(12)),
-                            alignment: Alignment.center,
-                            child: const Text("Cancelar", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.g5)),
-                          ),
-                        ),
+                      Container(
+                        width: 44, height: 44,
+                        decoration: BoxDecoration(color: AppColors.r1, borderRadius: BorderRadius.circular(13)),
+                        alignment: Alignment.center,
+                        child: const Icon(LucideIcons.percent, size: 22, color: AppColors.r5),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _addCustomCategory,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: AppColors.o5,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [const BoxShadow(color: Color(0x44F97316), blurRadius: 12, offset: Offset(0, 4))],
-                            ),
-                            alignment: Alignment.center,
-                            child: const Text("Guardar", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.05, end: 0, duration: 300.ms),
-          ],
-
-          const SizedBox(height: 12),
-
-          // Custom categories list
-          if (_custom.isEmpty && !_showAddForm)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    width: 52, height: 52,
-                    decoration: BoxDecoration(color: AppColors.g1, borderRadius: BorderRadius.circular(16)),
-                    alignment: Alignment.center,
-                    child: const Icon(LucideIcons.plus, size: 26, color: AppColors.g3),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text("Sin categorías personalizadas", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.e8)),
-                  const SizedBox(height: 4),
-                  const Text("Crea una nueva para organizar tus finanzas a tu manera", style: TextStyle(fontSize: 12, color: AppColors.g4), textAlign: TextAlign.center),
-                ],
-              ),
-            ).animate().fadeIn(duration: 300.ms, delay: 300.ms)
-          else if (_custom.isNotEmpty)
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: Column(
-                children: List.generate(_custom.length, (i) {
-                  final cat = _custom[i];
-                  return Column(
-                    children: [
-                      if (i > 0) const Divider(height: 1, color: Color(0xFFF3F4F6), indent: 68, endIndent: 16),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        child: Row(
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 40, height: 40,
-                              decoration: BoxDecoration(color: cat.color.withValues(alpha: 0.13), borderRadius: BorderRadius.circular(12)),
-                              alignment: Alignment.center,
-                              child: Icon(cat.icono, size: 19, color: cat.color),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Text(cat.label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.e8)),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                HapticFeedback.mediumImpact();
-                                setState(() => _custom.removeAt(i));
-                              },
-                              child: Container(
-                                width: 32, height: 32,
-                                decoration: BoxDecoration(color: AppColors.r1, borderRadius: BorderRadius.circular(10)),
-                                alignment: Alignment.center,
-                                child: const Icon(LucideIcons.trash2, size: 15, color: AppColors.r5),
-                              ),
-                            ),
+                            Text("Calculadora de préstamo", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.e8)),
+                            Text("Cuota mensual e intereses totales", style: TextStyle(fontSize: 12, color: AppColors.g4)),
                           ],
                         ),
                       ),
+                      AnimatedRotation(
+                        turns: _loanExpanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 220),
+                        child: const Icon(LucideIcons.chevronDown, size: 18, color: AppColors.g4),
+                      ),
                     ],
-                  );
-                }),
+                  ),
+
+                  if (_loanExpanded) ...[
+                    const SizedBox(height: 20),
+                    _sliderRow("Monto", _fmt(_loanMonto), _loanMonto, 10000, 2000000, (v) => setState(() => _loanMonto = v)),
+                    const SizedBox(height: 14),
+                    _sliderRow("Tasa anual", "${_loanTasa.round()}%", _loanTasa, 1, 50, (v) => setState(() => _loanTasa = v)),
+                    const SizedBox(height: 14),
+                    _sliderRow("Plazo", "$_loanMeses meses", _loanMeses.toDouble(), 3, 60, (v) => setState(() => _loanMeses = v.round())),
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.r1,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(child: _resultColumn("CUOTA MENSUAL", _fmt(_loanCuota), AppColors.r5)),
+                          Container(width: 1, height: 40, color: AppColors.r5.withValues(alpha: 0.2)),
+                          Expanded(child: _resultColumn("INTERESES TOTALES", _fmt(_loanIntereses), AppColors.r5)),
+                          Container(width: 1, height: 40, color: AppColors.r5.withValues(alpha: 0.2)),
+                          Expanded(child: _resultColumn("TOTAL A PAGAR", _fmt(_loanTotal), AppColors.e8)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ).animate().fadeIn(duration: 300.ms, delay: 300.ms),
+            ),
+          ).animate().fadeIn(duration: 380.ms, delay: 150.ms),
+
+          const SizedBox(height: 12),
+
+          // ── CDP Calculator ─────────────────────────────────────────
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              setState(() => _cdpExpanded = !_cdpExpanded);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: _cdpExpanded ? AppColors.e6.withValues(alpha: 0.3) : const Color(0xFFF3F4F6),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 44, height: 44,
+                        decoration: BoxDecoration(color: AppColors.e1, borderRadius: BorderRadius.circular(13)),
+                        alignment: Alignment.center,
+                        child: const Icon(LucideIcons.building2, size: 22, color: AppColors.e6),
+                      ),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Simulador de CDP", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.e8)),
+                            Text("Proyecta tus rendimientos en pesos", style: TextStyle(fontSize: 12, color: AppColors.g4)),
+                          ],
+                        ),
+                      ),
+                      AnimatedRotation(
+                        turns: _cdpExpanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 220),
+                        child: const Icon(LucideIcons.chevronDown, size: 18, color: AppColors.g4),
+                      ),
+                    ],
+                  ),
+
+                  if (_cdpExpanded) ...[
+                    const SizedBox(height: 20),
+                    _sliderRow("Capital inicial", _fmt(_cdpMonto), _cdpMonto, 5000, 1000000, (v) => setState(() => _cdpMonto = v)),
+                    const SizedBox(height: 14),
+                    _sliderRow("Tasa anual", "${_cdpTasa.round()}%", _cdpTasa, 1, 25, (v) => setState(() => _cdpTasa = v)),
+                    const SizedBox(height: 14),
+                    _sliderRow("Plazo", "$_cdpMeses meses", _cdpMeses.toDouble(), 1, 36, (v) => setState(() => _cdpMeses = v.round())),
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.e1,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(child: _resultColumn("RENDIMIENTO", _fmt(_cdpRendimiento), AppColors.e6)),
+                          Container(width: 1, height: 40, color: AppColors.e6.withValues(alpha: 0.2)),
+                          Expanded(child: _resultColumn("TOTAL FINAL", _fmt(_cdpTotal), AppColors.e8)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ).animate().fadeIn(duration: 380.ms, delay: 200.ms),
+
+          const SizedBox(height: 28),
+
+          // ── Data & Export ──────────────────────────────────────────
+          const Text("Gestión de datos", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.g4, letterSpacing: 0.3))
+              .animate().fadeIn(duration: 300.ms, delay: 250.ms),
+          const SizedBox(height: 10),
+
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+            ),
+            child: Column(
+              children: [
+                _actionRow(
+                  icon: LucideIcons.fileDown,
+                  iconColor: AppColors.b5,
+                  bgColor: const Color(0xFFEFF6FF),
+                  label: "Exportar historial (CSV)",
+                  subtitle: "Descarga todas tus transacciones",
+                  showDivider: true,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Exportando historial a CSV...', style: TextStyle(fontWeight: FontWeight.w700)),
+                        backgroundColor: AppColors.b5,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    );
+                  },
+                ),
+                _actionRow(
+                  icon: LucideIcons.share2,
+                  iconColor: AppColors.p5,
+                  bgColor: const Color(0xFFF3EEFF),
+                  label: "Compartir resumen mensual",
+                  subtitle: "Genera una imagen de tu mes financiero",
+                  showDivider: false,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Generando imagen del resumen...', style: TextStyle(fontWeight: FontWeight.w700)),
+                        backgroundColor: AppColors.p5,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ).animate().fadeIn(duration: 380.ms, delay: 280.ms),
         ],
       ),
+    );
+  }
+
+  Widget _quickLink({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required Color bg,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () { HapticFeedback.lightImpact(); onTap(); },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: AppColors.g2, width: 1.5),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 38, height: 38,
+                decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(11)),
+                alignment: Alignment.center,
+                child: Icon(icon, size: 18, color: color),
+              ),
+              const SizedBox(height: 7),
+              Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.g5), textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sliderRow(String label, String valueLabel, double value, double min, double max, ValueChanged<double> onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.g5)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: AppColors.g1, borderRadius: BorderRadius.circular(8)),
+              child: Text(valueLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.e8)),
+            ),
+          ],
+        ),
+        SliderTheme(
+          data: SliderThemeData(
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+            trackHeight: 4,
+            activeTrackColor: AppColors.o5,
+            inactiveTrackColor: AppColors.g1,
+            thumbColor: AppColors.o5,
+            overlayColor: AppColors.o5.withValues(alpha: 0.15),
+          ),
+          child: Slider(value: value, min: min, max: max, onChanged: onChanged),
+        ),
+      ],
+    );
+  }
+
+  Widget _resultColumn(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: color.withValues(alpha: 0.6), letterSpacing: 0.4), textAlign: TextAlign.center),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color), textAlign: TextAlign.center),
+      ],
+    );
+  }
+
+  Widget _actionRow({
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+    required String label,
+    required String subtitle,
+    required bool showDivider,
+    required VoidCallback onTap,
+  }) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 42, height: 42,
+                  decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
+                  alignment: Alignment.center,
+                  child: Icon(icon, size: 20, color: iconColor),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.e8)),
+                      const SizedBox(height: 2),
+                      Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.g4)),
+                    ],
+                  ),
+                ),
+                const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.g3),
+              ],
+            ),
+          ),
+        ),
+        if (showDivider) const Divider(height: 1, color: Color(0xFFF3F4F6), indent: 68, endIndent: 16),
+      ],
     );
   }
 }

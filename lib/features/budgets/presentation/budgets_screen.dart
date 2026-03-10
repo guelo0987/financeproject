@@ -25,6 +25,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   String _fmt(double val) => "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
 
   void _showDetail(MenudoBudget b) {
+    HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -34,6 +35,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   }
 
   void _showCreate() {
+    HapticFeedback.mediumImpact();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -53,313 +55,433 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.g0,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('Presupuestos', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.e8)),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: AppColors.g2, height: 1),
-        ),
-        actions: [
-          GestureDetector(
-            onTap: _showCreate,
-            child: Container(
-              margin: const EdgeInsets.only(right: 20, top: 10, bottom: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: AppColors.o5,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [const BoxShadow(color: Color(0x44F97316), blurRadius: 14, offset: Offset(0, 5))],
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 120.0,
+            floating: false,
+            pinned: true,
+            backgroundColor: Colors.white,
+            elevation: 0,
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsetsDirectional.only(start: 20, bottom: 16),
+              centerTitle: false,
+              title: const Text(
+                'Presupuestos',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.e8,
+                  letterSpacing: -0.8,
+                ),
               ),
-              alignment: Alignment.center,
-              child: const Text("+ Nuevo", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+              background: Container(color: Colors.white),
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: IconButton(
+                  onPressed: _showCreate,
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: AppColors.o5, shape: BoxShape.circle),
+                    child: const Icon(LucideIcons.plus, color: Colors.white, size: 18),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Dashboard callout
+                  _buildDashboardCallout(budgets, selectedIdx)
+                      .animate()
+                      .fadeIn(duration: 400.ms)
+                      .slideY(begin: -0.1, end: 0, curve: Curves.easeOutBack),
+
+                  const SizedBox(height: 20),
+
+                  // Filters
+                  _buildFilters()
+                      .animate()
+                      .fadeIn(duration: 400.ms, delay: 100.ms),
+
+                  const SizedBox(height: 24),
+
+                  if (filteredBudgets.isEmpty)
+                    _buildEmptyState()
+                  else
+                    ...filteredBudgets.asMap().entries.map((entry) {
+                      final b = entry.value;
+                      final globalIdx = budgets.indexOf(b);
+                      return _BudgetCard(
+                        budget: b,
+                        isDashboardActive: globalIdx == selectedIdx,
+                        onTap: () => _showDetail(b),
+                        onSetActive: () {
+                          HapticFeedback.mediumImpact();
+                          ref.read(selectedBudgetIdxProvider.notifier).state = globalIdx;
+                        },
+                        fmt: _fmt,
+                      ).animate().fadeIn(duration: 500.ms, delay: (200 + entry.key * 100).ms).slideY(begin: 0.05, end: 0, curve: Curves.easeOut);
+                    }),
+                  
+                  const SizedBox(height: 20),
+                  
+                  _buildCreateNewButton()
+                      .animate()
+                      .fadeIn(duration: 500.ms, delay: 400.ms),
+                  
+                  const SizedBox(height: 120),
+                ],
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
 
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
+  Widget _buildDashboardCallout(List<MenudoBudget> budgets, int selectedIdx) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.e1.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.e8.withValues(alpha: 0.1)),
+      ),
+      child: Row(
         children: [
-
-          // ── "Activo en Dashboard" callout
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            margin: const EdgeInsets.only(bottom: 14),
-            decoration: BoxDecoration(
-              color: AppColors.e1,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.e8.withValues(alpha: 0.15), width: 1),
-            ),
-            child: Row(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+            child: const Icon(LucideIcons.layoutDashboard, size: 16, color: AppColors.e8),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(LucideIcons.layoutDashboard, size: 15, color: AppColors.e7),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(fontSize: 12, color: AppColors.e8, fontFamily: 'PlusJakartaSans'),
-                      children: [
-                        const TextSpan(text: "Dashboard muestra: ", style: TextStyle(fontWeight: FontWeight.w600)),
-                        TextSpan(text: budgets.isNotEmpty ? budgets[selectedIdx].nombre : '', style: const TextStyle(fontWeight: FontWeight.w800)),
-                        const TextSpan(text: ". Toca otro presupuesto para cambiarlo."),
-                      ],
-                    ),
-                  ),
+                const Text("VISUALIZACIÓN ACTIVA", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.e8, letterSpacing: 0.5)),
+                const SizedBox(height: 2),
+                Text(
+                  budgets.isNotEmpty ? budgets[selectedIdx].nombre : 'Ninguno',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.e8),
                 ),
               ],
             ),
-          ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.04, end: 0, duration: 300.ms),
-
-          // ── Period filters
-          SizedBox(
-            height: 36,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _filtros.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 8),
-              itemBuilder: (_, i) {
-                final p = _filtros[i];
-                final selected = p == _filtro;
-                return GestureDetector(
-                  onTap: () { HapticFeedback.selectionClick(); setState(() => _filtro = p); },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: selected ? AppColors.e8 : Colors.white,
-                      borderRadius: BorderRadius.circular(100),
-                      border: Border.all(color: selected ? AppColors.e8 : AppColors.g2, width: 1.5),
-                    ),
-                    child: Text(p, style: TextStyle(color: selected ? Colors.white : AppColors.g5, fontWeight: FontWeight.w700, fontSize: 13)),
-                  ),
-                );
-              },
-            ),
-          ).animate().fadeIn(duration: 300.ms, delay: 80.ms),
-
-          const SizedBox(height: 14),
-
-          // ── Budget Cards
-          ...filteredBudgets.asMap().entries.map((entry) {
-            final globalIdx = budgets.indexOf(entry.value);
-            final b = entry.value;
-            final double sp = b.cats.values.fold(0, (s, c) => s + c.gastado);
-            final int usedPct = (sp / (b.ingresos > 0 ? b.ingresos : 1) * 100).round();
-            final bool isDashboardActive = globalIdx == selectedIdx;
-
-            return GestureDetector(
-              onTap: () => _showDetail(b),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(
-                    color: isDashboardActive ? AppColors.e8 : AppColors.g2,
-                    width: isDashboardActive ? 2 : 1.5,
-                  ),
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: isDashboardActive
-                      ? [const BoxShadow(color: Color(0x22065F46), blurRadius: 20, offset: Offset(0, 6))]
-                      : [const BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, 2))],
-                ),
-                child: Column(
-                  children: [
-                    // Dark header
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
-                      decoration: BoxDecoration(
-                        color: isDashboardActive ? AppColors.e8 : AppColors.g0,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    if (isDashboardActive) ...[
-                                      MenudoChip.custom(
-                                        label: "En Dashboard",
-                                        color: Colors.white,
-                                        bgColor: Colors.white.withValues(alpha: 0.2),
-                                        isSmall: true,
-                                      ),
-                                      const SizedBox(width: 8),
-                                    ],
-                                    MenudoChip.custom(
-                                      label: b.periodo,
-                                      color: isDashboardActive ? Colors.white.withValues(alpha: 0.7) : AppColors.g4,
-                                      bgColor: isDashboardActive ? Colors.white.withValues(alpha: 0.15) : AppColors.g1,
-                                      isSmall: true,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  b.nombre,
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: isDashboardActive ? Colors.white : AppColors.e8,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Member avatars
-                          Row(
-                            children: List.generate(b.miembros.length, (i) {
-                              final m = b.miembros[i];
-                              return Align(
-                                widthFactor: i > 0 ? 0.7 : 1.0,
-                                child: Container(
-                                  width: 28, height: 28,
-                                  decoration: BoxDecoration(
-                                    color: m.c,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: isDashboardActive ? AppColors.e8 : Colors.white, width: 2),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(m.i, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
-                                ),
-                              );
-                            }),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Stats + actions row
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _statCol("GASTADO", _fmt(sp), AppColors.r5),
-                              _statCol("RESTANTE", _fmt(b.ingresos - sp), AppColors.e6, center: true),
-                              _statCol("TOTAL", _fmt(b.ingresos), AppColors.e8, right: true),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Container(
-                            height: 7,
-                            decoration: BoxDecoration(color: AppColors.g1, borderRadius: BorderRadius.circular(4)),
-                            child: LayoutBuilder(builder: (_, constraints) => AnimatedContainer(
-                              duration: const Duration(milliseconds: 700),
-                              curve: Curves.easeOutCubic,
-                              height: 7,
-                              width: constraints.maxWidth * min(usedPct / 100, 1.0),
-                              decoration: BoxDecoration(
-                                color: usedPct > 90 ? AppColors.r5 : usedPct > 70 ? AppColors.a5 : AppColors.o5,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            )),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text("$usedPct% usado · Día ${b.diaInicio}", style: const TextStyle(fontSize: 11, color: AppColors.g4)),
-                              // "Usar en Dashboard" button
-                              GestureDetector(
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  ref.read(selectedBudgetIdxProvider.notifier).state = globalIdx;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('${b.nombre} seleccionado en Dashboard', style: const TextStyle(fontWeight: FontWeight.w700)),
-                                      backgroundColor: AppColors.e8,
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      duration: const Duration(seconds: 2),
-                                    ),
-                                  );
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: isDashboardActive ? AppColors.e8 : AppColors.g1,
-                                    borderRadius: BorderRadius.circular(100),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        isDashboardActive ? LucideIcons.checkCircle : LucideIcons.layoutDashboard,
-                                        size: 11,
-                                        color: isDashboardActive ? Colors.white : AppColors.g5,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        isDashboardActive ? "Activo" : "Usar",
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          color: isDashboardActive ? Colors.white : AppColors.g5,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ).animate().fadeIn(duration: 380.ms, delay: (100 + entry.key * 80).ms).slideY(begin: 0.04, end: 0, duration: 380.ms, delay: (100 + entry.key * 80).ms);
-          }),
-
-          // ── Create card
-          GestureDetector(
-            onTap: _showCreate,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 20),
-              decoration: BoxDecoration(
-                color: AppColors.o1,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: AppColors.o5.withValues(alpha: 0.3), width: 1.5),
-              ),
-              alignment: Alignment.center,
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: AppColors.o5.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(14)),
-                    child: const Icon(LucideIcons.clipboardList, size: 26, color: AppColors.o5),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text("Crear nuevo presupuesto", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.e8)),
-                  const SizedBox(height: 3),
-                  const Text("Mensual · Quincenal · Semanal · Único", style: TextStyle(fontSize: 12, color: AppColors.g5)),
-                ],
-              ),
-            ),
-          ).animate().fadeIn(duration: 350.ms, delay: 300.ms),
+          ),
         ],
       ),
     );
   }
 
-  Widget _statCol(String label, String value, Color valueColor, {bool center = false, bool right = false}) {
+  Widget _buildFilters() {
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: _filtros.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (_, i) {
+          final p = _filtros[i];
+          final selected = p == _filtro;
+          return GestureDetector(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() => _filtro = p);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: BoxDecoration(
+                color: selected ? AppColors.e8 : Colors.white,
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(color: selected ? AppColors.e8 : AppColors.g2),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                p,
+                style: TextStyle(
+                  color: selected ? Colors.white : AppColors.g5,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 60),
+        child: Column(
+          children: [
+            const Icon(LucideIcons.clipboardList, size: 48, color: AppColors.g3),
+            const SizedBox(height: 16),
+            const Text("No hay presupuestos", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.e8)),
+            const SizedBox(height: 8),
+            Text("No se encontraron presupuestos en la categoría '$_filtro'", style: const TextStyle(fontSize: 14, color: AppColors.g5)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreateNewButton() {
+    return GestureDetector(
+      onTap: _showCreate,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.o5.withValues(alpha: 0.3), width: 1.5, style: BorderStyle.solid),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: AppColors.o1, shape: BoxShape.circle),
+              child: const Icon(LucideIcons.plus, size: 24, color: AppColors.o5),
+            ),
+            const SizedBox(height: 12),
+            const Text("NUEVO PRESUPUESTO", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.e8, letterSpacing: 0.5)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BudgetCard extends StatelessWidget {
+  final MenudoBudget budget;
+  final bool isDashboardActive;
+  final VoidCallback onTap;
+  final VoidCallback onSetActive;
+  final String Function(double) fmt;
+
+  const _BudgetCard({required this.budget, required this.isDashboardActive, required this.onTap, required this.onSetActive, required this.fmt});
+
+  @override
+  Widget build(BuildContext context) {
+    final double spent = budget.cats.values.fold(0, (s, c) => s + c.gastado);
+    final double remaining = budget.ingresos - spent;
+    final double pct = min(spent / (budget.ingresos > 0 ? budget.ingresos : 1), 1.0);
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: isDashboardActive ? AppColors.e8 : AppColors.g2, width: isDashboardActive ? 2 : 1),
+          boxShadow: [
+            BoxShadow(
+              color: (isDashboardActive ? AppColors.e8 : AppColors.g4).withValues(alpha: 0.08),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            )
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: isDashboardActive ? AppColors.e8 : AppColors.g0,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            MenudoChip.custom(
+                              label: budget.periodo.toUpperCase(),
+                              color: isDashboardActive ? Colors.white.withValues(alpha: 0.8) : AppColors.g5,
+                              bgColor: isDashboardActive ? Colors.white.withValues(alpha: 0.15) : AppColors.g2,
+                              isSmall: true,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          budget.nombre,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: isDashboardActive ? Colors.white : AppColors.e8,
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _buildAvatars(budget.miembros),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _BudgetStat(label: "GASTADO", value: fmt(spent), color: AppColors.r5),
+                      _BudgetStat(label: "DISPONIBLE", value: fmt(remaining), color: AppColors.e6, center: true),
+                      _BudgetStat(label: "TOTAL", value: fmt(budget.ingresos), color: AppColors.e8, right: true),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _ProgressBar(pct: pct),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "${(pct * 100).round()}% utilizado",
+                        style: const TextStyle(fontSize: 11, color: AppColors.g4, fontWeight: FontWeight.w700),
+                      ),
+                      _DashboardToggleButton(isActive: isDashboardActive, onToggle: onSetActive),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatars(List<BudgetMember> miembros) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(miembros.length, (i) {
+        final m = miembros[i];
+        return Align(
+          widthFactor: 0.7,
+          child: Container(
+            width: 32, height: 32,
+            decoration: BoxDecoration(
+              color: m.c,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
+            ),
+            alignment: Alignment.center,
+            child: Text(m.i, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _BudgetStat extends StatelessWidget {
+  final String label, value;
+  final Color color;
+  final bool center, right;
+
+  const _BudgetStat({required this.label, required this.value, required this.color, this.center = false, this.right = false});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: right ? CrossAxisAlignment.end : center ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.g4, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-        const SizedBox(height: 2),
-        Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: valueColor)),
+        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.g4, letterSpacing: 0.5)),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: color, letterSpacing: -0.4)),
       ],
     );
   }
 }
+
+class _ProgressBar extends StatelessWidget {
+  final double pct;
+
+  const _ProgressBar({required this.pct});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 8,
+      width: double.infinity,
+      decoration: BoxDecoration(color: AppColors.g1, borderRadius: BorderRadius.circular(4)),
+      child: LayoutBuilder(
+        builder: (_, constraints) => AnimatedContainer(
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeOutQuart,
+          width: constraints.maxWidth * pct,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: pct > 0.9 ? [AppColors.r5, AppColors.r5.withValues(alpha: 0.7)] : [AppColors.o5, AppColors.o5.withValues(alpha: 0.7)],
+            ),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DashboardToggleButton extends StatelessWidget {
+  final bool isActive;
+  final VoidCallback onToggle;
+
+  const _DashboardToggleButton({required this.isActive, required this.onToggle});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onToggle,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.e8 : AppColors.g1,
+          borderRadius: BorderRadius.circular(100),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isActive ? LucideIcons.checkCircle : LucideIcons.layoutDashboard,
+              size: 14,
+              color: isActive ? Colors.white : AppColors.g5,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              isActive ? "ACTIVO" : "USAR EN DASHBOARD",
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                color: isActive ? Colors.white : AppColors.g5,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

@@ -1,10 +1,84 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
+import '../providers/wallet_providers.dart';
+
+class _DefaultWalletToggle extends ConsumerStatefulWidget {
+  final int walletId;
+  const _DefaultWalletToggle({required this.walletId});
+
+  @override
+  ConsumerState<_DefaultWalletToggle> createState() => _DefaultWalletToggleState();
+}
+
+class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
+  @override
+  Widget build(BuildContext context) {
+    final defaultId = ref.watch(defaultWalletIdProvider);
+    final isDefault = defaultId == widget.walletId;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isDefault ? AppColors.e8.withValues(alpha: 0.3) : AppColors.g2),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: AppColors.g1, borderRadius: BorderRadius.circular(10)),
+                child: Icon(LucideIcons.star, size: 18, color: isDefault ? AppColors.o5 : AppColors.g3),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Cuenta principal", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.e8)),
+                    Text("Usar por defecto en transacciones", style: TextStyle(fontSize: 12, color: AppColors.g4, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+              Switch.adaptive(
+                value: isDefault,
+                activeColor: AppColors.e8,
+                onChanged: (val) {
+                  HapticFeedback.mediumImpact();
+                  ref.read(defaultWalletIdProvider.notifier).state = val ? widget.walletId : null;
+                },
+              ),
+            ],
+          ),
+          if (isDefault)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Row(
+                children: [
+                  const Icon(LucideIcons.info, size: 14, color: AppColors.e6),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      "Esta cuenta aparecerá seleccionada automáticamente al registrar gastos o ingresos.",
+                      style: TextStyle(fontSize: 11, color: AppColors.e6, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ).animate().fadeIn(),
+        ],
+      ),
+    );
+  }
+}
 
 class WalletDetailSheet extends StatelessWidget {
   final WalletAccount wallet;
@@ -191,6 +265,11 @@ class WalletDetailSheet extends StatelessWidget {
                         ),
                       ],
                     ).animate().fadeIn(duration: 350.ms, delay: 250.ms).slideY(begin: 0.05, end: 0, duration: 350.ms, delay: 250.ms),
+
+                    const SizedBox(height: 20),
+
+                    // Default Wallet Toggle
+                    _DefaultWalletToggle(walletId: w.id),
 
                     const SizedBox(height: 20),
 

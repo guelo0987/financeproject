@@ -48,7 +48,7 @@ class _MenudoGaugeState extends State<MenudoGauge> with SingleTickerProviderStat
 
     return RepaintBoundary(
       child: SizedBox(
-        height: 180,
+        height: 160,
         child: AnimatedBuilder(
           animation: _sweepAnimation,
           builder: (context, child) {
@@ -58,58 +58,46 @@ class _MenudoGaugeState extends State<MenudoGauge> with SingleTickerProviderStat
               children: [
                 // Background Track
                 CustomPaint(
-                  size: const Size(200, 180),
+                  size: const Size(260, 160),
                   painter: _GaugePainter(
                     color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.g2,
-                    strokeWidth: 16,
+                    strokeWidth: 18,
                     startAngle: 180,
                     sweepAngle: 180,
                   ),
                 ),
 
-                // Limits Arc
-                if (!isDark)
-                  CustomPaint(
-                    size: const Size(200, 180),
-                    painter: _GaugePainter(
-                      color: AppColors.g2.withValues(alpha: 0.5),
-                      strokeWidth: 16,
-                      startAngle: 180,
-                      sweepAngle: 180 * min(totalLimitLimit / ingresos, 1.0) * progress,
-                    ),
-                  ),
-
-                // Spend Segments — animated sweep
+                // Spend Segments
                 ..._buildSegments(cats, ingresos, progress),
 
                 // Center Text
-                child!,
+                Positioned(
+                  bottom: 10,
+                  child: child!,
+                ),
               ],
             );
           },
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 30),
               Text(
                 "Restante",
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: isDark ? Colors.white.withValues(alpha: 0.5) : AppColors.g4,
                   letterSpacing: 0.5,
-                  height: 1.0,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 2),
               Text(
                 "RD\$${(budget.ingresos - totalSpent).toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
                 style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
                   color: isDark ? Colors.white : AppColors.e8,
-                  letterSpacing: -1,
-                  height: 1.0,
+                  letterSpacing: -1.2,
                 ),
               ),
             ],
@@ -122,19 +110,24 @@ class _MenudoGaugeState extends State<MenudoGauge> with SingleTickerProviderStat
   List<Widget> _buildSegments(List<BudgetCategory> cats, double ingresos, double progress) {
     List<Widget> segments = [];
     double currentAngle = 180.0;
+    
+    final double totalSpent = cats.fold(0.0, (s, c) => s + c.gastado);
+    // Normalize if spent > income to fit in 180 degrees visually, but usually we want to show overflow?
+    // Let's normalize to totalSpent if totalSpent > ingresos to keep it within the semi-circle
+    final double divisor = max(ingresos, totalSpent);
 
     for (var cat in cats) {
       if (cat.gastado == 0) continue;
 
-      double proportion = min(cat.gastado / ingresos, 1.0);
+      double proportion = cat.gastado / divisor;
       double sweep = 180 * proportion * progress;
 
       segments.add(
         CustomPaint(
-          size: const Size(200, 180),
+          size: const Size(260, 160),
           painter: _GaugePainter(
             color: cat.color,
-            strokeWidth: 16,
+            strokeWidth: 18,
             startAngle: currentAngle,
             sweepAngle: sweep,
           ),

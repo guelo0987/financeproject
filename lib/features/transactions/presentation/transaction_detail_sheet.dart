@@ -26,6 +26,7 @@ class TransactionDetailSheet extends StatelessWidget {
     final bool isGasto = t.tipo == 'gasto';
     final Color amountColor = isGasto ? AppColors.r5 : AppColors.e6;
     final String amountPrefix = isGasto ? '-' : '+';
+    final bool isSharedBudget = activeBudget.miembros.length > 1;
 
     // Format date in Spanish
     final parts = t.dateString.split('-');
@@ -135,12 +136,77 @@ class TransactionDetailSheet extends StatelessWidget {
                           ),
                           const Divider(height: 1, color: Color(0xFFF3F4F6), indent: 16, endIndent: 16),
 
+                          // Performed by row
+                          if (t.userName != null) ...[
+                            _buildDetailRow(
+                              icon: LucideIcons.user,
+                              iconColor: AppColors.o5,
+                              label: 'Realizado por',
+                              value: t.userName!,
+                            ),
+                            const Divider(height: 1, color: Color(0xFFF3F4F6), indent: 16, endIndent: 16),
+                          ],
+
                           // ID row
                           _buildDetailRow(
                             icon: LucideIcons.hash,
                             iconColor: AppColors.g4,
                             label: 'ID',
                             value: '#${t.id.toString().padLeft(4, '0')}',
+                          ),
+                          const Divider(height: 1, color: Color(0xFFF3F4F6), indent: 16, endIndent: 16),
+
+                          // Budget / space row
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 40, height: 40,
+                                  decoration: BoxDecoration(
+                                    color: (isSharedBudget ? AppColors.e6 : AppColors.p5).withValues(alpha: 0.13),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Icon(
+                                    isSharedBudget ? LucideIcons.users : LucideIcons.layoutGrid,
+                                    size: 18,
+                                    color: isSharedBudget ? AppColors.e6 : AppColors.p5,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        isSharedBudget ? 'Espacio compartido' : 'Presupuesto',
+                                        style: const TextStyle(fontSize: 11, color: AppColors.g4, fontWeight: FontWeight.w600, letterSpacing: 0.3),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        activeBudget.nombre,
+                                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.e8),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (isSharedBudget)
+                                  Row(
+                                    children: activeBudget.miembros.take(3).map((m) => Container(
+                                      width: 26, height: 26,
+                                      margin: const EdgeInsets.only(left: 3),
+                                      decoration: BoxDecoration(
+                                        color: m.c,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 1.5),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(m.i, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                                    )).toList(),
+                                  ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
