@@ -1,64 +1,44 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../controllers/category_controller.dart' as category_controller;
+import '../../../controllers/demo_mode_controller.dart';
 import '../../../core/data/models.dart';
 import '../../../features/auth/auth_state.dart';
-import '../data/category_repository.dart';
+import '../../../services/category_service.dart';
 
-class CategoryNotifier extends AsyncNotifier<List<MenudoCategory>> {
-  int _uid() {
-    final uid = ref.read(authProvider).userId;
-    return uid != null ? int.parse(uid) : 0;
+final categoryNotifierProvider = category_controller.categoryControllerProvider;
+final categoryControllerProvider =
+    category_controller.categoryControllerProvider;
+
+final effectiveCategoriesProvider = Provider<List<MenudoCategory>>((ref) {
+  final categories = ref.watch(categoryNotifierProvider).valueOrNull;
+  final demoMode = ref.watch(demoModeProvider);
+
+  if (categories != null && categories.isNotEmpty) {
+    return categories;
   }
-
-  @override
-  Future<List<MenudoCategory>> build() async {
-    final uid = ref.watch(authProvider).userId;
-    if (uid != null) {
-      return ref
-          .read(categoryRepositoryProvider)
-          .fetchCategoriesForUser(int.parse(uid));
-    }
+  if (demoMode) {
     return mockCategories;
   }
+  return categories ?? const [];
+});
 
-  Future<void> addCategory(MenudoCategory category) async {
-    final userId = _uid();
-    if (userId == 0) return;
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      await ref
-          .read(categoryRepositoryProvider)
-          .createCategory(userId, category);
+final parentCategoriesProvider =
+    FutureProvider.family<List<MenudoCategory>, String?>((ref, tipo) async {
+      final userId = ref.watch(authProvider).userId;
+      if (userId == null) {
+        return const [];
+      }
       return ref
-          .read(categoryRepositoryProvider)
-          .fetchCategoriesForUser(userId);
+          .read(categoryServiceProvider)
+          .fetchParentCategories(int.parse(userId), tipo: tipo);
     });
-  }
-
-  Future<void> removeCategory(int categoryId) async {
-    final userId = _uid();
-    if (userId == 0) return;
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      await ref.read(categoryRepositoryProvider).deleteCategory(categoryId);
-      return ref
-          .read(categoryRepositoryProvider)
-          .fetchCategoriesForUser(userId);
-    });
-  }
-}
-
-final categoryNotifierProvider =
-    AsyncNotifierProvider<CategoryNotifier, List<MenudoCategory>>(
-      CategoryNotifier.new,
-    );
 
 // Lookup a category by its slug
 final categoryBySlugProvider = Provider.family<MenudoCategory?, String>((
   ref,
   slug,
 ) {
-  final cats =
-      ref.watch(categoryNotifierProvider).valueOrNull ?? mockCategories;
+  final cats = ref.watch(effectiveCategoriesProvider);
   try {
     return cats.firstWhere((c) => c.slug == slug);
   } catch (_) {
@@ -68,8 +48,7 @@ final categoryBySlugProvider = Provider.family<MenudoCategory?, String>((
 
 // All category IDs by slug — used when creating transactions
 final categoryIdBySlugProvider = Provider<Map<String, int>>((ref) {
-  final cats =
-      ref.watch(categoryNotifierProvider).valueOrNull ?? mockCategories;
+  final cats = ref.watch(effectiveCategoriesProvider);
   return {for (final c in cats) c.slug: c.id};
 });
 
@@ -77,8 +56,7 @@ final categoryIdBySlugProvider = Provider<Map<String, int>>((ref) {
 // Map<parent, List<subcategories>>
 final groupedCategoriesProvider =
     Provider<Map<MenudoCategory, List<MenudoCategory>>>((ref) {
-      final cats =
-          ref.watch(categoryNotifierProvider).valueOrNull ?? mockCategories;
+      final cats = ref.watch(effectiveCategoriesProvider);
       final parents = cats.where((c) => c.esParent).toList();
       return {
         for (final parent in parents)

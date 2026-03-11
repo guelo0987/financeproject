@@ -1,17 +1,28 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+
+import '../../../../core/data/models.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/menudo_button.dart';
 import '../../../../shared/widgets/menudo_chip.dart';
+import '../../../auth/auth_state.dart';
+import '../../../categories/providers/category_providers.dart';
+import '../../../categories/presentation/categories_screen.dart';
+import '../../budget_providers.dart';
 
-class CreateBudgetWizard extends StatefulWidget {
-  const CreateBudgetWizard({super.key});
+class CreateBudgetWizard extends ConsumerStatefulWidget {
+  const CreateBudgetWizard({super.key, this.initialBudget});
+
+  final MenudoBudget? initialBudget;
 
   @override
-  State<CreateBudgetWizard> createState() => _CreateBudgetWizardState();
+  ConsumerState<CreateBudgetWizard> createState() => _CreateBudgetWizardState();
 }
 
-class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
+class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
   int _step = 0;
   final List<String> _steps = [
     "Básico",
@@ -26,44 +37,116 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
   String _nombre = "";
   String _periodo = "mensual";
   int _diaInicio = 1;
-  String _ingresos = "";
-  final Map<String, String> _cats = {
-    "vivienda": "",
-    "comida": "",
-    "transporte": "",
-    "estiloVida": "",
-    "ahorro": "",
-  };
+  final Map<int, String> _incomePlan = {};
+  final Map<int, String> _expensePlan = {};
+  String _savingsTarget = "";
   final List<String> _miembros = [];
   String _emailInput = "";
+  bool _isSaving = false;
 
-  final Map<String, dynamic> _catsConfig = {
-    "vivienda": {
-      "label": "Vivienda/Renta",
-      "icono": "🏠",
-      "color": AppColors.e7,
-    },
-    "comida": {"label": "Comida", "icono": "🍽️", "color": AppColors.o5},
-    "transporte": {"label": "Transporte", "icono": "🚗", "color": AppColors.p5},
-    "estiloVida": {
-      "label": "Estilo de vida",
-      "icono": "✨",
-      "color": AppColors.pk,
-    },
-    "ahorro": {"label": "Ahorro", "icono": "💰", "color": AppColors.a5},
-  };
+  bool get _isEditing => widget.initialBudget != null;
 
-  final List<String> _catOrder = [
-    "vivienda",
-    "comida",
-    "transporte",
-    "estiloVida",
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _seedInitialBudget();
+  }
 
-  double get ing => double.tryParse(_ingresos) ?? 0;
-  double get gastos =>
-      _catOrder.fold(0.0, (sum, k) => sum + (double.tryParse(_cats[k]!) ?? 0));
-  double get aho => double.tryParse(_cats["ahorro"]!) ?? 0;
+  double _parseAmount(String? rawValue) {
+    final normalized = rawValue?.replaceAll(',', '').trim() ?? '';
+    return double.tryParse(normalized) ?? 0;
+  }
+
+  String _formatEditableAmount(double value) {
+    if (value == 0) return '';
+    final raw = value.truncateToDouble() == value
+        ? value.toInt().toString()
+        : value.toStringAsFixed(2);
+    return raw.replaceFirst(RegExp(r'([.]0+)?$'), '');
+  }
+
+  void _seedInitialBudget() {
+    final budget = widget.initialBudget;
+    if (budget == null) return;
+
+    _nombre = budget.nombre;
+    _periodo = budget.periodo;
+    _diaInicio = budget.diaInicio;
+    _savingsTarget = _formatEditableAmount(budget.ahorroObjetivo);
+
+    for (final entry in budget.incomePlan.entries) {
+      _incomePlan[entry.key] = _formatEditableAmount(entry.value);
+    }
+
+    for (final category in budget.cats.values) {
+      if (category.categoryId == null) continue;
+      _expensePlan[category.categoryId!] = _formatEditableAmount(
+        category.limite,
+      );
+    }
+  }
+
+  double _totalFrom(Map<int, String> values) {
+    return values.values.fold(0.0, (sum, value) => sum + _parseAmount(value));
+  }
+
+  Map<MenudoCategory, List<MenudoCategory>> _resolvedGroups(
+    List<MenudoCategory> categories,
+  ) {
+    final grouped = ref.read(groupedCategoriesProvider);
+    if (grouped.isNotEmpty) {
+      return grouped;
+    }
+
+    return {
+      for (final category in categories.where((category) => !category.esParent))
+        category: <MenudoCategory>[category],
+    };
+  }
+
+  List<MapEntry<MenudoCategory, List<MenudoCategory>>> _sortedGroups(
+    Iterable<MapEntry<MenudoCategory, List<MenudoCategory>>> entries,
+  ) {
+    final groups = entries.toList();
+    groups.sort((a, b) => a.key.nombre.compareTo(b.key.nombre));
+    return groups;
+  }
+
+  List<MapEntry<MenudoCategory, List<MenudoCategory>>> _incomeGroups(
+    List<MenudoCategory> categories,
+  ) {
+    return _sortedGroups(
+      _resolvedGroups(categories).entries.where((entry) {
+        return entry.key.tipo == 'ingreso';
+      }),
+    );
+  }
+
+  List<MapEntry<MenudoCategory, List<MenudoCategory>>> _expenseGroups(
+    List<MenudoCategory> categories,
+  ) {
+    return _sortedGroups(
+      _resolvedGroups(categories).entries.where((entry) {
+        return entry.key.tipo == 'gasto';
+      }),
+    );
+  }
+
+  Future<void> _showAddSubcategory(MenudoCategory parent) async {
+    await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AddCategorySheet(parent: parent),
+    );
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  double get ing => _totalFrom(_incomePlan);
+  double get gastos => _totalFrom(_expensePlan);
+  double get aho => _parseAmount(_savingsTarget);
   double get sobrante => ing - gastos - aho;
 
   bool _canNext() {
@@ -71,7 +154,7 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
       case 0:
         return _nombre.trim().isNotEmpty;
       case 1:
-        return _ingresos.isNotEmpty && ing > 0;
+        return ing > 0;
       case 2:
         return true;
       case 3:
@@ -85,13 +168,106 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
     }
   }
 
-  void _onNextOrSave() {
+  Future<void> _onNextOrSave() async {
     if (_step < 5) {
       setState(() => _step++);
     } else {
-      // Save logic
-      Navigator.pop(context);
+      await _saveBudget();
     }
+  }
+
+  Future<void> _saveBudget() async {
+    if (_isSaving) return;
+
+    final categories = ref.read(effectiveCategoriesProvider);
+    final categoriesById = {
+      for (final category in categories) category.id: category,
+    };
+
+    final configuredIncome = {
+      for (final entry in _incomePlan.entries)
+        if (_parseAmount(entry.value) > 0) entry.key: _parseAmount(entry.value),
+    };
+    final configuredLimits = {
+      for (final entry in _expensePlan.entries)
+        if (_parseAmount(entry.value) > 0) entry.key: _parseAmount(entry.value),
+    };
+
+    final missingIncomeCategories = configuredIncome.entries
+        .where(
+          (entry) => entry.value > 0 && !categoriesById.containsKey(entry.key),
+        )
+        .map((entry) => '#${entry.key}')
+        .toList();
+    final missingExpenseCategories = configuredLimits.entries
+        .where(
+          (entry) => entry.value > 0 && !categoriesById.containsKey(entry.key),
+        )
+        .map((entry) => '#${entry.key}')
+        .toList();
+
+    if (missingIncomeCategories.isNotEmpty ||
+        missingExpenseCategories.isNotEmpty) {
+      _showError(
+        'Faltan categorías en el backend para este presupuesto. Revisa los datos antes de guardar.',
+      );
+      return;
+    }
+
+    final budgetCats = <String, BudgetCategory>{};
+    for (final entry in configuredLimits.entries) {
+      final category = categoriesById[entry.key]!;
+      budgetCats[category.slug] = BudgetCategory(
+        categoryId: category.id,
+        label: category.nombre,
+        icono: category.icono,
+        color: category.color,
+        limite: entry.value,
+      );
+    }
+
+    final budget = MenudoBudget(
+      id: widget.initialBudget?.id ?? 0,
+      espacioId: widget.initialBudget?.espacioId,
+      nombre: _nombre.trim(),
+      periodo: _periodo,
+      diaInicio: _diaInicio,
+      activo: widget.initialBudget?.activo ?? true,
+      miembros: const [],
+      ingresos: ing,
+      ahorroObjetivo: aho,
+      cats: budgetCats,
+      incomePlan: configuredIncome,
+    );
+
+    setState(() => _isSaving = true);
+
+    try {
+      final notifier = ref.read(budgetNotifierProvider.notifier);
+      final categoryMap = {
+        for (final category in categories) category.slug: category.id,
+      };
+      if (_isEditing) {
+        await notifier.updateBudget(budget, categoryMap, configuredIncome);
+      } else {
+        await notifier.createBudget(budget, categoryMap, configuredIncome);
+      }
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (error) {
+      _showError(error.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   String fmt(double val) =>
@@ -201,12 +377,16 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
               border: Border(top: BorderSide(color: Color(0xFFF3F4F6))),
             ),
             child: MenudoButton(
-              label: _step == 5
-                  ? "🎉 Crear presupuesto"
+              label: _isSaving
+                  ? (_isEditing ? "GUARDANDO..." : "CREANDO...")
+                  : _step == 5
+                  ? (_isEditing
+                        ? "Guardar presupuesto"
+                        : "🎉 Crear presupuesto")
                   : "Siguiente \u2192", // right arrow
               isFullWidth: true,
-              isDisabled: !_canNext(),
-              onTap: _onNextOrSave,
+              isDisabled: !_canNext() || _isSaving,
+              onTap: () => _onNextOrSave(),
             ),
           ),
         ],
@@ -237,8 +417,8 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Nuevo presupuesto",
+        Text(
+          _isEditing ? "Configurar presupuesto" : "Nuevo presupuesto",
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
@@ -319,7 +499,7 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
                     {"v": "semanal", "l": "Semanal"},
                     {"v": "quincenal", "l": "Quincenal"},
                     {"v": "mensual", "l": "Mensual"},
-                    {"v": "anual", "l": "Anual"},
+                    {"v": "unico", "l": "Único"},
                   ]
                   .map(
                     (p) => GestureDetector(
@@ -402,7 +582,271 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
     );
   }
 
+  Widget _buildPlannedAmountCard({
+    required String label,
+    required String subtitle,
+    required double amount,
+    required Color backgroundColor,
+    required Color borderColor,
+    required Color textColor,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        border: Border.all(color: borderColor, width: 2),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: textColor,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            fmt(amount),
+            style: TextStyle(
+              fontSize: 36,
+              fontWeight: FontWeight.w900,
+              color: textColor,
+              letterSpacing: -1.2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 13,
+              color: textColor.withValues(alpha: 0.7),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryPlannerGroup({
+    required MenudoCategory parent,
+    required List<MenudoCategory> categories,
+    required Map<int, String> values,
+    required bool showPercent,
+    required double totalBase,
+  }) {
+    final sortedCategories = [...categories]
+      ..sort((a, b) => a.nombre.compareTo(b.nombre));
+    final groupTotal = sortedCategories.fold<double>(
+      0,
+      (sum, category) => sum + _parseAmount(values[category.id]),
+    );
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: parent.color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                alignment: Alignment.center,
+                child: Icon(parent.icono, color: parent.color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      parent.nombre,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.e8,
+                      ),
+                    ),
+                    Text(
+                      sortedCategories.isEmpty
+                          ? 'Sin subcategorías todavía'
+                          : '${sortedCategories.length} opciones',
+                      style: const TextStyle(fontSize: 12, color: AppColors.g4),
+                    ),
+                  ],
+                ),
+              ),
+              if (groupTotal > 0)
+                MenudoChip.custom(
+                  label: fmt(groupTotal),
+                  color: parent.color,
+                  isSmall: true,
+                ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => _showAddSubcategory(parent),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: parent.color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(LucideIcons.plus, size: 16, color: parent.color),
+                ),
+              ),
+            ],
+          ),
+          if (sortedCategories.isEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.g0,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Text(
+                'Agrega una subcategoría dentro de este grupo para poder asignarle un monto.',
+                style: TextStyle(fontSize: 13, color: AppColors.g4),
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 14),
+            ...sortedCategories.map((category) {
+              final amount = _parseAmount(values[category.id]);
+              final pct = totalBase > 0
+                  ? (amount / totalBase * 100).round()
+                  : 0;
+              final currentValue = values[category.id] ?? '';
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: category.color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        category.icono,
+                        color: category.color,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            category.nombre,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.e8,
+                            ),
+                          ),
+                          if (showPercent && amount > 0)
+                            Text(
+                              '$pct% del total',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.g4,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 118,
+                      child: TextField(
+                        onChanged: (value) {
+                          setState(() => values[category.id] = value);
+                        },
+                        controller: TextEditingController.fromValue(
+                          TextEditingValue(
+                            text: currentValue,
+                            selection: TextSelection.collapsed(
+                              offset: currentValue.length,
+                            ),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.e8,
+                        ),
+                        decoration: InputDecoration(
+                          prefixText: 'RD\$ ',
+                          prefixStyle: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.g4,
+                          ),
+                          hintText: '0',
+                          filled: true,
+                          fillColor: AppColors.g0,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: category.color.withValues(alpha: 0.18),
+                              width: 1.8,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: category.color,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildStep1() {
+    final categories = ref.watch(effectiveCategoriesProvider);
+    final incomeGroups = _incomeGroups(categories);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -416,127 +860,51 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
         ),
         const SizedBox(height: 4),
         const Text(
-          "¿Cuánto recibes en este período?",
+          "Asigna tus ingresos por categoría y subcategoría.",
           style: TextStyle(fontSize: 14, color: AppColors.g4),
         ),
         const SizedBox(height: 20),
-
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-          decoration: BoxDecoration(
-            color: AppColors.e0,
-            border: Border.all(
-              color: AppColors.e7.withValues(alpha: 0.13),
-              width: 2,
-            ),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            children: [
-              const Text(
-                "MONTO DE INGRESOS",
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.e7,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const Text(
-                    "RD\$",
-                    style: TextStyle(
-                      fontSize: 22,
-                      color: AppColors.e7,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  IntrinsicWidth(
-                    child: TextField(
-                      onChanged: (v) => setState(() => _ingresos = v),
-                      controller: TextEditingController.fromValue(
-                        TextEditingValue(
-                          text: _ingresos,
-                          selection: TextSelection.collapsed(
-                            offset: _ingresos.length,
-                          ),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.e8,
-                      ),
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: "0",
-                        hintStyle: TextStyle(color: AppColors.e7),
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+        _buildPlannedAmountCard(
+          label: "MONTO DE INGRESOS",
+          subtitle: "El total se calcula con las fuentes que asignes abajo.",
+          amount: ing,
+          backgroundColor: AppColors.e0,
+          borderColor: AppColors.e7.withValues(alpha: 0.13),
+          textColor: AppColors.e7,
         ),
-
-        const SizedBox(height: 20),
-        ...[
-          {"label": "Salario", "icon": "💼", "val": "95000"},
-          {"label": "Freelance", "icon": "💻", "val": "20000"},
-          {"label": "Negocio", "icon": "🏪", "val": "50000"},
-        ].map(
-          (s) => GestureDetector(
-            onTap: () => setState(() => _ingresos = s["val"]!),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-              decoration: BoxDecoration(
-                color: AppColors.g0,
-                border: Border.all(color: AppColors.g2, width: 2),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                children: [
-                  Text(s["icon"]!, style: const TextStyle(fontSize: 20)),
-                  const SizedBox(width: 12),
-                  Text(
-                    s["label"]!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.e8,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    "RD\$${int.parse(s["val"]!).toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.o5,
-                    ),
-                  ),
-                ],
-              ),
+        const SizedBox(height: 18),
+        if (incomeGroups.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.g0,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.g2, width: 1.5),
+            ),
+            child: const Text(
+              'No hay categorías de ingreso disponibles todavía. Crea o sincroniza al menos un grupo de ingresos desde el backend.',
+              style: TextStyle(fontSize: 13, color: AppColors.g4),
+            ),
+          )
+        else
+          ...incomeGroups.map(
+            (group) => _buildCategoryPlannerGroup(
+              parent: group.key,
+              categories: group.value,
+              values: _incomePlan,
+              showPercent: false,
+              totalBase: ing,
             ),
           ),
-        ),
       ],
     );
   }
 
   Widget _buildStep2() {
+    final categories = ref.watch(effectiveCategoriesProvider);
+    final expenseGroups = _expenseGroups(categories);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -550,7 +918,7 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
         ),
         const SizedBox(height: 4),
         const Text(
-          "¿Cuánto destinas a cada categoría?",
+          "Primero ves el grupo padre y debajo eliges sus subcategorías.",
           style: TextStyle(fontSize: 14, color: AppColors.g4),
         ),
         const SizedBox(height: 16),
@@ -583,123 +951,30 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
             ),
           ),
 
-        ..._catOrder.map((k) {
-          final cfg = _catsConfig[k];
-          final val = double.tryParse(_cats[k]!) ?? 0;
-          final pct = ing > 0 ? (val / ing * 100).round() : 0;
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(14),
+        if (expenseGroups.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+              color: AppColors.g0,
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.g2, width: 1.5),
             ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: cfg["color"].withValues(alpha: 0.13),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        cfg["icono"],
-                        style: const TextStyle(fontSize: 18),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        cfg["label"],
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.e8,
-                        ),
-                      ),
-                    ),
-                    if (pct > 0)
-                      MenudoChip.custom(
-                        label: "$pct%",
-                        color: cfg["color"],
-                        isSmall: true,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Text(
-                      "RD\$",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.g4,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        onChanged: (v) => setState(() => _cats[k] = v),
-                        controller: TextEditingController.fromValue(
-                          TextEditingValue(
-                            text: _cats[k]!,
-                            selection: TextSelection.collapsed(
-                              offset: _cats[k]!.length,
-                            ),
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.e8,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: "0",
-                          filled: true,
-                          fillColor: AppColors.g0,
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                              color: AppColors.g2,
-                              width: 2,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                              color: AppColors.g2,
-                              width: 2,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                              color: AppColors.e8,
-                              width: 2,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            child: const Text(
+              'No hay grupos de gastos disponibles desde el backend. Verifica la jerarquía de categorías.',
+              style: TextStyle(fontSize: 13, color: AppColors.g4),
             ),
-          );
-        }),
+          )
+        else
+          ...expenseGroups.map(
+            (group) => _buildCategoryPlannerGroup(
+              parent: group.key,
+              categories: group.value,
+              values: _expensePlan,
+              showPercent: true,
+              totalBase: ing > 0 ? ing : gastos,
+            ),
+          ),
       ],
     );
   }
@@ -761,12 +1036,12 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
                   const SizedBox(width: 6),
                   IntrinsicWidth(
                     child: TextField(
-                      onChanged: (v) => setState(() => _cats["ahorro"] = v),
+                      onChanged: (v) => setState(() => _savingsTarget = v),
                       controller: TextEditingController.fromValue(
                         TextEditingValue(
-                          text: _cats["ahorro"]!,
+                          text: _savingsTarget,
                           selection: TextSelection.collapsed(
-                            offset: _cats["ahorro"]!.length,
+                            offset: _savingsTarget.length,
                           ),
                         ),
                       ),
@@ -814,17 +1089,15 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
                 ),
                 const SizedBox(height: 10),
                 ...[
-                  ..._catOrder.map(
-                    (k) => {
-                      "cfg": _catsConfig[k],
-                      "val": double.tryParse(_cats[k]!) ?? 0,
-                    },
-                  ),
-                  {"cfg": _catsConfig["ahorro"], "val": aho},
-                ].where((e) => (e["val"] as double) > 0).map((e) {
-                  final cfg = e["cfg"] as Map;
-                  final v = e["val"] as double;
-                  final pct = (v / ing * 100).round();
+                  {
+                    'label': 'Gastos planificados',
+                    'val': gastos,
+                    'color': AppColors.e8,
+                  },
+                  {'label': 'Ahorro', 'val': aho, 'color': AppColors.a5},
+                ].where((entry) => (entry['val'] as double) > 0).map((entry) {
+                  final v = entry['val'] as double;
+                  final pct = ing > 0 ? (v / ing * 100).round() : 0;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Column(
@@ -833,7 +1106,7 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              "${cfg["icono"]} ${cfg["label"]}",
+                              entry['label'] as String,
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: AppColors.g5,
@@ -863,7 +1136,7 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
                                 height: 5,
                                 width: constraints.maxWidth * min(v / ing, 1.0),
                                 decoration: BoxDecoration(
-                                  color: cfg["color"],
+                                  color: entry['color'] as Color,
                                   borderRadius: BorderRadius.circular(3),
                                 ),
                               );
@@ -907,6 +1180,17 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
   }
 
   Widget _buildStep4() {
+    final profile = ref.watch(authProvider).profile;
+    final currentUserName = profile?.name.isNotEmpty == true
+        ? profile!.name
+        : 'Tu usuario';
+    final initials = currentUserName
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .take(2)
+        .map((part) => part[0].toUpperCase())
+        .join();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -943,8 +1227,8 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
-                child: const Text(
-                  "M",
+                child: Text(
+                  initials.isEmpty ? 'T' : initials,
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -954,9 +1238,9 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
-                    "Marcos Pérez (Tú)",
+                    currentUserName,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -1137,6 +1421,23 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
   }
 
   Widget _buildStep5() {
+    final categoriesById = {
+      for (final category in ref.watch(effectiveCategoriesProvider))
+        category.id: category,
+    };
+    final incomeEntries =
+        _incomePlan.entries
+            .map((entry) => MapEntry(entry.key, _parseAmount(entry.value)))
+            .where((entry) => entry.value > 0)
+            .toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+    final expenseEntries =
+        _expensePlan.entries
+            .map((entry) => MapEntry(entry.key, _parseAmount(entry.value)))
+            .where((entry) => entry.value > 0)
+            .toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1231,23 +1532,62 @@ class _CreateBudgetWizardState extends State<CreateBudgetWizard> {
                 ],
               ),
               const SizedBox(height: 10),
-              ..._catOrder.map((k) {
-                final val = double.tryParse(_cats[k]!) ?? 0;
-                if (val <= 0) return const SizedBox.shrink();
+              ...incomeEntries.map((entry) {
+                final category = categoriesById[entry.key];
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        _catsConfig[k]["label"] as String,
+                        category?.nombre ?? 'Ingreso #${entry.key}',
                         style: const TextStyle(
                           fontSize: 13,
                           color: AppColors.g4,
                         ),
                       ),
                       Text(
-                        fmt(val),
+                        fmt(entry.value),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.e6,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              if (expenseEntries.isNotEmpty) ...[
+                const Divider(height: 20, color: AppColors.g1),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    children: [
+                      Text(
+                        "Gastos",
+                        style: TextStyle(fontSize: 13, color: AppColors.g4),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              ...expenseEntries.map((entry) {
+                final category = categoriesById[entry.key];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        category?.nombre ?? 'Gasto #${entry.key}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.g4,
+                        ),
+                      ),
+                      Text(
+                        fmt(entry.value),
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,

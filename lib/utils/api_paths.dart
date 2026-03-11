@@ -6,6 +6,8 @@ abstract final class ApiPaths {
 
   static const budgets = '/budgets';
   static const categories = '/categories';
+  static const categoryParents = '/categories/parents';
+  static const spaces = '/spaces';
   static const transactions = '/transactions';
   static const wallets = '/wallets';
   static const recurringTransactions = '/recurring';
@@ -17,6 +19,21 @@ abstract final class ApiPaths {
   static String activateBudget(int budgetId) => '$budgets/$budgetId/activate';
 
   static String categoryById(int categoryId) => '$categories/$categoryId';
+
+  static String spaceById(int spaceId) => '$spaces/$spaceId';
+
+  static String inviteToSpace(int spaceId) => '${spaceById(spaceId)}/invite';
+
+  static String spaceMembers(int spaceId) => '${spaceById(spaceId)}/members';
+
+  static String spaceMemberById(int spaceId, int userId) =>
+      '${spaceMembers(spaceId)}/$userId';
+
+  static String spaceInvitations(int spaceId) =>
+      '${spaceById(spaceId)}/invitations';
+
+  static String spaceInvitationById(int spaceId, int invitationId) =>
+      '${spaceInvitations(spaceId)}/$invitationId';
 
   static String transactionById(int transactionId) =>
       '$transactions/$transactionId';

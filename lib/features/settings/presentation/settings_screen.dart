@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../controllers/demo_mode_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/menudo_card.dart';
@@ -19,6 +20,8 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
+    final demoMode = ref.watch(demoModeProvider);
+
     return Scaffold(
       backgroundColor: MenudoColors.appBg,
       body: SafeArea(
@@ -50,24 +53,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ),
                             ),
                             child: const Center(
-                              child: Text(
-                                'MC',
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w800,
-                                  color: MenudoColors.primary,
-                                ),
+                              child: Icon(
+                                Icons.person_outline,
+                                size: 32,
+                                color: MenudoColors.primary,
                               ),
                             ),
                           ).animate().scale(duration: 400.ms),
                           const SizedBox(height: 16),
                           Text(
-                            'Miguel Cruz',
+                            'Tu cuenta',
                             style: MenudoTextStyles.h2,
                           ).animate().fadeIn(delay: 100.ms),
                           const SizedBox(height: 8),
                           const MenudoChip(
-                            'Plan Premium',
+                            'Sesión activa',
                             variant: MenudoChipVariant.primary,
                           ).animate().fadeIn(delay: 200.ms),
                         ],
@@ -160,6 +160,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             Icons.help_outline,
                             'Centro de Ayuda',
                             () {},
+                          ),
+                          const Divider(height: 1, color: MenudoColors.divider),
+                          SwitchListTile.adaptive(
+                            value: demoMode,
+                            onChanged: (value) => ref
+                                .read(demoModeProvider.notifier)
+                                .setEnabled(value),
+                            title: const Text(
+                              'Mostrar datos demo',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              'Usa datos mock solo cuando tu cuenta esté vacía.',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            secondary: const Icon(
+                              Icons.science_outlined,
+                              color: MenudoColors.textSecondary,
+                            ),
+                            activeThumbColor: MenudoColors.primary,
+                            activeTrackColor: MenudoColors.primaryLight,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                            ),
                           ),
                         ],
                       ),

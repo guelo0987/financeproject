@@ -2,11 +2,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
+import '../../categories/providers/category_providers.dart';
 
-class SpendingBreakdownSheet extends StatefulWidget {
+class SpendingBreakdownSheet extends ConsumerStatefulWidget {
   final List<MenudoTransaction> transactions;
   final bool isGastos;
   final String periodoLabel;
@@ -19,10 +21,12 @@ class SpendingBreakdownSheet extends StatefulWidget {
   });
 
   @override
-  State<SpendingBreakdownSheet> createState() => _SpendingBreakdownSheetState();
+  ConsumerState<SpendingBreakdownSheet> createState() =>
+      _SpendingBreakdownSheetState();
 }
 
-class _SpendingBreakdownSheetState extends State<SpendingBreakdownSheet> {
+class _SpendingBreakdownSheetState
+    extends ConsumerState<SpendingBreakdownSheet> {
   String? _expandedKey;
 
   static const _months = [
@@ -53,8 +57,9 @@ class _SpendingBreakdownSheetState extends State<SpendingBreakdownSheet> {
   }
 
   MenudoCategory? _findCategory(String catKey) {
+    final categories = ref.read(effectiveCategoriesProvider);
     try {
-      return mockCategories.firstWhere((c) => c.esParent && c.slug == catKey);
+      return categories.firstWhere((c) => c.slug == catKey);
     } catch (_) {
       return null;
     }

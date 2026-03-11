@@ -17,7 +17,9 @@ class CategoriesScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => AddCategorySheet(parent: parent),
+      builder: (_) => parent == null
+          ? const _CategoryCreationLauncherSheet()
+          : AddCategorySheet(parent: parent),
     );
   }
 
@@ -83,6 +85,181 @@ class CategoriesScreen extends ConsumerWidget {
             onAddSub: () => _showAddCategory(context, parent: parent),
           );
         },
+      ),
+    );
+  }
+}
+
+class _CategoryCreationLauncherSheet extends ConsumerWidget {
+  const _CategoryCreationLauncherSheet();
+
+  Future<void> _openSubcategoryCreator(
+    BuildContext context,
+    MenudoCategory parent,
+  ) async {
+    final created = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AddCategorySheet(parent: parent),
+    );
+    if (created == true && context.mounted) {
+      Navigator.pop(context, true);
+    }
+  }
+
+  Future<void> _openParentCreator(BuildContext context) async {
+    final created = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const AddCategorySheet(),
+    );
+    if (created == true && context.mounted) {
+      Navigator.pop(context, true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final parents = ref.watch(groupedCategoriesProvider).keys.toList()
+      ..sort((a, b) => a.nombre.compareTo(b.nombre));
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        24,
+        16,
+        24,
+        24 + MediaQuery.of(context).padding.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.g2,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Agregar categoría',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: AppColors.e8,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Crea primero una subcategoría dentro de un grupo padre existente. Si necesitas una jerarquía nueva, puedes crear el grupo padre aparte.',
+            style: TextStyle(fontSize: 13, color: AppColors.g4),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'Crear subcategoría en',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: AppColors.g4,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (parents.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.g0,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.g2),
+              ),
+              child: const Text(
+                'No hay grupos padre todavía. Crea uno para empezar.',
+                style: TextStyle(fontSize: 13, color: AppColors.g4),
+              ),
+            )
+          else
+            ...parents.map(
+              (parent) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: InkWell(
+                  onTap: () => _openSubcategoryCreator(context, parent),
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: parent.color.withValues(alpha: 0.18),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: parent.color.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            parent.icono,
+                            size: 20,
+                            color: parent.color,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            parent.nombre,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.e8,
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          LucideIcons.chevronRight,
+                          size: 18,
+                          color: AppColors.g4,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => _openParentCreator(context),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.e8,
+                side: const BorderSide(color: AppColors.g2),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text('Crear grupo padre'),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -303,24 +480,134 @@ class _AddSubcategoryTile extends StatelessWidget {
 }
 
 // ── Add Category Sheet ─────────────────────────────
-class AddCategorySheet extends StatefulWidget {
+class AddCategorySheet extends ConsumerStatefulWidget {
   final MenudoCategory? parent;
-  const AddCategorySheet({super.key, this.parent});
+  final String? initialType;
+  final bool lockType;
+
+  const AddCategorySheet({
+    super.key,
+    this.parent,
+    this.initialType,
+    this.lockType = false,
+  });
 
   @override
-  State<AddCategorySheet> createState() => _AddCategorySheetState();
+  ConsumerState<AddCategorySheet> createState() => _AddCategorySheetState();
 }
 
-class _AddCategorySheetState extends State<AddCategorySheet> {
+class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
   final _nameCtrl = TextEditingController();
-  final IconData _icon = LucideIcons.tag;
+  IconData _icon = LucideIcons.tag;
+  String _selectedType = 'gasto';
   Color _color = AppColors.e8;
+  bool _isSaving = false;
+
+  static const List<String> _types = ['gasto', 'ingreso', 'transferencia'];
+
+  String get _effectiveType => widget.parent?.tipo ?? _selectedType;
 
   @override
   void initState() {
     super.initState();
-    if (widget.parent != null) {
-      _color = widget.parent!.color;
+    _selectedType = widget.parent?.tipo ?? widget.initialType ?? 'gasto';
+    _syncAppearance();
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _syncAppearance() {
+    final parent = widget.parent;
+    if (parent != null) {
+      _color = parent.color;
+      _icon = parent.icono;
+      return;
+    }
+
+    switch (_selectedType) {
+      case 'ingreso':
+        _color = AppColors.e6;
+        _icon = LucideIcons.trendingUp;
+        break;
+      case 'transferencia':
+        _color = AppColors.b5;
+        _icon = LucideIcons.arrowLeftRight;
+        break;
+      default:
+        _color = AppColors.e8;
+        _icon = LucideIcons.tag;
+        break;
+    }
+  }
+
+  void _selectType(String type) {
+    if (widget.parent != null || widget.lockType || _selectedType == type) {
+      return;
+    }
+    setState(() {
+      _selectedType = type;
+      _syncAppearance();
+    });
+  }
+
+  String _typeLabel(String type) {
+    switch (type) {
+      case 'ingreso':
+        return 'Ingreso';
+      case 'transferencia':
+        return 'Transferencia';
+      default:
+        return 'Gasto';
+    }
+  }
+
+  Future<void> _createCategory() async {
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) {
+      _showError('Escribe un nombre para la categoría.');
+      return;
+    }
+
+    final parent = widget.parent;
+
+    setState(() => _isSaving = true);
+    try {
+      final category = MenudoCategory(
+        id: 0,
+        slug: name.toLowerCase(),
+        nombre: name,
+        tipo: parent?.tipo ?? _effectiveType,
+        icono: parent?.icono ?? _icon,
+        color: parent?.color ?? _color,
+        esSistema: false,
+        categoriaParadreId: parent?.id,
+      );
+      if (parent == null) {
+        await ref
+            .read(categoryNotifierProvider.notifier)
+            .addParentCategory(category);
+      } else {
+        await ref.read(categoryNotifierProvider.notifier).addCategory(category);
+      }
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (error) {
+      _showError(error.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -345,7 +632,7 @@ class _AddCategorySheetState extends State<AddCategorySheet> {
             margin: const EdgeInsets.only(bottom: 24),
           ),
           Text(
-            widget.parent == null ? "Nueva Categoría" : "Nueva Subcategoría",
+            widget.parent == null ? "Nuevo grupo padre" : "Nueva subcategoría",
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
@@ -353,6 +640,107 @@ class _AddCategorySheetState extends State<AddCategorySheet> {
             ),
           ),
           const SizedBox(height: 24),
+
+          if (widget.parent != null)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: widget.parent!.color.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: widget.parent!.color.withValues(alpha: 0.18),
+                ),
+              ),
+              child: Text(
+                'Se agregará dentro de ${widget.parent!.nombre}.',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: widget.parent!.color,
+                ),
+              ),
+            )
+          else
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _color.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: _color.withValues(alpha: 0.18)),
+              ),
+              child: Text(
+                widget.lockType
+                    ? 'Se creará un grupo padre de ${_typeLabel(_effectiveType).toLowerCase()}.'
+                    : 'Este grupo padre define dónde aparecerán sus subcategorías dentro del presupuesto y las transacciones.',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: _color,
+                ),
+              ),
+            ),
+
+          if (widget.parent == null) ...[
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final type in _types)
+                  GestureDetector(
+                    onTap: widget.lockType ? null : () => _selectType(type),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _selectedType == type
+                            ? _color.withValues(alpha: 0.12)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: _selectedType == type ? _color : AppColors.g2,
+                          width: _selectedType == type ? 1.8 : 1.2,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            switch (type) {
+                              'ingreso' => LucideIcons.trendingUp,
+                              'transferencia' => LucideIcons.arrowLeftRight,
+                              _ => LucideIcons.tag,
+                            },
+                            size: 16,
+                            color: _selectedType == type
+                                ? _color
+                                : AppColors.g4,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _typeLabel(type),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: _selectedType == type
+                                  ? _color
+                                  : AppColors.g5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
 
           // Icon & Color Picker
           GestureDetector(
@@ -389,9 +777,14 @@ class _AddCategorySheetState extends State<AddCategorySheet> {
           ),
           const Spacer(),
           MenudoButton(
-            label: "CREAR CATEGORÍA",
+            label: _isSaving
+                ? "GUARDANDO..."
+                : widget.parent == null
+                ? "CREAR GRUPO PADRE"
+                : "CREAR SUBCATEGORÍA",
             isFullWidth: true,
-            onTap: () => Navigator.pop(context),
+            isDisabled: _isSaving,
+            onTap: _createCategory,
           ),
         ],
       ),

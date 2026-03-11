@@ -1,51 +1,32 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../controllers/recurring_controller.dart' as recurring_controller;
+import '../../../controllers/demo_mode_controller.dart';
 import '../../../core/data/models.dart';
-import '../../../features/auth/auth_state.dart';
-import '../data/recurring_repository.dart';
-
-class RecurringNotifier extends AsyncNotifier<List<RecurringTransaction>> {
-  int _uid() {
-    final uid = ref.read(authProvider).userId;
-    return uid != null ? int.parse(uid) : 0;
-  }
-
-  @override
-  Future<List<RecurringTransaction>> build() async {
-    final uid = ref.watch(authProvider).userId;
-    if (uid != null) {
-      return ref
-          .read(recurringRepositoryProvider)
-          .fetchRecurring(int.parse(uid));
-    }
-    return mockRecurring;
-  }
-
-  Future<void> toggle(int id, bool activo) async {
-    await ref.read(recurringRepositoryProvider).toggleActive(id, activo);
-    final userId = _uid();
-    if (userId == 0) {
-      ref.invalidateSelf();
-      return;
-    }
-    state = await AsyncValue.guard(
-      () => ref.read(recurringRepositoryProvider).fetchRecurring(userId),
-    );
-  }
-
-  Future<void> remove(int id) async {
-    await ref.read(recurringRepositoryProvider).deleteRecurring(id);
-    final userId = _uid();
-    if (userId == 0) {
-      ref.invalidateSelf();
-      return;
-    }
-    state = await AsyncValue.guard(
-      () => ref.read(recurringRepositoryProvider).fetchRecurring(userId),
-    );
-  }
-}
+import '../../budgets/budget_providers.dart';
 
 final recurringNotifierProvider =
-    AsyncNotifierProvider<RecurringNotifier, List<RecurringTransaction>>(
-      RecurringNotifier.new,
-    );
+    recurring_controller.recurringControllerProvider;
+final recurringControllerProvider =
+    recurring_controller.recurringControllerProvider;
+
+final effectiveRecurringProvider = Provider<List<RecurringTransaction>>((ref) {
+  final recurring = ref.watch(recurringNotifierProvider).valueOrNull;
+  final demoMode = ref.watch(demoModeProvider);
+
+  if (recurring != null && recurring.isNotEmpty) {
+    return recurring;
+  }
+  if (demoMode) {
+    return mockRecurring;
+  }
+  return recurring ?? const [];
+});
+
+final selectedBudgetRecurringProvider = Provider<List<RecurringTransaction>>((
+  ref,
+) {
+  final items = ref.watch(effectiveRecurringProvider);
+  final budgetId = ref.watch(selectedBudgetIdProvider);
+  if (budgetId == null) return items;
+  return items.where((item) => item.presupuestoId == budgetId).toList();
+});

@@ -5,8 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
+import '../../budgets/budget_providers.dart';
+import '../../categories/providers/category_providers.dart';
+import '../../quick_log/presentation/register_transaction_sheet.dart';
+import '../../transactions/providers/transaction_providers.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
 import '../providers/wallet_providers.dart';
+import 'add_wallet_sheet.dart';
 
 class _DefaultWalletToggle extends ConsumerStatefulWidget {
   final int walletId;
@@ -111,32 +116,154 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
   }
 }
 
-class WalletDetailSheet extends StatelessWidget {
+class WalletDetailSheet extends ConsumerWidget {
   final WalletAccount wallet;
+  final void Function(Object error)? onError;
 
-  const WalletDetailSheet({super.key, required this.wallet});
+  const WalletDetailSheet({super.key, required this.wallet, this.onError});
 
-  String fmt(double val) =>
-      "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
+  String fmt(double val, {String currency = 'DOP'}) {
+    final prefix = currency == 'USD' ? 'US\$' : 'RD\$';
+    final amount = val.abs().toInt().toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+    return '$prefix$amount';
+  }
+
+  MenudoCategory? _findCategory(List<MenudoCategory> categories, String slug) {
+    for (final category in categories) {
+      if (category.slug == slug) return category;
+    }
+    return null;
+  }
+
+  void _showError(BuildContext context, Object error) {
+    if (onError != null) {
+      onError!(error);
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error.toString()),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final w = wallet;
     final bool isNegative = w.saldo < 0;
 
     // Type labels
     final Map<String, String> tipoLabels = {
-      'ahorro': 'Cuenta de ahorro',
-      'gasto': 'Cuenta de gastos',
-      'deuda': 'Deuda / Credito',
+      'cuentas': 'Cuenta principal',
+      'gastos': 'Cuenta de gastos',
+      'deudas': 'Deuda / Crédito',
     };
 
-    // Use all mockTxns as placeholder
-    final txns = mockTxns.take(5).toList();
-    final activeBudget = mockBudgets.firstWhere(
-      (b) => b.activo,
-      orElse: () => mockBudgets.first,
-    );
+    final activeBudget = ref.watch(selectedBudgetProvider);
+    final categories = ref.watch(effectiveCategoriesProvider);
+    final txns = [...ref.watch(selectedBudgetPeriodTransactionsProvider)]
+      ..retainWhere((t) => t.fromAccountId == w.id || t.toAccountId == w.id)
+      ..sort((a, b) => b.dateString.compareTo(a.dateString));
+    final recentTxns = txns.take(5).toList();
+
+    Future<void> openTransfer() async {
+      HapticFeedback.lightImpact();
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => RegisterTransactionSheet(
+          initialType: 'transferencia',
+          initialFromAccountId: w.id,
+        ),
+      );
+    }
+
+    Future<void> openEditWallet() async {
+      HapticFeedback.lightImpact();
+      final updatedWallet = await showModalBottomSheet<WalletAccount>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => AddWalletSheet(initialWallet: w),
+      );
+
+      if (updatedWallet == null) return;
+
+      try {
+        await ref
+            .read(walletNotifierProvider.notifier)
+            .updateWallet(updatedWallet);
+        if (context.mounted) {
+          final messenger = ScaffoldMessenger.of(context);
+          Navigator.pop(context);
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Cuenta actualizada'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (error) {
+        if (context.mounted) {
+          _showError(context, error);
+        }
+      }
+    }
+
+    Future<void> deleteWallet() async {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: const Text('Eliminar cuenta'),
+          content: Text(
+            'Eliminarás "${w.nombre}" de tu cartera. Esta acción no se puede deshacer.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.r5,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true) return;
+
+      try {
+        await ref.read(walletNotifierProvider.notifier).removeWallet(w.id);
+        if (context.mounted) {
+          final messenger = ScaffoldMessenger.of(context);
+          Navigator.pop(context);
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Cuenta eliminada'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (error) {
+        if (context.mounted) {
+          _showError(context, error);
+        }
+      }
+    }
 
     return DraggableScrollableSheet(
       initialChildSize: 0.85,
@@ -206,7 +333,23 @@ class WalletDetailSheet extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
-                        const SizedBox(width: 32),
+                        GestureDetector(
+                          onTap: deleteWallet,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              LucideIcons.trash2,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
 
@@ -274,7 +417,9 @@ class WalletDetailSheet extends StatelessWidget {
                     ).animate().fadeIn(duration: 400.ms, delay: 150.ms),
                     const SizedBox(height: 4),
                     Text(
-                          "${isNegative ? '-' : ''}${fmt(w.saldo.abs())}",
+                          isNegative
+                              ? '-${fmt(w.saldo.abs(), currency: w.moneda)}'
+                              : fmt(w.saldo.abs(), currency: w.moneda),
                           style: TextStyle(
                             fontSize: 36,
                             fontWeight: FontWeight.w800,
@@ -307,7 +452,7 @@ class WalletDetailSheet extends StatelessWidget {
                           children: [
                             Expanded(
                               child: GestureDetector(
-                                onTap: () => HapticFeedback.lightImpact(),
+                                onTap: openTransfer,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 14,
@@ -348,7 +493,7 @@ class WalletDetailSheet extends StatelessWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: GestureDetector(
-                                onTap: () => HapticFeedback.lightImpact(),
+                                onTap: openEditWallet,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 14,
@@ -417,141 +562,174 @@ class WalletDetailSheet extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
 
-                    // Transaction list
-                    Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: const Color(0xFFF3F4F6),
-                              width: 1.5,
-                            ),
-                            borderRadius: BorderRadius.circular(22),
+                    if (recentTxns.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(
+                            color: const Color(0xFFF3F4F6),
+                            width: 1.5,
                           ),
-                          child: Column(
-                            children: List.generate(txns.length, (i) {
-                              final t = txns[i];
-                              final ci = activeBudget.cats[t.catKey];
-                              final dayStr = t.dateString.split('-');
-                              final months = [
-                                '',
-                                'ene',
-                                'feb',
-                                'mar',
-                                'abr',
-                                'may',
-                                'jun',
-                                'jul',
-                                'ago',
-                                'sep',
-                                'oct',
-                                'nov',
-                                'dic',
-                              ];
-                              final monthLabel =
-                                  months[int.tryParse(dayStr[1]) ?? 0];
-
-                              return Column(
-                                children: [
-                                  if (i > 0)
-                                    const Divider(
-                                      height: 1,
-                                      color: Color(0xFFF3F4F6),
-                                      indent: 68,
-                                      endIndent: 16,
-                                    ),
-                                  GestureDetector(
-                                    onTap: () {
-                                      HapticFeedback.lightImpact();
-                                      showModalBottomSheet(
-                                        context: context,
-                                        isScrollControlled: true,
-                                        backgroundColor: Colors.transparent,
-                                        builder: (_) => TransactionDetailSheet(
-                                          transaction: t,
-                                        ),
-                                      );
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 12,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 40,
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                              color: (ci?.color ?? AppColors.g4)
-                                                  .withValues(alpha: 0.13),
-                                              borderRadius:
-                                                  BorderRadius.circular(13),
-                                            ),
-                                            alignment: Alignment.center,
-                                            child: Icon(
-                                              t.icono,
-                                              size: 19,
-                                              color: ci?.color ?? AppColors.g4,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  t.desc,
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: AppColors.e8,
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  "${ci?.label ?? t.catKey} \u00B7 ${dayStr[2]} $monthLabel",
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: AppColors.g4,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            t.tipo == "ingreso"
-                                                ? "+ ${fmt(t.monto.abs())}"
-                                                : "- ${fmt(t.monto.abs())}",
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w800,
-                                              color: t.tipo == "ingreso"
-                                                  ? AppColors.e6
-                                                  : AppColors.e8,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            }),
-                          ),
-                        )
-                        .animate()
-                        .fadeIn(duration: 400.ms, delay: 350.ms)
-                        .slideY(
-                          begin: 0.04,
-                          end: 0,
-                          duration: 400.ms,
-                          delay: 350.ms,
+                          borderRadius: BorderRadius.circular(22),
                         ),
+                        child: const Text(
+                          "No hay movimientos para esta cuenta en el presupuesto seleccionado.",
+                          style: TextStyle(fontSize: 13, color: AppColors.g4),
+                          textAlign: TextAlign.center,
+                        ),
+                      ).animate().fadeIn(duration: 300.ms, delay: 350.ms)
+                    else
+                      Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: const Color(0xFFF3F4F6),
+                                width: 1.5,
+                              ),
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                            child: Column(
+                              children: List.generate(recentTxns.length, (i) {
+                                final t = recentTxns[i];
+                                final ci = activeBudget?.cats[t.catKey];
+                                final category = _findCategory(
+                                  categories,
+                                  t.catKey,
+                                );
+                                final dayStr = t.dateString.split('-');
+                                final months = [
+                                  '',
+                                  'ene',
+                                  'feb',
+                                  'mar',
+                                  'abr',
+                                  'may',
+                                  'jun',
+                                  'jul',
+                                  'ago',
+                                  'sep',
+                                  'oct',
+                                  'nov',
+                                  'dic',
+                                ];
+                                final monthLabel =
+                                    months[int.tryParse(dayStr[1]) ?? 0];
+
+                                return Column(
+                                  children: [
+                                    if (i > 0)
+                                      const Divider(
+                                        height: 1,
+                                        color: Color(0xFFF3F4F6),
+                                        indent: 68,
+                                        endIndent: 16,
+                                      ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        HapticFeedback.lightImpact();
+                                        showModalBottomSheet(
+                                          context: context,
+                                          isScrollControlled: true,
+                                          backgroundColor: Colors.transparent,
+                                          builder: (_) =>
+                                              TransactionDetailSheet(
+                                                transaction: t,
+                                              ),
+                                        );
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 40,
+                                              height: 40,
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    (ci?.color ??
+                                                            category?.color ??
+                                                            AppColors.g4)
+                                                        .withValues(
+                                                          alpha: 0.13,
+                                                        ),
+                                                borderRadius:
+                                                    BorderRadius.circular(13),
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: Icon(
+                                                ci?.icono ??
+                                                    category?.icono ??
+                                                    t.icono,
+                                                size: 19,
+                                                color:
+                                                    ci?.color ??
+                                                    category?.color ??
+                                                    AppColors.g4,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    t.desc,
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: AppColors.e8,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    "${ci?.label ?? category?.nombre ?? t.catKey} \u00B7 ${dayStr[2]} $monthLabel",
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color: AppColors.g4,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              t.tipo == "ingreso"
+                                                  ? "+ ${fmt(t.monto.abs(), currency: t.moneda)}"
+                                                  : "- ${fmt(t.monto.abs(), currency: t.moneda)}",
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w800,
+                                                color: t.tipo == "ingreso"
+                                                    ? AppColors.e6
+                                                    : AppColors.e8,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }),
+                            ),
+                          )
+                          .animate()
+                          .fadeIn(duration: 400.ms, delay: 350.ms)
+                          .slideY(
+                            begin: 0.04,
+                            end: 0,
+                            duration: 400.ms,
+                            delay: 350.ms,
+                          ),
                   ],
                 ),
               ),

@@ -5,47 +5,248 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import '../../../controllers/demo_mode_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../shared/widgets/menudo_chip.dart';
+import '../../auth/auth_state.dart';
 import '../../budgets/budget_providers.dart';
 import '../../budgets/presentation/budget_detail_sheet.dart';
+import '../../budgets/presentation/wizard/create_budget_wizard.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
-import '../../transactions/providers/transaction_providers.dart';
 import '../../transactions/presentation/spending_breakdown_sheet.dart';
+import '../../transactions/providers/transaction_providers.dart';
+import '../../wallet/presentation/add_wallet_sheet.dart';
+import '../../wallet/providers/wallet_providers.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  bool _didShowWalletTour = false;
+  bool _didShowBudgetTour = false;
 
   String _fmt(double val) =>
       "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
 
+  String? _firstName(String? fullName) {
+    final name = fullName?.trim();
+    if (name == null || name.isEmpty) return null;
+    return name.split(RegExp(r'\s+')).first;
+  }
+
+  void _showError(Object error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error.toString()),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _activateBudget(MenudoBudget budget) async {
+    try {
+      await ref.read(budgetNotifierProvider.notifier).activateBudget(budget.id);
+    } catch (error) {
+      _showError(error);
+    }
+  }
+
+  bool _needsWalletTour(List<WalletAccount> wallets, bool demoMode) {
+    return !demoMode && wallets.isEmpty;
+  }
+
+  bool _needsBudgetTour(
+    List<MenudoBudget> budgets,
+    List<MenudoTransaction> txnsThisPeriod,
+    bool demoMode,
+  ) {
+    if (demoMode || budgets.length != 1) return false;
+    final budget = budgets.first;
+    return budget.nombre.toLowerCase() == 'predeterminado' &&
+        budget.ingresos == 0 &&
+        budget.cats.isEmpty &&
+        txnsThisPeriod.isEmpty;
+  }
+
+  void _maybeShowBudgetTour(
+    List<MenudoBudget> budgets,
+    List<MenudoTransaction> txnsThisPeriod,
+    List<WalletAccount> wallets,
+    bool demoMode,
+  ) {
+    if (_didShowBudgetTour ||
+        wallets.isEmpty ||
+        !_needsBudgetTour(budgets, txnsThisPeriod, demoMode) ||
+        !mounted) {
+      return;
+    }
+
+    _didShowBudgetTour = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final baseBudget = budgets.first;
+
+      final configureNow = await showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => const _BudgetSetupTourSheet(),
+      );
+
+      if (configureNow == true && mounted) {
+        await showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => CreateBudgetWizard(initialBudget: baseBudget),
+        );
+      }
+    });
+  }
+
+  void _maybeShowWalletTour(List<WalletAccount> wallets, bool demoMode) {
+    if (_didShowWalletTour ||
+        !_needsWalletTour(wallets, demoMode) ||
+        !mounted) {
+      return;
+    }
+
+    _didShowWalletTour = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
+      final configureNow = await showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => const _WalletSetupTourSheet(),
+      );
+
+      if (configureNow != true || !mounted) return;
+
+      final wallet = await showModalBottomSheet<WalletAccount>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => const AddWalletSheet(),
+      );
+
+      if (wallet == null || !mounted) return;
+
+      try {
+        await ref.read(walletNotifierProvider.notifier).addWallet(wallet);
+      } catch (error) {
+        _showError(error);
+      }
+    });
+  }
+
+  Widget _buildEmptyDashboard(BuildContext context, bool demoMode) {
+    return Scaffold(
+      backgroundColor: AppColors.g0,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: AppColors.e1,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      LucideIcons.layoutGrid,
+                      color: AppColors.e8,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Tu cuenta todavía no tiene datos.',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.e8,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    demoMode
+                        ? 'Estás viendo datos demo porque esa opción está activa.'
+                        : 'Crea tu primer presupuesto para empezar a configurar la app.',
+                    style: const TextStyle(fontSize: 13, color: AppColors.g4),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 18),
+                  FilledButton(
+                    onPressed: () => context.push('/budgets'),
+                    child: const Text('Ir a presupuestos'),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => context.push('/settings'),
+                    child: const Text('Ajustes y datos demo'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final budgets =
-        ref.watch(budgetNotifierProvider).valueOrNull ?? mockBudgets;
-    final txns = ref.watch(transactionNotifierProvider).valueOrNull ?? mockTxns;
+  Widget build(BuildContext context) {
+    final budgets = ref.watch(effectiveBudgetsProvider);
+    final txnsThisPeriod = ref.watch(selectedBudgetPeriodTransactionsProvider);
+    final wallets = ref.watch(effectiveWalletsProvider);
+    final demoMode = ref.watch(demoModeProvider);
+    final authState = ref.watch(authProvider);
+    final greetingName = _firstName(authState.profile?.name);
+
+    if (budgets.isEmpty) {
+      return _buildEmptyDashboard(context, demoMode);
+    }
+
+    _maybeShowWalletTour(wallets, demoMode);
+    _maybeShowBudgetTour(budgets, txnsThisPeriod, wallets, demoMode);
+
     final selectedIdx = ref
         .watch(selectedBudgetIdxProvider)
         .clamp(0, budgets.length - 1);
-    final budget = budgets[selectedIdx];
+    final budget = ref.watch(selectedBudgetProvider) ?? budgets[selectedIdx];
     final double spent = budget.cats.values.fold(0, (s, c) => s + c.gastado);
     final double remaining = budget.ingresos - spent;
     final double pct = spent / (budget.ingresos > 0 ? budget.ingresos : 1);
 
-    final now = DateTime.now();
-    final monthPrefix = "${now.year}-${now.month.toString().padLeft(2, '0')}";
-    final txnsThisPeriod = txns
-        .where((t) => t.dateString.startsWith(monthPrefix))
-        .toList();
     final double ingresos = txnsThisPeriod
         .where((t) => t.tipo == 'ingreso')
         .fold(0.0, (s, t) => s + t.monto.abs());
     final double gastos = txnsThisPeriod
         .where((t) => t.tipo == 'gasto')
         .fold(0.0, (s, t) => s + t.monto.abs());
-    final recent = txns
+    final recent = txnsThisPeriod
         .where((t) => t.tipo != 'transferencia')
         .take(4)
         .toList();
@@ -55,7 +256,7 @@ class DashboardScreen extends ConsumerWidget {
           'mensual': 'este mes',
           'quincenal': 'esta quincena',
           'semanal': 'esta semana',
-          'anual': 'este año',
+          'unico': 'este periodo',
         }[budget.periodo.toLowerCase()] ??
         budget.periodo.toLowerCase();
 
@@ -68,31 +269,46 @@ class DashboardScreen extends ConsumerWidget {
           children: [
             // ── Header ────────────────────────────────────────────────
             Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Hola, Miguel",
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.e8,
-                            letterSpacing: -0.8,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            greetingName == null
+                                ? "Hola"
+                                : "Hola, $greetingName",
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.e8,
+                              letterSpacing: -0.8,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          "Tu resumen financiero de $periodoLabel",
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.g5,
-                            fontWeight: FontWeight.w500,
+                          const SizedBox(height: 2),
+                          Text(
+                            "Tu resumen financiero de $periodoLabel",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.g5,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                      ],
+                          if (authState.profile != null) ...[
+                            const SizedBox(height: 12),
+                            _ProfileSnippet(
+                              name: authState.profile?.name ?? '',
+                              email: authState.profile?.email ?? '',
+                              currency:
+                                  authState.profile?.baseCurrency ?? 'DOP',
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 12),
                     _HeaderCircleButton(
                       icon: LucideIcons.settings,
                       onTap: () => context.push('/settings'),
@@ -451,9 +667,9 @@ class DashboardScreen extends ConsumerWidget {
           final b = budgets[i];
           final isSelected = i == selectedIdx;
           return GestureDetector(
-            onTap: () {
+            onTap: () async {
               HapticFeedback.selectionClick();
-              ref.read(selectedBudgetIdxProvider.notifier).state = i;
+              await _activateBudget(b);
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 250),
@@ -735,6 +951,94 @@ class _HeaderCircleButton extends StatelessWidget {
   }
 }
 
+class _ProfileSnippet extends StatelessWidget {
+  const _ProfileSnippet({
+    required this.name,
+    required this.email,
+    required this.currency,
+  });
+
+  final String name;
+  final String email;
+  final String currency;
+
+  String get _initials {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .take(2)
+        .toList();
+    if (parts.isEmpty) return 'T';
+    return parts.map((part) => part[0].toUpperCase()).join();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.g2, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppColors.e1,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              _initials,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                color: AppColors.e8,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.e8,
+                  ),
+                ),
+                if (email.isNotEmpty)
+                  Text(
+                    email,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, color: AppColors.g4),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          MenudoChip.custom(
+            label: currency,
+            color: AppColors.e8,
+            bgColor: AppColors.g1,
+            isSmall: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SummaryCard extends StatelessWidget {
   final String label, amount;
   final IconData icon;
@@ -945,6 +1249,231 @@ class _TransactionTile extends StatelessWidget {
             Divider(height: 1, color: AppColors.g1, indent: 74, endIndent: 16),
         ],
       ),
+    );
+  }
+}
+
+class _BudgetSetupTourSheet extends StatelessWidget {
+  const _BudgetSetupTourSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        24,
+        16,
+        24,
+        24 + MediaQuery.of(context).padding.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.g2,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Configura tu presupuesto base',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: AppColors.e8,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Tu cuenta ya tiene un presupuesto base, pero falta personalizarlo para que el dashboard y los gastos tengan sentido.',
+            style: TextStyle(fontSize: 14, color: AppColors.g4),
+          ),
+          const SizedBox(height: 20),
+          const _TourPoint(
+            icon: LucideIcons.wallet,
+            title: '1. Define tus ingresos',
+            body:
+                'Usa el monto real del periodo para que el resumen empiece correcto.',
+          ),
+          const SizedBox(height: 12),
+          const _TourPoint(
+            icon: LucideIcons.pieChart,
+            title: '2. Reparte tus categorías',
+            body:
+                'Asigna límites por categoría para ver gastos relevantes por presupuesto.',
+          ),
+          const SizedBox(height: 12),
+          const _TourPoint(
+            icon: LucideIcons.repeat2,
+            title: '3. Luego registra movimientos',
+            body:
+                'Las transacciones y automáticas quedarán ligadas a ese presupuesto.',
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Configurar ahora'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Ahora no'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WalletSetupTourSheet extends StatelessWidget {
+  const _WalletSetupTourSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        24,
+        16,
+        24,
+        24 + MediaQuery.of(context).padding.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.g2,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Agrega tu primera cuenta',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: AppColors.e8,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Antes de registrar movimientos, necesitas al menos una wallet para indicar de dónde sale o entra el dinero.',
+            style: TextStyle(fontSize: 14, color: AppColors.g4),
+          ),
+          const SizedBox(height: 20),
+          const _TourPoint(
+            icon: LucideIcons.landmark,
+            title: '1. Crea tu cuenta principal',
+            body: 'Puede ser banco, efectivo, ahorro o tarjeta.',
+          ),
+          const SizedBox(height: 12),
+          const _TourPoint(
+            icon: LucideIcons.creditCard,
+            title: '2. Define el saldo inicial',
+            body:
+                'Así la cartera arranca con el valor real desde el primer día.',
+          ),
+          const SizedBox(height: 12),
+          const _TourPoint(
+            icon: LucideIcons.repeat2,
+            title: '3. Luego configuras el presupuesto',
+            body:
+                'Con la cuenta lista, ya puedes registrar gastos, ingresos y transferencias.',
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Crear wallet ahora'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Ahora no'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TourPoint extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String body;
+
+  const _TourPoint({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: AppColors.e1,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 18, color: AppColors.e8),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.e8,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                body,
+                style: const TextStyle(fontSize: 12, color: AppColors.g4),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

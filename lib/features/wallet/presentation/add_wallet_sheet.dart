@@ -1,41 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/data/models.dart';
 
-class AddWalletSheet extends StatefulWidget {
-  const AddWalletSheet({super.key});
+import '../../../core/data/models.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../auth/auth_state.dart';
+
+class AddWalletSheet extends ConsumerStatefulWidget {
+  final WalletAccount? initialWallet;
+
+  const AddWalletSheet({super.key, this.initialWallet});
 
   @override
-  State<AddWalletSheet> createState() => _AddWalletSheetState();
+  ConsumerState<AddWalletSheet> createState() => _AddWalletSheetState();
 }
 
-class _AddWalletSheetState extends State<AddWalletSheet> {
-  String _amount = "";
-  int _typeIndex = 0; // 0: Gastos, 1: Ahorro, 2: Deuda
+class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
+  String _amount = '';
+  int _typeIndex = 0; // 0: Cuentas, 1: Gastos, 2: Deudas
   final _nameController = TextEditingController();
-  Color _selectedColor = AppColors.b5;
+  Color _selectedColor = AppColors.e6;
   IconData _selectedIcon = LucideIcons.landmark;
+  String _currency = 'DOP';
+
+  bool get _isEditing => widget.initialWallet != null;
 
   final List<Map<String, dynamic>> _typeOptions = [
     {
-      'label': 'Gastos',
-      'sub': 'Cuenta corriente o efectivo',
-      'tipo': 'gasto',
+      'label': 'Cuentas',
+      'sub': 'Banco, ahorro, fondo o inversión',
+      'tipo': 'cuentas',
       'color': AppColors.e6,
+      'defaultIcon': LucideIcons.landmark,
     },
     {
-      'label': 'Ahorro',
-      'sub': 'Ahorros, fondos, inversiones',
-      'tipo': 'ahorro',
+      'label': 'Gastos',
+      'sub': 'Efectivo y dinero del día a día',
+      'tipo': 'gastos',
       'color': AppColors.b5,
+      'defaultIcon': LucideIcons.wallet,
     },
     {
-      'label': 'Deuda',
-      'sub': 'Tarjeta de crédito, préstamo',
-      'tipo': 'deuda',
+      'label': 'Deudas',
+      'sub': 'Tarjeta de crédito o préstamo',
+      'tipo': 'deudas',
       'color': AppColors.r5,
+      'defaultIcon': LucideIcons.creditCard,
     },
   ];
 
@@ -62,9 +73,43 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    final initialWallet = widget.initialWallet;
+    final baseCurrency = ref.read(authProvider).profile?.baseCurrency ?? 'DOP';
+    _currency = initialWallet?.moneda ?? baseCurrency;
+
+    if (initialWallet == null) {
+      _applyTypeDefaults(0, force: true);
+      return;
+    }
+
+    _nameController.text = initialWallet.nombre;
+    _amount = initialWallet.saldo.abs().toStringAsFixed(
+      initialWallet.saldo.abs() % 1 == 0 ? 0 : 2,
+    );
+    _selectedColor = initialWallet.color;
+    _selectedIcon = initialWallet.icono;
+    _typeIndex = switch (initialWallet.tipo) {
+      'gastos' => 1,
+      'deudas' => 2,
+      _ => 0,
+    };
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
+  }
+
+  void _applyTypeDefaults(int index, {bool force = false}) {
+    final option = _typeOptions[index];
+    _typeIndex = index;
+    if (force || !_isEditing) {
+      _selectedColor = option['color'] as Color;
+      _selectedIcon = option['defaultIcon'] as IconData;
+    }
   }
 
   void _onKeyTap(String key) {
@@ -76,10 +121,10 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
         }
       } else if (key == '.') {
         if (!_amount.contains('.')) {
-          _amount = _amount.isEmpty ? "0." : "$_amount.";
+          _amount = _amount.isEmpty ? '0.' : '$_amount.';
         }
       } else {
-        if (_amount == "0") {
+        if (_amount == '0') {
           _amount = key;
         } else if (_amount.length < 10) {
           _amount += key;
@@ -88,20 +133,23 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
     });
   }
 
+  String _currencyPrefix() => _currency == 'USD' ? 'US\$' : 'RD\$';
+
   void _save() {
     if (_nameController.text.trim().isEmpty) return;
     HapticFeedback.mediumImpact();
     final tipo = _typeOptions[_typeIndex]['tipo'] as String;
-    final saldo = (double.tryParse(_amount) ?? 0) * (tipo == 'deuda' ? -1 : 1);
-    final w = WalletAccount(
-      id: DateTime.now().millisecondsSinceEpoch,
+    final saldo = (double.tryParse(_amount) ?? 0) * (tipo == 'deudas' ? -1 : 1);
+    final wallet = WalletAccount(
+      id: widget.initialWallet?.id ?? DateTime.now().millisecondsSinceEpoch,
       nombre: _nameController.text.trim(),
       tipo: tipo,
       saldo: saldo,
       color: _selectedColor,
       icono: _selectedIcon,
+      moneda: _currency,
     );
-    Navigator.pop(context, w);
+    Navigator.pop(context, wallet);
   }
 
   @override
@@ -133,15 +181,14 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                   ),
                 ),
               ),
-              // Title
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      "Nueva cuenta",
-                      style: TextStyle(
+                    Text(
+                      _isEditing ? 'Editar cuenta' : 'Nueva cuenta',
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
                         color: AppColors.e8,
@@ -167,13 +214,11 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                   ],
                 ),
               ),
-
               Expanded(
                 child: ListView(
                   controller: scrollController,
                   padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
                   children: [
-                    // Type selector
                     Container(
                       decoration: BoxDecoration(
                         color: AppColors.g1,
@@ -181,14 +226,14 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                       ),
                       padding: const EdgeInsets.all(4),
                       child: Row(
-                        children: List.generate(_typeOptions.length, (i) {
-                          final isSelected = _typeIndex == i;
-                          final color = _typeOptions[i]['color'] as Color;
+                        children: List.generate(_typeOptions.length, (index) {
+                          final isSelected = _typeIndex == index;
+                          final color = _typeOptions[index]['color'] as Color;
                           return Expanded(
                             child: GestureDetector(
                               onTap: () {
                                 HapticFeedback.selectionClick();
-                                setState(() => _typeIndex = i);
+                                setState(() => _applyTypeDefaults(index));
                               },
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
@@ -211,7 +256,7 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                                       : null,
                                 ),
                                 child: Text(
-                                  _typeOptions[i]['label'],
+                                  _typeOptions[index]['label'] as String,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 13,
@@ -227,21 +272,18 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      _typeOptions[_typeIndex]['sub'],
+                      _typeOptions[_typeIndex]['sub'] as String,
                       style: const TextStyle(fontSize: 12, color: AppColors.g4),
                       textAlign: TextAlign.center,
                     ),
-
                     const SizedBox(height: 20),
-
-                    // Balance display
                     Center(
                       child: Column(
                         children: [
                           Text(
                             _typeIndex == 2
-                                ? "SALDO DE DEUDA"
-                                : "SALDO INICIAL",
+                                ? 'SALDO DE DEUDA'
+                                : 'SALDO INICIAL',
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -256,7 +298,9 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                             textBaseline: TextBaseline.alphabetic,
                             children: [
                               Text(
-                                _typeIndex == 2 ? '-RD\$' : 'RD\$',
+                                _typeIndex == 2
+                                    ? '-${_currencyPrefix()}'
+                                    : _currencyPrefix(),
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w600,
@@ -265,7 +309,7 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                _amount.isEmpty ? "0" : _amount,
+                                _amount.isEmpty ? '0' : _amount,
                                 style: TextStyle(
                                   fontSize: 44,
                                   fontWeight: FontWeight.w800,
@@ -280,10 +324,7 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                         ],
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-                    // Name field
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -298,7 +339,7 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            "Nombre de la cuenta",
+                            'Nombre de la cuenta',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -314,9 +355,9 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                               fontWeight: FontWeight.w700,
                               color: AppColors.e8,
                             ),
-                            decoration: InputDecoration(
-                              hintText: "Ej. BHD León Nómina",
-                              hintStyle: const TextStyle(color: AppColors.g3),
+                            decoration: const InputDecoration(
+                              hintText: 'Ej. BHD León Nómina',
+                              hintStyle: TextStyle(color: AppColors.g3),
                               border: InputBorder.none,
                               isDense: true,
                               contentPadding: EdgeInsets.zero,
@@ -324,7 +365,73 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                           ),
                           const SizedBox(height: 14),
                           const Text(
-                            "Icono",
+                            'Moneda',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.g4,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              for (final currency in const ['DOP', 'USD'])
+                                Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.only(
+                                      right: currency == 'DOP' ? 8 : 0,
+                                      left: currency == 'USD' ? 8 : 0,
+                                    ),
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        HapticFeedback.selectionClick();
+                                        setState(() => _currency = currency);
+                                      },
+                                      child: AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 180,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _currency == currency
+                                              ? _selectedColor.withValues(
+                                                  alpha: 0.12,
+                                                )
+                                              : AppColors.g0,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border: Border.all(
+                                            color: _currency == currency
+                                                ? _selectedColor
+                                                : AppColors.g2,
+                                            width: _currency == currency
+                                                ? 1.8
+                                                : 1.2,
+                                          ),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          currency == 'USD' ? 'US\$' : 'RD\$',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w800,
+                                            color: _currency == currency
+                                                ? _selectedColor
+                                                : AppColors.g5,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          const Text(
+                            'Icono',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -336,7 +443,7 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                             spacing: 8,
                             runSpacing: 8,
                             children: _iconOptions.map((icon) {
-                              final isSel = icon == _selectedIcon;
+                              final isSelected = icon == _selectedIcon;
                               return GestureDetector(
                                 onTap: () {
                                   HapticFeedback.selectionClick();
@@ -347,12 +454,12 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                                   width: 44,
                                   height: 44,
                                   decoration: BoxDecoration(
-                                    color: isSel
+                                    color: isSelected
                                         ? _selectedColor.withValues(alpha: 0.15)
                                         : AppColors.g1,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: isSel
+                                      color: isSelected
                                           ? _selectedColor
                                           : Colors.transparent,
                                       width: 2,
@@ -362,7 +469,7 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                                   child: Icon(
                                     icon,
                                     size: 20,
-                                    color: isSel
+                                    color: isSelected
                                         ? _selectedColor
                                         : AppColors.g4,
                                   ),
@@ -372,7 +479,7 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                           ),
                           const SizedBox(height: 14),
                           const Text(
-                            "Color",
+                            'Color',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -383,7 +490,7 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                           Wrap(
                             spacing: 10,
                             children: _colorOptions.map((color) {
-                              final isSel = color == _selectedColor;
+                              final isSelected = color == _selectedColor;
                               return GestureDetector(
                                 onTap: () {
                                   HapticFeedback.selectionClick();
@@ -397,14 +504,14 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                                     color: color,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: isSel
+                                      color: isSelected
                                           ? AppColors.e8
                                           : Colors.transparent,
                                       width: 3,
                                     ),
                                   ),
                                   alignment: Alignment.center,
-                                  child: isSel
+                                  child: isSelected
                                       ? const Icon(
                                           LucideIcons.check,
                                           size: 16,
@@ -418,10 +525,7 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                         ],
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-                    // Numpad
                     GridView.count(
                       crossAxisCount: 3,
                       childAspectRatio: 2.1,
@@ -448,7 +552,6 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                   ],
                 ),
               ),
-
               Container(
                 color: Colors.transparent,
                 padding: EdgeInsets.fromLTRB(
@@ -473,11 +576,11 @@ class _AddWalletSheetState extends State<AddWalletSheet> {
                                 offset: Offset(0, 6),
                               ),
                             ]
-                          : [],
+                          : const [],
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      "Agregar cuenta",
+                      _isEditing ? 'Guardar cambios' : 'Agregar cuenta',
                       style: TextStyle(
                         color: canSave ? Colors.white : AppColors.g4,
                         fontSize: 16,

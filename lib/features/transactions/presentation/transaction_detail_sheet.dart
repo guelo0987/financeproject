@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
+import '../../budgets/budget_providers.dart';
+import '../../categories/providers/category_providers.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
+import '../../wallet/providers/wallet_providers.dart';
 
-class TransactionDetailSheet extends StatelessWidget {
+class TransactionDetailSheet extends ConsumerWidget {
   final MenudoTransaction transaction;
 
   const TransactionDetailSheet({super.key, required this.transaction});
@@ -14,24 +18,63 @@ class TransactionDetailSheet extends StatelessWidget {
   String fmt(double val) =>
       "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
 
+  MenudoBudget? _findBudget(
+    List<MenudoBudget> budgets,
+    MenudoTransaction transaction,
+    MenudoBudget? selectedBudget,
+  ) {
+    if (transaction.budgetId != null) {
+      for (final budget in budgets) {
+        if (budget.id == transaction.budgetId) return budget;
+      }
+    }
+    return selectedBudget;
+  }
+
+  MenudoCategory? _findCategory(List<MenudoCategory> categories, String slug) {
+    for (final category in categories) {
+      if (category.slug == slug) return category;
+    }
+    return null;
+  }
+
+  WalletAccount? _findWallet(
+    List<WalletAccount> wallets,
+    MenudoTransaction transaction,
+  ) {
+    final accountId = transaction.fromAccountId ?? transaction.toAccountId;
+    if (accountId == null) return null;
+    for (final wallet in wallets) {
+      if (wallet.id == accountId) return wallet;
+    }
+    return null;
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = transaction;
-    final activeBudget = mockBudgets.firstWhere(
-      (b) => b.activo,
-      orElse: () => mockBudgets.first,
-    );
-    final BudgetCategory? budgetCat = activeBudget.cats[t.catKey];
+    final budgets = ref.watch(effectiveBudgetsProvider);
+    final selectedBudget = ref.watch(selectedBudgetProvider);
+    final categories = ref.watch(effectiveCategoriesProvider);
+    final wallets = ref.watch(effectiveWalletsProvider);
+
+    final activeBudget = _findBudget(budgets, t, selectedBudget);
+    final budgetCat = activeBudget?.cats[t.catKey];
+    final category = _findCategory(categories, t.catKey);
+    final wallet = _findWallet(wallets, t);
 
     final String catLabel =
-        budgetCat?.label ?? (t.catKey[0].toUpperCase() + t.catKey.substring(1));
-    final IconData catIcon = budgetCat?.icono ?? t.icono;
-    final Color catColor = budgetCat?.color ?? AppColors.g4;
+        budgetCat?.label ??
+        category?.nombre ??
+        (t.catKey[0].toUpperCase() + t.catKey.substring(1));
+    final IconData catIcon = budgetCat?.icono ?? category?.icono ?? t.icono;
+    final Color catColor = budgetCat?.color ?? category?.color ?? AppColors.g4;
 
     final bool isGasto = t.tipo == 'gasto';
     final Color amountColor = isGasto ? AppColors.r5 : AppColors.e6;
     final String amountPrefix = isGasto ? '-' : '+';
-    final bool isSharedBudget = activeBudget.miembros.length > 1;
+    final bool isSharedBudget = (activeBudget?.miembros.length ?? 0) > 1;
+    final String accountLabel = wallet?.nombre ?? 'Cuenta sin asignar';
 
     // Format date in Spanish
     final parts = t.dateString.split('-');
@@ -192,7 +235,7 @@ class TransactionDetailSheet extends StatelessWidget {
                                 icon: LucideIcons.landmark,
                                 iconColor: AppColors.e7,
                                 label: 'Cuenta',
-                                value: 'BHD Leon \u2014 Nomina',
+                                value: accountLabel,
                               ),
                               const Divider(
                                 height: 1,
@@ -280,7 +323,8 @@ class TransactionDetailSheet extends StatelessWidget {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            activeBudget.nombre,
+                                            activeBudget?.nombre ??
+                                                'Sin presupuesto',
                                             style: const TextStyle(
                                               fontSize: 15,
                                               fontWeight: FontWeight.w700,
@@ -292,35 +336,39 @@ class TransactionDetailSheet extends StatelessWidget {
                                     ),
                                     if (isSharedBudget)
                                       Row(
-                                        children: activeBudget.miembros
-                                            .take(3)
-                                            .map(
-                                              (m) => Container(
-                                                width: 26,
-                                                height: 26,
-                                                margin: const EdgeInsets.only(
-                                                  left: 3,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: m.c,
-                                                  shape: BoxShape.circle,
-                                                  border: Border.all(
-                                                    color: Colors.white,
-                                                    width: 1.5,
+                                        children:
+                                            (activeBudget?.miembros ??
+                                                    const <BudgetMember>[])
+                                                .take(3)
+                                                .map(
+                                                  (m) => Container(
+                                                    width: 26,
+                                                    height: 26,
+                                                    margin:
+                                                        const EdgeInsets.only(
+                                                          left: 3,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: m.c,
+                                                      shape: BoxShape.circle,
+                                                      border: Border.all(
+                                                        color: Colors.white,
+                                                        width: 1.5,
+                                                      ),
+                                                    ),
+                                                    alignment: Alignment.center,
+                                                    child: Text(
+                                                      m.i,
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 10,
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                      ),
+                                                    ),
                                                   ),
-                                                ),
-                                                alignment: Alignment.center,
-                                                child: Text(
-                                                  m.i,
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w800,
-                                                  ),
-                                                ),
-                                              ),
-                                            )
-                                            .toList(),
+                                                )
+                                                .toList(),
                                       ),
                                   ],
                                 ),

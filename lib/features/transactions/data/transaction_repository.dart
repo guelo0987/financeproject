@@ -9,11 +9,12 @@ class TransactionRepository {
 
   Future<List<MenudoTransaction>> fetchTransactions(
     int userId, {
+    int? budgetId,
     int limit = 100,
   }) async {
     final response = await _api.get<List<dynamic>>(
       ApiPaths.transactions,
-      queryParameters: {'limit': limit},
+      queryParameters: {'limit': limit, 'budgetId': budgetId},
       parser: asJsonList,
     );
     return response
@@ -35,11 +36,35 @@ class TransactionRepository {
         .toList();
   }
 
-  Future<MenudoTransaction> createTransaction(
-    int userId,
-    int categoriaId,
-    MenudoTransaction txn,
-  ) async {
+  Future<MenudoTransaction> createTransaction(MenudoTransaction txn) async {
+    final response = await _api.post<Map<String, dynamic>>(
+      ApiPaths.transactions,
+      body: _transactionBody(txn),
+      parser: asJsonMap,
+    );
+    return _transactionFromApi(response.requireData());
+  }
+
+  Future<MenudoTransaction> updateTransaction(MenudoTransaction txn) async {
+    if (txn.id <= 0) {
+      throw StateError(
+        'A transaction requires a valid id before it can be updated.',
+      );
+    }
+
+    final response = await _api.put<Map<String, dynamic>>(
+      ApiPaths.transactionById(txn.id),
+      body: _transactionBody(txn),
+      parser: asJsonMap,
+    );
+    return _transactionFromApi(response.requireData());
+  }
+
+  Future<void> deleteTransaction(int transactionId) async {
+    await _api.delete<void>(ApiPaths.transactionById(transactionId));
+  }
+
+  Map<String, dynamic> _transactionBody(MenudoTransaction txn) {
     if (txn.budgetId == null) {
       throw StateError(
         'A transaction requires a budgetId before it can be sent to the API.',
@@ -56,27 +81,18 @@ class TransactionRepository {
       );
     }
 
-    final response = await _api.post<Map<String, dynamic>>(
-      ApiPaths.transactions,
-      body: {
-        'fecha': txn.dateString,
-        'descripcion': txn.desc,
-        'monto': txn.monto.abs(),
-        'tipo': txn.tipo,
-        'budgetId': txn.budgetId,
-        'catKey': txn.catKey,
-        'walletId': txn.fromAccountId,
-        if (txn.toAccountId != null) 'toWalletId': txn.toAccountId,
-        if (txn.nota != null) 'nota': txn.nota,
-        'moneda': txn.moneda,
-      },
-      parser: asJsonMap,
-    );
-    return _transactionFromApi(response.requireData());
-  }
-
-  Future<void> deleteTransaction(int transactionId) async {
-    await _api.delete<void>(ApiPaths.transactionById(transactionId));
+    return {
+      'fecha': txn.dateString,
+      'descripcion': txn.desc,
+      'monto': txn.monto.abs(),
+      'tipo': txn.tipo,
+      'budgetId': txn.budgetId,
+      'catKey': txn.catKey,
+      'walletId': txn.fromAccountId,
+      if (txn.toAccountId != null) 'toWalletId': txn.toAccountId,
+      if (txn.nota != null) 'nota': txn.nota,
+      'moneda': txn.moneda,
+    };
   }
 
   MenudoTransaction _transactionFromApi(Map<String, dynamic> row) {

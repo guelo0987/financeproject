@@ -28,26 +28,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
-    if (_emailController.text.isNotEmpty &&
-        _passwordController.text.isNotEmpty) {
-      setState(() => _isLoading = true);
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
 
-      try {
-        await ref
-            .read(authProvider.notifier)
-            .login(_emailController.text.trim(), _passwordController.text);
-        if (!mounted) return;
-        context.go('/');
-      } catch (error) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.toString())));
-      } finally {
-        if (mounted) {
-          setState(() => _isLoading = false);
-        }
+  Future<void> _handleLogin() async {
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty) {
+      _showError('Completa email y contraseña.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await ref
+          .read(authProvider.notifier)
+          .login(_emailController.text.trim(), _passwordController.text);
+      if (!mounted) return;
+      context.go('/');
+    } catch (error) {
+      _showError(error.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }

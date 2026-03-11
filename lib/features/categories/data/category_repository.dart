@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../model/models.dart';
+import '../../../core/utils/color_utils.dart';
 import '../../../services/api_service.dart';
 import '../../../utils/utils.dart';
 import '../../../core/utils/icon_utils.dart';
@@ -31,6 +32,26 @@ class CategoryRepository {
         .toList();
   }
 
+  Future<List<MenudoCategory>> fetchParentCategories(
+    int userId, {
+    String? tipo,
+  }) async {
+    final queryParameters = <String, dynamic>{};
+    if (tipo != null) {
+      queryParameters['tipo'] = tipo;
+    }
+
+    final response = await _api.get<List<dynamic>>(
+      ApiPaths.categoryParents,
+      queryParameters: queryParameters,
+      parser: asJsonList,
+    );
+    return response
+        .requireData()
+        .map((row) => MenudoCategory.fromJson(asJsonMap(row)))
+        .toList();
+  }
+
   Future<MenudoCategory> createCategory(
     int userId,
     MenudoCategory category,
@@ -39,9 +60,28 @@ class CategoryRepository {
       ApiPaths.categories,
       body: {
         'nombre': category.nombre,
+        'tipo': category.tipo,
         'icono': iconToKey(category.icono),
+        'color_hex': colorToHex(category.color),
         if (category.categoriaParadreId != null)
           'categoria_padre_id': category.categoriaParadreId,
+      },
+      parser: asJsonMap,
+    );
+    return MenudoCategory.fromJson(response.requireData());
+  }
+
+  Future<MenudoCategory> createParentCategory(
+    int userId,
+    MenudoCategory category,
+  ) async {
+    final response = await _api.post<Map<String, dynamic>>(
+      ApiPaths.categoryParents,
+      body: {
+        'nombre': category.nombre,
+        'tipo': category.tipo,
+        'icono': iconToKey(category.icono),
+        'color_hex': colorToHex(category.color),
       },
       parser: asJsonMap,
     );
@@ -53,7 +93,9 @@ class CategoryRepository {
       ApiPaths.categoryById(category.id),
       body: {
         'nombre': category.nombre,
+        'tipo': category.tipo,
         'icono': iconToKey(category.icono),
+        'color_hex': colorToHex(category.color),
         'categoria_padre_id': category.categoriaParadreId,
       },
       parser: asJsonMap,

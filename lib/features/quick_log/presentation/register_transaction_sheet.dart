@@ -3,16 +3,27 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../../../../core/theme/app_colors.dart';
+
 import '../../../../core/data/models.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/menudo_button.dart';
+import '../../budgets/budget_providers.dart';
+import '../../categories/providers/category_providers.dart';
 import '../../categories/presentation/category_picker_sheet.dart';
+import '../../transactions/providers/transaction_providers.dart';
 import '../../wallet/providers/wallet_providers.dart';
 
 class RegisterTransactionSheet extends ConsumerStatefulWidget {
   final MenudoTransaction? transaction;
+  final String? initialType;
+  final int? initialFromAccountId;
 
-  const RegisterTransactionSheet({super.key, this.transaction});
+  const RegisterTransactionSheet({
+    super.key,
+    this.transaction,
+    this.initialType,
+    this.initialFromAccountId,
+  });
 
   @override
   ConsumerState<RegisterTransactionSheet> createState() =>
@@ -23,11 +34,11 @@ class _RegisterTransactionSheetState
     extends ConsumerState<RegisterTransactionSheet> {
   String _amount = "";
   int _selectedTypeIndex = 0; // 0: Gasto, 1: Ingreso, 2: Transferencia
-  String _cat = "Seleccionar";
   String? _catKey;
   String? _nota;
   int? _fromAccountId;
   int? _toAccountId;
+  bool _isSaving = false;
 
   bool get _isEditing => widget.transaction != null;
 
@@ -35,34 +46,46 @@ class _RegisterTransactionSheetState
   void initState() {
     super.initState();
 
-    // Initial wallet selection
+    if (!_isEditing && widget.initialType != null) {
+      _selectedTypeIndex = switch (widget.initialType) {
+        'ingreso' => 1,
+        'transferencia' => 2,
+        _ => 0,
+      };
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_isEditing) {
-        final defaultId = ref.read(defaultWalletIdProvider);
-        if (defaultId != null) {
-          setState(() {
-            _fromAccountId = defaultId;
-          });
-        }
+      if (_isEditing) return;
+
+      final defaultId =
+          widget.initialFromAccountId ?? ref.read(defaultWalletIdProvider);
+      final wallets = ref.read(walletNotifierProvider).valueOrNull ?? [];
+      final initialId =
+          defaultId != null && wallets.any((wallet) => wallet.id == defaultId)
+          ? defaultId
+          : wallets.isNotEmpty
+          ? wallets.first.id
+          : null;
+
+      if (initialId != null && mounted) {
+        setState(() => _fromAccountId = initialId);
       }
     });
 
     if (_isEditing) {
-      final t = widget.transaction!;
-      _amount = t.monto.abs().toStringAsFixed(t.monto.abs() % 1 == 0 ? 0 : 2);
-      _catKey = t.catKey;
-      _nota = t.nota;
-      _fromAccountId = t.fromAccountId;
-      _toAccountId = t.toAccountId;
-      switch (t.tipo) {
-        case 'ingreso':
-          _selectedTypeIndex = 1;
-        case 'transferencia':
-          _selectedTypeIndex = 2;
-        default:
-          _selectedTypeIndex = 0;
-      }
-      _cat = t.catKey.toUpperCase();
+      final txn = widget.transaction!;
+      _amount = txn.monto.abs().toStringAsFixed(
+        txn.monto.abs() % 1 == 0 ? 0 : 2,
+      );
+      _catKey = txn.catKey;
+      _nota = txn.nota;
+      _fromAccountId = txn.fromAccountId;
+      _toAccountId = txn.toAccountId;
+      _selectedTypeIndex = switch (txn.tipo) {
+        'ingreso' => 1,
+        'transferencia' => 2,
+        _ => 0,
+      };
     }
   }
 
@@ -74,6 +97,39 @@ class _RegisterTransactionSheetState
       return AppColors.b5;
     }
     return AppColors.e8;
+  }
+
+  String get _selectedType {
+    switch (_selectedTypeIndex) {
+      case 1:
+        return 'ingreso';
+      case 2:
+        return 'transferencia';
+      default:
+        return 'gasto';
+    }
+  }
+
+  void _setTypeIndex(int index) {
+    final categories = ref.read(effectiveCategoriesProvider);
+    final selectedCategory = _catKey == null
+        ? null
+        : categories.where((category) => category.slug == _catKey).firstOrNull;
+    final nextType = switch (index) {
+      1 => 'ingreso',
+      2 => 'transferencia',
+      _ => 'gasto',
+    };
+
+    setState(() {
+      _selectedTypeIndex = index;
+      if (selectedCategory != null && selectedCategory.tipo != nextType) {
+        _catKey = null;
+      }
+      if (nextType != 'transferencia') {
+        _toAccountId = null;
+      }
+    });
   }
 
   void _onKeyTap(String key) {
@@ -97,32 +153,145 @@ class _RegisterTransactionSheetState
     });
   }
 
-  void _saveTransaction() {
-    if (_amount.isEmpty || double.parse(_amount) == 0) return;
+  Future<void> _saveTransaction() async {
+    if (_isSaving || _amount.isEmpty) return;
+
+    final amountValue = double.tryParse(_amount);
+    if (amountValue == null || amountValue == 0) return;
+
+    final budget = ref.read(selectedBudgetProvider);
+    if (budget == null) {
+      _showError(
+        'Selecciona un presupuesto antes de registrar la transaccion.',
+      );
+      return;
+    }
+
+    final wallets = ref.read(effectiveWalletsProvider);
+    final categories = ref.read(effectiveCategoriesProvider);
+    final categoriesBySlug = {
+      for (final category in categories) category.slug: category,
+    };
+    final selectedCategory = _catKey == null
+        ? null
+        : categoriesBySlug[_catKey!];
+
+    if (_catKey == null || _catKey!.isEmpty) {
+      _showError('Selecciona una categoria antes de continuar.');
+      return;
+    }
+
+    if (_fromAccountId == null ||
+        !wallets.any((wallet) => wallet.id == _fromAccountId)) {
+      _showError('Selecciona una cuenta valida.');
+      return;
+    }
+
+    if (_selectedType == 'transferencia') {
+      if (_toAccountId == null ||
+          !wallets.any((wallet) => wallet.id == _toAccountId)) {
+        _showError('Selecciona la cuenta destino de la transferencia.');
+        return;
+      }
+      if (_toAccountId == _fromAccountId) {
+        _showError('La cuenta origen y destino no pueden ser la misma.');
+        return;
+      }
+    }
+
+    final fallbackDescription = selectedCategory?.nombre ?? _catKey!;
+    final transaction = MenudoTransaction(
+      id: widget.transaction?.id ?? 0,
+      dateString:
+          widget.transaction?.dateString ??
+          DateTime.now().toIso8601String().split('T').first,
+      desc: _isEditing ? widget.transaction!.desc : fallbackDescription,
+      catKey: _catKey!,
+      budgetId: budget.id,
+      categoryId: selectedCategory?.id,
+      monto: _selectedType == 'ingreso' ? amountValue : -amountValue,
+      tipo: _selectedType,
+      icono:
+          selectedCategory?.icono ??
+          widget.transaction?.icono ??
+          LucideIcons.circle,
+      fromAccountId: _fromAccountId,
+      toAccountId: _selectedType == 'transferencia' ? _toAccountId : null,
+      nota: _nota,
+      moneda: widget.transaction?.moneda ?? 'DOP',
+    );
+
     HapticFeedback.mediumImpact();
-    Navigator.pop(context);
+    setState(() => _isSaving = true);
+
+    try {
+      final notifier = ref.read(transactionNotifierProvider.notifier);
+      if (_isEditing) {
+        await notifier.updateTransaction(transaction);
+      } else {
+        await notifier.addTransaction(transaction);
+      }
+      await ref.read(walletNotifierProvider.notifier).refresh();
+      await ref.read(budgetNotifierProvider.notifier).refresh();
+
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (error) {
+      _showError(error.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
-  String _accountName(int? id) {
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String _accountName(int? id, List<WalletAccount> wallets) {
     if (id == null) return "Seleccionar";
-    return mockWallets
-        .firstWhere((w) => w.id == id, orElse: () => mockWallets.first)
-        .nombre;
+    final fallback = wallets.isNotEmpty ? wallets.first : null;
+    final wallet = wallets.where((wallet) => wallet.id == id).firstOrNull;
+    return wallet?.nombre ?? fallback?.nombre ?? "Seleccionar";
   }
 
-  void _pickAccount({required bool isFrom}) {
+  Future<void> _pickCategory() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => CategoryPickerSheet(
+        initialCatKey: _catKey,
+        allowedType: _selectedType,
+      ),
+    );
+
+    if (selected != null && mounted) {
+      setState(() => _catKey = selected);
+    }
+  }
+
+  void _pickAccount({
+    required bool isFrom,
+    required List<WalletAccount> wallets,
+  }) {
     HapticFeedback.lightImpact();
-    showModalBottomSheet(
+    showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _AccountPickerSheet(
+        accounts: wallets,
         title: isFrom ? "Cuenta origen" : "Cuenta destino",
         selectedId: isFrom ? _fromAccountId : _toAccountId,
         excludeId: isFrom ? _toAccountId : _fromAccountId,
       ),
     ).then((id) {
-      if (id != null) {
+      if (id != null && mounted) {
         setState(() {
           if (isFrom) {
             _fromAccountId = id;
@@ -136,8 +305,29 @@ class _RegisterTransactionSheetState
 
   @override
   Widget build(BuildContext context) {
-    final double amountValue = double.tryParse(_amount) ?? 0;
-    final bool isTransfer = _selectedTypeIndex == 2;
+    final amountValue = double.tryParse(_amount) ?? 0;
+    final isTransfer = _selectedTypeIndex == 2;
+    final wallets = ref.watch(effectiveWalletsProvider);
+    final categories = ref.watch(effectiveCategoriesProvider);
+    final categoriesBySlug = {
+      for (final category in categories) category.slug: category,
+    };
+    final selectedCategory = _catKey == null
+        ? null
+        : categoriesBySlug[_catKey!];
+    final selectedParent = selectedCategory?.categoriaParadreId == null
+        ? null
+        : categories
+              .where(
+                (category) =>
+                    category.id == selectedCategory!.categoriaParadreId,
+              )
+              .firstOrNull;
+    final categoryLabel = selectedCategory == null
+        ? "Seleccionar"
+        : selectedParent == null
+        ? selectedCategory.nombre
+        : "${selectedParent.nombre} / ${selectedCategory.nombre}";
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.94,
@@ -147,7 +337,6 @@ class _RegisterTransactionSheetState
       ),
       child: Column(
         children: [
-          // Drag handle
           Center(
             child: Container(
               margin: const EdgeInsets.only(top: 12, bottom: 8),
@@ -159,8 +348,6 @@ class _RegisterTransactionSheetState
               ),
             ),
           ),
-
-          // Segment Control
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
             child: Container(
@@ -175,26 +362,24 @@ class _RegisterTransactionSheetState
                     label: 'Gasto',
                     index: 0,
                     current: _selectedTypeIndex,
-                    onTap: (i) => setState(() => _selectedTypeIndex = i),
+                    onTap: _setTypeIndex,
                   ),
                   _TypeSegment(
                     label: 'Ingreso',
                     index: 1,
                     current: _selectedTypeIndex,
-                    onTap: (i) => setState(() => _selectedTypeIndex = i),
+                    onTap: _setTypeIndex,
                   ),
                   _TypeSegment(
                     label: 'Transfer.',
                     index: 2,
                     current: _selectedTypeIndex,
-                    onTap: (i) => setState(() => _selectedTypeIndex = i),
+                    onTap: _setTypeIndex,
                   ),
                 ],
               ),
             ),
           ),
-
-          // Amount Display
           Padding(
             padding: const EdgeInsets.only(bottom: 24),
             child:
@@ -219,7 +404,7 @@ class _RegisterTransactionSheetState
                               ? "0"
                               : _amount.replaceAllMapped(
                                   RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                                  (Match m) => '${m[1]},',
+                                  (match) => '${match[1]},',
                                 ),
                           style: TextStyle(
                             fontSize: 52,
@@ -234,8 +419,6 @@ class _RegisterTransactionSheetState
                     .fadeIn()
                     .scale(begin: const Offset(0.95, 0.95)),
           ),
-
-          // Details List
           Expanded(
             child: ListView(
               physics: const BouncingScrollPhysics(),
@@ -254,52 +437,49 @@ class _RegisterTransactionSheetState
                           icon: LucideIcons.arrowUpFromLine,
                           color: AppColors.e6,
                           label: "Origen",
-                          value: _accountName(_fromAccountId),
-                          onTap: () => _pickAccount(isFrom: true),
+                          value: _accountName(_fromAccountId, wallets),
+                          onTap: () =>
+                              _pickAccount(isFrom: true, wallets: wallets),
                         ),
                         _DetailRow(
                           icon: LucideIcons.arrowDownToLine,
                           color: AppColors.b5,
                           label: "Destino",
-                          value: _accountName(_toAccountId),
-                          onTap: () => _pickAccount(isFrom: false),
+                          value: _accountName(_toAccountId, wallets),
+                          onTap: () =>
+                              _pickAccount(isFrom: false, wallets: wallets),
                         ),
-                      ] else ...[
-                        _DetailRow(
-                          icon: LucideIcons.tag,
-                          color: AppColors.o5,
-                          label: "Categoría",
-                          value: _cat,
-                          onTap: () async {
-                            final res = await showModalBottomSheet<String>(
-                              context: context,
-                              isScrollControlled: true,
-                              backgroundColor: Colors.transparent,
-                              builder: (_) =>
-                                  CategoryPickerSheet(initialCatKey: _catKey),
-                            );
-                            if (res != null) {
-                              setState(() {
-                                _catKey = res;
-                                _cat = res.toUpperCase();
-                              });
-                            }
-                          },
-                        ),
+                      ],
+                      _DetailRow(
+                        icon: LucideIcons.layoutGrid,
+                        color: AppColors.e8,
+                        label: "Presupuesto",
+                        value:
+                            ref.watch(selectedBudgetProvider)?.nombre ??
+                            "Sin presupuesto",
+                      ),
+                      _DetailRow(
+                        icon: LucideIcons.tag,
+                        color: AppColors.o5,
+                        label: "Categoría",
+                        value: categoryLabel,
+                        onTap: _pickCategory,
+                      ),
+                      if (!isTransfer)
                         _DetailRow(
                           icon: LucideIcons.landmark,
                           color: AppColors.b5,
                           label: "Cuenta",
-                          value: _accountName(_fromAccountId),
-                          onTap: () => _pickAccount(isFrom: true),
+                          value: _accountName(_fromAccountId, wallets),
+                          onTap: () =>
+                              _pickAccount(isFrom: true, wallets: wallets),
                         ),
-                      ],
                       _DetailRow(
                         icon: LucideIcons.fileText,
                         color: AppColors.p5,
                         label: "Nota",
                         value: _nota ?? "Opcional",
-                        onTap: () => _showNoteDialog(),
+                        onTap: _showNoteDialog,
                       ),
                       _DetailRow(
                         icon: LucideIcons.calendar,
@@ -311,18 +491,12 @@ class _RegisterTransactionSheetState
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 24),
-
-                // Premium Numpad
                 _Numpad(onKeyTap: _onKeyTap),
-
                 const SizedBox(height: 32),
               ],
             ),
           ),
-
-          // Action Button
           Padding(
             padding: EdgeInsets.fromLTRB(
               20,
@@ -331,10 +505,12 @@ class _RegisterTransactionSheetState
               24 + MediaQuery.of(context).padding.bottom,
             ),
             child: MenudoButton(
-              label: _isEditing ? "ACTUALIZAR" : "REGISTRAR",
+              label: _isSaving
+                  ? (_isEditing ? "ACTUALIZANDO..." : "REGISTRANDO...")
+                  : (_isEditing ? "ACTUALIZAR" : "REGISTRAR"),
               isFullWidth: true,
-              isDisabled: amountValue == 0,
-              onTap: _saveTransaction,
+              isDisabled: amountValue == 0 || _isSaving,
+              onTap: () => _saveTransaction(),
             ),
           ),
         ],
@@ -403,7 +579,8 @@ class _RegisterTransactionSheetState
 
 class _TypeSegment extends StatelessWidget {
   final String label;
-  final int index, current;
+  final int index;
+  final int current;
   final Function(int) onTap;
 
   const _TypeSegment({
@@ -415,7 +592,7 @@ class _TypeSegment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool active = index == current;
+    final active = index == current;
     return Expanded(
       child: GestureDetector(
         onTap: () {
@@ -456,7 +633,8 @@ class _TypeSegment extends StatelessWidget {
 class _DetailRow extends StatelessWidget {
   final IconData icon;
   final Color color;
-  final String label, value;
+  final String label;
+  final String value;
   final VoidCallback? onTap;
   final bool isLast;
 
@@ -520,7 +698,12 @@ class _DetailRow extends StatelessWidget {
             ),
           ),
           if (!isLast)
-            Divider(height: 1, color: AppColors.g1, indent: 56, endIndent: 16),
+            const Divider(
+              height: 1,
+              color: AppColors.g1,
+              indent: 56,
+              endIndent: 16,
+            ),
         ],
       ),
     );
@@ -529,6 +712,7 @@ class _DetailRow extends StatelessWidget {
 
 class _Numpad extends StatelessWidget {
   final Function(String) onKeyTap;
+
   const _Numpad({required this.onKeyTap});
 
   @override
@@ -540,10 +724,9 @@ class _Numpad extends StatelessWidget {
       childAspectRatio: 1.8,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      children: [
-        ...'123456789.0'.split(''),
-        'backspace',
-      ].map((k) => _NumpadKey(value: k, onTap: () => onKeyTap(k))).toList(),
+      children: [...'123456789.0'.split(''), 'backspace']
+          .map((key) => _NumpadKey(value: key, onTap: () => onKeyTap(key)))
+          .toList(),
     );
   }
 }
@@ -556,7 +739,7 @@ class _NumpadKey extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isBack = value == 'backspace';
+    final isBack = value == 'backspace';
     return GestureDetector(
       onTapDown: (_) => onTap(),
       child: Container(
@@ -588,10 +771,13 @@ class _NumpadKey extends StatelessWidget {
 }
 
 class _AccountPickerSheet extends StatelessWidget {
+  final List<WalletAccount> accounts;
   final String title;
-  final int? selectedId, excludeId;
+  final int? selectedId;
+  final int? excludeId;
 
   const _AccountPickerSheet({
+    required this.accounts,
     required this.title,
     this.selectedId,
     this.excludeId,
@@ -599,7 +785,10 @@ class _AccountPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accounts = mockWallets.where((w) => w.id != excludeId).toList();
+    final visibleAccounts = accounts
+        .where((wallet) => wallet.id != excludeId)
+        .toList();
+
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -627,35 +816,39 @@ class _AccountPickerSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          ...accounts.map(
-            (w) => GestureDetector(
+          ...visibleAccounts.map(
+            (wallet) => GestureDetector(
               onTap: () {
                 HapticFeedback.lightImpact();
-                Navigator.pop(context, w.id);
+                Navigator.pop(context, wallet.id);
               },
               child: Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: w.id == selectedId ? AppColors.e8 : AppColors.g0,
+                  color: wallet.id == selectedId ? AppColors.e8 : AppColors.g0,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      w.icono,
-                      color: w.id == selectedId ? Colors.white : w.color,
+                      wallet.icono,
+                      color: wallet.id == selectedId
+                          ? Colors.white
+                          : wallet.color,
                     ),
                     const SizedBox(width: 16),
                     Text(
-                      w.nombre,
+                      wallet.nombre,
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
-                        color: w.id == selectedId ? Colors.white : AppColors.e8,
+                        color: wallet.id == selectedId
+                            ? Colors.white
+                            : AppColors.e8,
                       ),
                     ),
                     const Spacer(),
-                    if (w.id == selectedId)
+                    if (wallet.id == selectedId)
                       const Icon(
                         LucideIcons.check,
                         color: Colors.white,

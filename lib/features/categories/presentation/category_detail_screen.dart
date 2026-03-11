@@ -2,12 +2,16 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
+import '../../budgets/budget_providers.dart';
+import '../providers/category_providers.dart';
+import '../../transactions/providers/transaction_providers.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
 
-class CategoryDetailScreen extends StatelessWidget {
+class CategoryDetailScreen extends ConsumerWidget {
   final String catKey;
 
   const CategoryDetailScreen({super.key, required this.catKey});
@@ -15,13 +19,19 @@ class CategoryDetailScreen extends StatelessWidget {
   String fmt(double val) =>
       "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
 
+  MenudoCategory? _findCategory(List<MenudoCategory> categories, String slug) {
+    for (final category in categories) {
+      if (category.slug == slug) return category;
+    }
+    return null;
+  }
+
   @override
-  Widget build(BuildContext context) {
-    final activeBudget = mockBudgets.firstWhere(
-      (b) => b.activo,
-      orElse: () => mockBudgets.first,
-    );
-    final BudgetCategory? budgetCat = activeBudget.cats[catKey];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeBudget = ref.watch(selectedBudgetProvider);
+    final categories = ref.watch(effectiveCategoriesProvider);
+    final budgetCat = activeBudget?.cats[catKey];
+    final category = _findCategory(categories, catKey);
 
     // Fallback meta for categories not in budget
     final Map<String, Map<String, dynamic>> fallbackMeta = {
@@ -69,15 +79,24 @@ class CategoryDetailScreen extends StatelessWidget {
 
     final String label =
         budgetCat?.label ??
+        category?.nombre ??
         fallbackMeta[catKey]?['label'] ??
         (catKey[0].toUpperCase() + catKey.substring(1));
     final IconData icono =
-        budgetCat?.icono ?? fallbackMeta[catKey]?['icono'] ?? LucideIcons.tag;
+        budgetCat?.icono ??
+        category?.icono ??
+        fallbackMeta[catKey]?['icono'] ??
+        LucideIcons.tag;
     final Color color =
-        budgetCat?.color ?? fallbackMeta[catKey]?['color'] ?? AppColors.g4;
+        budgetCat?.color ??
+        category?.color ??
+        fallbackMeta[catKey]?['color'] ??
+        AppColors.g4;
 
-    // Filter transactions for this category
-    final txns = mockTxns.where((t) => t.catKey == catKey).toList();
+    final txns = ref
+        .watch(selectedBudgetPeriodTransactionsProvider)
+        .where((t) => t.catKey == catKey)
+        .toList();
     final double totalSpent = txns
         .where((t) => t.tipo == 'gasto')
         .fold(0.0, (s, t) => s + t.monto.abs());

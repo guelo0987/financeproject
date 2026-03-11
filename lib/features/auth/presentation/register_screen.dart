@@ -31,6 +31,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   void _handleBack() {
     final router = GoRouter.of(context);
     if (router.canPop()) {
@@ -41,6 +46,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _handleRegister() async {
+    if (_nameController.text.trim().isEmpty ||
+        _emailController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty) {
+      _showError('Completa nombre, email y contraseña.');
+      return;
+    }
+    if (_passwordController.text.length < 8) {
+      _showError('La contraseña debe tener al menos 8 caracteres.');
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -51,14 +67,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             email: _emailController.text.trim(),
             password: _passwordController.text,
             currency: _isDop ? 'DOP' : 'USD',
-          );
+      );
       if (!mounted) return;
       context.go('/');
     } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      _showError(error.toString());
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

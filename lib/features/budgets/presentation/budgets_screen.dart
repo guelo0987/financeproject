@@ -51,10 +51,28 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     );
   }
 
+  void _showError(Object error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error.toString()),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _activateBudget(MenudoBudget budget) async {
+    HapticFeedback.mediumImpact();
+    try {
+      await ref.read(budgetNotifierProvider.notifier).activateBudget(budget.id);
+    } catch (error) {
+      if (!mounted) return;
+      _showError(error);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final budgets =
-        ref.watch(budgetNotifierProvider).valueOrNull ?? mockBudgets;
+    final budgets = ref.watch(effectiveBudgetsProvider);
     final selectedIdx = ref
         .watch(selectedBudgetIdxProvider)
         .clamp(0, budgets.isEmpty ? 0 : budgets.length - 1);
@@ -146,13 +164,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                             budget: b,
                             isDashboardActive: globalIdx == selectedIdx,
                             onTap: () => _showDetail(b),
-                            onSetActive: () {
-                              HapticFeedback.mediumImpact();
-                              ref
-                                      .read(selectedBudgetIdxProvider.notifier)
-                                      .state =
-                                  globalIdx;
-                            },
+                            onSetActive: () => _activateBudget(b),
                             fmt: _fmt,
                           )
                           .animate()

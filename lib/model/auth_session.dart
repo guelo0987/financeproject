@@ -1,13 +1,17 @@
+import 'user_profile.dart';
+
 class AuthSession {
   const AuthSession({
     required this.userId,
     required this.token,
     this.refreshToken,
+    this.profile,
   });
 
   final int userId;
   final String token;
   final String? refreshToken;
+  final UserProfile? profile;
 
   factory AuthSession.fromJson(Map<String, dynamic> json) {
     final userPayload = json['usuario'] ?? json['user'];
@@ -46,6 +50,7 @@ class AuthSession {
       token: token,
       refreshToken:
           json['refreshToken']?.toString() ?? json['refresh_token']?.toString(),
+      profile: user.isEmpty ? null : UserProfile.fromJson(user),
     );
   }
 }

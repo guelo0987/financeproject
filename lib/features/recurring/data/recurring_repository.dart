@@ -18,11 +18,7 @@ class RecurringRepository {
         .toList();
   }
 
-  Future<RecurringTransaction> createRecurring(
-    int userId,
-    int categoriaId,
-    RecurringTransaction rec,
-  ) async {
+  Future<RecurringTransaction> createRecurring(RecurringTransaction rec) async {
     if (rec.presupuestoId == null) {
       throw StateError(
         'A recurring transaction requires a budgetId before it can be sent to the API.',
@@ -31,6 +27,38 @@ class RecurringRepository {
 
     final response = await _api.post<Map<String, dynamic>>(
       ApiPaths.recurringTransactions,
+      body: {
+        'budgetId': rec.presupuestoId,
+        'walletId': rec.accountId,
+        'catKey': rec.catKey.isEmpty ? null : rec.catKey,
+        'tipo': rec.tipo,
+        'monto': rec.monto.abs(),
+        'moneda': 'DOP',
+        'descripcion': rec.desc,
+        'nota': rec.nota,
+        'frecuencia': rec.frecuencia,
+        'diaEjecucion': rec.diaEjecucion,
+        'activo': rec.activo,
+      },
+      parser: asJsonMap,
+    );
+    return _recurringFromApi(response.requireData());
+  }
+
+  Future<RecurringTransaction> updateRecurring(RecurringTransaction rec) async {
+    if (rec.id <= 0) {
+      throw StateError(
+        'A recurring transaction requires a valid id before it can be updated.',
+      );
+    }
+    if (rec.presupuestoId == null) {
+      throw StateError(
+        'A recurring transaction requires a budgetId before it can be sent to the API.',
+      );
+    }
+
+    final response = await _api.put<Map<String, dynamic>>(
+      ApiPaths.recurringById(rec.id),
       body: {
         'budgetId': rec.presupuestoId,
         'walletId': rec.accountId,

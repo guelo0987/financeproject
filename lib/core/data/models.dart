@@ -247,6 +247,9 @@ class RecurringTransaction {
 // ── Budget Category & Member ────────────────────
 class BudgetCategory {
   final int? categoryId; // Link to public.categorias
+  final int? parentCategoryId;
+  final String? slug;
+  final String? tipo;
   final String label;
   final IconData icono;
   final Color color;
@@ -255,6 +258,9 @@ class BudgetCategory {
 
   BudgetCategory({
     this.categoryId,
+    this.parentCategoryId,
+    this.slug,
+    this.tipo,
     required this.label,
     required this.icono,
     required this.color,
@@ -267,6 +273,11 @@ class BudgetCategory {
       categoryId: json['categoria_id'] != null
           ? (json['categoria_id'] as num).toInt()
           : null,
+      parentCategoryId: json['categoria_padre_id'] != null
+          ? (json['categoria_padre_id'] as num).toInt()
+          : null,
+      slug: json['slug'] as String?,
+      tipo: json['tipo'] as String?,
       label: json['nombre'] as String? ?? '',
       icono: iconFromKey(json['icono'] as String? ?? 'circle'),
       color: colorFromHex(json['color_hex'] as String? ?? '#4F46E5'),
@@ -278,11 +289,58 @@ class BudgetCategory {
   Map<String, dynamic> toJson() {
     return {
       if (categoryId != null) 'categoria_id': categoryId,
+      if (parentCategoryId != null) 'categoria_padre_id': parentCategoryId,
+      if (slug != null) 'slug': slug,
+      if (tipo != null) 'tipo': tipo,
       'nombre': label,
       'icono': iconToKey(icono),
       'color_hex': colorToHex(color),
       'limite': limite,
     };
+  }
+}
+
+class BudgetIncomeSource {
+  final int? categoryId;
+  final int? parentCategoryId;
+  final String? slug;
+  final String? tipo;
+  final String label;
+  final IconData icono;
+  final Color color;
+  final double planned;
+  final double actual;
+
+  const BudgetIncomeSource({
+    this.categoryId,
+    this.parentCategoryId,
+    this.slug,
+    this.tipo,
+    required this.label,
+    required this.icono,
+    required this.color,
+    required this.planned,
+    this.actual = 0,
+  });
+
+  double get difference => actual - planned;
+
+  factory BudgetIncomeSource.fromJson(Map<String, dynamic> json) {
+    return BudgetIncomeSource(
+      categoryId: json['categoria_id'] != null
+          ? (json['categoria_id'] as num).toInt()
+          : null,
+      parentCategoryId: json['categoria_padre_id'] != null
+          ? (json['categoria_padre_id'] as num).toInt()
+          : null,
+      slug: json['slug'] as String?,
+      tipo: json['tipo'] as String?,
+      label: json['nombre'] as String? ?? 'Ingresos',
+      icono: iconFromKey(json['icono'] as String? ?? 'trendingUp'),
+      color: colorFromHex(json['color_hex'] as String? ?? '#10B981'),
+      planned: (json['monto_planeado'] as num? ?? 0).toDouble(),
+      actual: (json['monto_actual'] as num? ?? 0).toDouble(),
+    );
   }
 }
 
@@ -311,6 +369,7 @@ class MenudoCategory {
   final int id;
   final String slug; // Used as catKey throughout the app
   final String nombre;
+  final String tipo; // "gasto", "ingreso", "transferencia"
   final IconData icono;
   final Color color;
   final bool esSistema;
@@ -321,6 +380,7 @@ class MenudoCategory {
     required this.id,
     required this.slug,
     required this.nombre,
+    this.tipo = 'gasto',
     required this.icono,
     required this.color,
     required this.esSistema,
@@ -335,6 +395,7 @@ class MenudoCategory {
       id: (json['categoria_id'] as num).toInt(),
       slug: json['slug'] as String? ?? (json['nombre'] as String).toLowerCase(),
       nombre: json['nombre'] as String,
+      tipo: json['tipo'] as String? ?? 'gasto',
       icono: iconFromKey(json['icono'] as String? ?? 'circle'),
       color: colorFromHex(json['color_hex'] as String? ?? '#4F46E5'),
       esSistema: json['es_sistema'] as bool? ?? false,
@@ -351,6 +412,7 @@ class MenudoCategory {
     return {
       'slug': slug,
       'nombre': nombre,
+      'tipo': tipo,
       'icono': iconToKey(icono),
       'color_hex': colorToHex(color),
       if (categoriaParadreId != null) 'categoria_padre_id': categoriaParadreId,
@@ -369,6 +431,8 @@ class MenudoBudget {
   final double ingresos;
   final double ahorroObjetivo;
   final Map<String, BudgetCategory> cats;
+  final Map<int, double> incomePlan;
+  final List<BudgetIncomeSource> incomeSources;
 
   const MenudoBudget({
     required this.id,
@@ -381,12 +445,16 @@ class MenudoBudget {
     required this.ingresos,
     this.ahorroObjetivo = 0,
     required this.cats,
+    this.incomePlan = const {},
+    this.incomeSources = const [],
   });
 
   factory MenudoBudget.fromJson(
     Map<String, dynamic> json, {
     List<BudgetMember> miembros = const [],
     Map<String, BudgetCategory> cats = const {},
+    Map<int, double> incomePlan = const {},
+    List<BudgetIncomeSource> incomeSources = const [],
   }) {
     return MenudoBudget(
       id: (json['presupuesto_id'] as num).toInt(),
@@ -401,6 +469,8 @@ class MenudoBudget {
       ahorroObjetivo: (json['ahorro_objetivo'] as num? ?? 0).toDouble(),
       miembros: miembros,
       cats: cats,
+      incomePlan: incomePlan,
+      incomeSources: incomeSources,
     );
   }
 
@@ -750,6 +820,7 @@ final List<MenudoCategory> mockCategories = [
     id: 8,
     slug: 'ingreso',
     nombre: 'Ingresos',
+    tipo: 'ingreso',
     icono: LucideIcons.trendingUp,
     color: Color(0xFF10B981),
     esSistema: true,
@@ -814,6 +885,7 @@ final List<MenudoCategory> mockCategories = [
     id: 9,
     slug: 'transferencia',
     nombre: 'Transferencia',
+    tipo: 'transferencia',
     icono: LucideIcons.arrowLeftRight,
     color: Color(0xFF6B7280),
     esSistema: true,
@@ -824,6 +896,7 @@ final List<MenudoCategory> mockCategories = [
     id: 20,
     slug: 'salario',
     nombre: 'Salario',
+    tipo: 'ingreso',
     icono: LucideIcons.briefcase,
     color: Color(0xFF10B981),
     esSistema: true,
@@ -833,6 +906,7 @@ final List<MenudoCategory> mockCategories = [
     id: 21,
     slug: 'freelance',
     nombre: 'Freelance',
+    tipo: 'ingreso',
     icono: LucideIcons.laptop,
     color: Color(0xFF10B981),
     esSistema: true,
@@ -842,6 +916,7 @@ final List<MenudoCategory> mockCategories = [
     id: 22,
     slug: 'inversiones',
     nombre: 'Inversiones',
+    tipo: 'ingreso',
     icono: LucideIcons.barChart2,
     color: Color(0xFF10B981),
     esSistema: true,
@@ -851,6 +926,7 @@ final List<MenudoCategory> mockCategories = [
     id: 23,
     slug: 'negocio',
     nombre: 'Negocio',
+    tipo: 'ingreso',
     icono: LucideIcons.store,
     color: Color(0xFF10B981),
     esSistema: true,
@@ -860,6 +936,7 @@ final List<MenudoCategory> mockCategories = [
     id: 24,
     slug: 'bono',
     nombre: 'Bono',
+    tipo: 'ingreso',
     icono: LucideIcons.gift,
     color: Color(0xFF10B981),
     esSistema: true,

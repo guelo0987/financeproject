@@ -1,57 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../controllers/demo_mode_controller.dart';
+import '../../../controllers/wallet_controller.dart' as wallet_controller;
 import '../../../core/data/models.dart';
-import '../../../features/auth/auth_state.dart';
-import '../data/wallet_repository.dart';
 
-// Notifier that manages the list of wallet accounts
-class WalletNotifier extends AsyncNotifier<List<WalletAccount>> {
-  int _uid() {
-    final uid = ref.read(authProvider).userId;
-    return uid != null ? int.parse(uid) : 0;
+final walletNotifierProvider = wallet_controller.walletControllerProvider;
+final defaultWalletIdProvider = wallet_controller.defaultWalletIdProvider;
+
+final effectiveWalletsProvider = Provider<List<WalletAccount>>((ref) {
+  final wallets = ref.watch(walletNotifierProvider).valueOrNull;
+  final demoMode = ref.watch(demoModeProvider);
+
+  if (wallets != null && wallets.isNotEmpty) {
+    return wallets;
   }
-
-  @override
-  Future<List<WalletAccount>> build() async {
-    final uid = ref.watch(authProvider).userId;
-    if (uid != null) {
-      return ref.read(walletRepositoryProvider).fetchWallets(int.parse(uid));
-    }
+  if (demoMode) {
     return mockWallets;
   }
-
-  Future<void> addWallet(WalletAccount wallet) async {
-    final userId = _uid();
-    if (userId == 0) return;
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      await ref.read(walletRepositoryProvider).createWallet(userId, wallet);
-      return ref.read(walletRepositoryProvider).fetchWallets(userId);
-    });
-  }
-
-  Future<void> refresh() async {
-    final userId = _uid();
-    if (userId == 0) return;
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => ref.read(walletRepositoryProvider).fetchWallets(userId),
-    );
-  }
-}
-
-final walletNotifierProvider =
-    AsyncNotifierProvider<WalletNotifier, List<WalletAccount>>(
-      WalletNotifier.new,
-    );
-
-// Provider to manage the default wallet ID for new transactions
-final defaultWalletIdProvider = StateProvider<int?>((ref) {
-  // Default to the first account in mock data for now
-  return mockWallets.isNotEmpty ? mockWallets.first.id : null;
+  return wallets ?? const [];
 });
 
-// Convenience provider: total balance across all accounts
 final totalBalanceProvider = Provider<double>((ref) {
-  final wallets = ref.watch(walletNotifierProvider).valueOrNull ?? mockWallets;
-  return wallets.fold(0.0, (sum, w) => sum + w.saldo);
+  final wallets = ref.watch(effectiveWalletsProvider);
+  return wallets.fold(0.0, (sum, wallet) => sum + wallet.saldo);
 });

@@ -4,7 +4,12 @@ import 'package:lucide_icons/lucide_icons.dart';
 /// Maps icon key strings (stored in DB) to LucideIcons IconData.
 /// Used when deserializing categories and wallet accounts from the HTTP API.
 IconData iconFromKey(String key) {
-  return _iconMap[key] ?? LucideIcons.circle;
+  final trimmed = key.trim();
+  final normalized = _normalizeIconKey(trimmed);
+  return _iconMap[trimmed] ??
+      _normalizedIconMap[normalized] ??
+      _fallbackIconFor(normalized) ??
+      LucideIcons.tag;
 }
 
 /// Converts LucideIcons IconData to its string key for DB storage.
@@ -52,6 +57,72 @@ final Map<String, IconData> _iconMap = {
   'fuel': LucideIcons.fuel,
   'wine': LucideIcons.wine,
   'monitor': LucideIcons.monitor,
+  'monitorPlay': LucideIcons.monitorPlay,
+  'wrench': LucideIcons.wrench,
   'fileText': LucideIcons.fileText,
+  'briefcase': LucideIcons.briefcase,
+  'briefcaseBusiness': LucideIcons.briefcase,
+  'laptop': LucideIcons.laptop,
+  'barChart2': LucideIcons.barChart2,
+  'store': LucideIcons.store,
+  'keySquare': LucideIcons.keySquare,
+  'droplets': LucideIcons.droplets,
+  'shield': LucideIcons.shield,
+  'coffee': LucideIcons.coffee,
+  'package': LucideIcons.package,
+  'shirt': LucideIcons.shirt,
+  'stethoscope': LucideIcons.stethoscope,
+  'smile': LucideIcons.smile,
+  'book': LucideIcons.book,
+  'film': LucideIcons.film,
+  'gamepad2': LucideIcons.gamepad2,
+  'map': LucideIcons.map,
+  'ticket': LucideIcons.ticket,
   'circle': LucideIcons.circle,
+};
+
+final Map<String, IconData> _normalizedIconMap = {
+  for (final entry in _iconMap.entries)
+    _normalizeIconKey(entry.key): entry.value,
+};
+
+String _normalizeIconKey(String key) {
+  return key.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
+}
+
+IconData? _fallbackIconFor(String normalizedKey) {
+  for (final entry in _iconFallbacks.entries) {
+    if (normalizedKey.contains(entry.key)) {
+      return entry.value;
+    }
+  }
+  return null;
+}
+
+final Map<String, IconData> _iconFallbacks = {
+  'home': LucideIcons.home,
+  'house': LucideIcons.home,
+  'rent': LucideIcons.home,
+  'salary': LucideIcons.briefcase,
+  'briefcase': LucideIcons.briefcase,
+  'freelance': LucideIcons.laptop,
+  'business': LucideIcons.store,
+  'store': LucideIcons.store,
+  'food': LucideIcons.utensils,
+  'restaurant': LucideIcons.utensils,
+  'grocery': LucideIcons.shoppingCart,
+  'shopping': LucideIcons.shoppingCart,
+  'transport': LucideIcons.car,
+  'fuel': LucideIcons.fuel,
+  'internet': LucideIcons.wifi,
+  'phone': LucideIcons.phone,
+  'water': LucideIcons.droplets,
+  'light': LucideIcons.zap,
+  'electric': LucideIcons.zap,
+  'health': LucideIcons.heart,
+  'medical': LucideIcons.stethoscope,
+  'education': LucideIcons.graduationCap,
+  'movie': LucideIcons.film,
+  'game': LucideIcons.gamepad2,
+  'gift': LucideIcons.gift,
 };

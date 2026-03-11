@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
+import '../../auth/auth_state.dart';
 import '../providers/wallet_providers.dart';
 import 'wallet_detail_sheet.dart';
 import 'add_wallet_sheet.dart';
@@ -17,45 +19,85 @@ class WalletScreen extends ConsumerStatefulWidget {
 }
 
 class _WalletScreenState extends ConsumerState<WalletScreen> {
-  String _fmt(double val) =>
-      "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
+  String _fmt(double val, {String currency = 'DOP'}) {
+    final prefix = currency == 'USD' ? 'US\$' : 'RD\$';
+    final amount = val.abs().toInt().toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+    return '$prefix$amount';
+  }
 
-  void _openAddWallet(BuildContext context) {
+  String _fmtAggregate(double val, Iterable<String> currencies) {
+    final unique = currencies.toSet();
+    if (unique.isEmpty) {
+      return _fmt(0);
+    }
+    if (unique.length != 1) {
+      return 'Multimoneda';
+    }
+    final label = _fmt(val, currency: unique.first);
+    return val < 0 ? '-$label' : label;
+  }
+
+  Future<void> _openAddWallet(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
-    showModalBottomSheet(
+    final result = await showModalBottomSheet<WalletAccount>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const AddWalletSheet(),
-    ).then((result) {
-      if (result is WalletAccount) {
-        ref.read(walletNotifierProvider.notifier).addWallet(result);
-        messenger.showSnackBar(
-          SnackBar(
-            content: const Text(
-              'Cuenta agregada',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            backgroundColor: AppColors.e6,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+    );
+
+    if (result is! WalletAccount) return;
+
+    try {
+      await ref.read(walletNotifierProvider.notifier).addWallet(result);
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Cuenta agregada',
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
-        );
-      }
-    });
+          backgroundColor: AppColors.e6,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  void _showWalletError(BuildContext context, Object error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error.toString()),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final walletAsync = ref.watch(walletNotifierProvider);
+    final wallets = ref.watch(effectiveWalletsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.g0,
       body: walletAsync.when(
-        loading: () => _buildContent(context, mockWallets, isLoading: true),
-        error: (e, _) => _buildContent(context, mockWallets),
+        loading: () => _buildContent(context, wallets, isLoading: true),
+        error: (e, _) =>
+            _buildContent(context, wallets, errorMessage: e.toString()),
         data: (wallets) => _buildContent(context, wallets),
       ),
     );
@@ -65,6 +107,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     BuildContext context,
     List<WalletAccount> wallets, {
     bool isLoading = false,
+    String? errorMessage,
   }) {
     final double net = wallets.fold(0, (s, w) => s + w.saldo);
     final double activos = wallets
@@ -73,6 +116,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final double deudas = wallets
         .where((w) => w.saldo < 0)
         .fold(0, (s, w) => s + w.saldo);
+    final allCurrencies = wallets.map((wallet) => wallet.moneda);
 
     final groups = {
       "cuentas": _WalletGroup(
@@ -149,7 +193,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Patrimonio Neto Card
-                _buildNetWorthCard(net, activos, deudas)
+                _buildNetWorthCard(net, activos, deudas, allCurrencies)
                     .animate()
                     .fadeIn(duration: 500.ms)
                     .slideY(begin: 0.1, end: 0, curve: Curves.easeOutBack),
@@ -163,8 +207,58 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                       child: CircularProgressIndicator(),
                     ),
                   )
+                else if (errorMessage != null)
+                  Builder(
+                    builder: (context) {
+                      final unauthorized =
+                          errorMessage.contains('[401]') ||
+                          errorMessage.contains('[403]');
+                      return Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 18),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.r1,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: AppColors.r5.withValues(alpha: 0.18),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              errorMessage,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.r5,
+                              ),
+                            ),
+                            if (unauthorized) ...[
+                              const SizedBox(height: 12),
+                              FilledButton(
+                                onPressed: () async {
+                                  await ref
+                                      .read(authProvider.notifier)
+                                      .logout();
+                                  if (!context.mounted) return;
+                                  context.go('/login');
+                                },
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppColors.e8,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Cerrar sesión'),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  )
                 else if (wallets.isEmpty)
-                  _buildEmptyState()
+                  _buildEmptyState(context)
                 else
                   ...groups.entries.map((groupEntry) {
                     final tipoKey = groupEntry.key;
@@ -178,13 +272,18 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                       0,
                       (s, w) => s + w.saldo.abs(),
                     );
+                    final totalLabel = _fmtAggregate(
+                      total,
+                      items.map((wallet) => wallet.moneda),
+                    );
 
                     return _WalletGroupSection(
                           group: g,
                           items: items,
-                          total: total,
+                          totalLabel: totalLabel,
                           isDeuda: tipoKey == 'deudas',
                           fmt: _fmt,
+                          onError: (error) => _showWalletError(context, error),
                         )
                         .animate()
                         .fadeIn(duration: 500.ms, delay: 200.ms)
@@ -199,7 +298,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     );
   }
 
-  Widget _buildNetWorthCard(double net, double activos, double deudas) {
+  Widget _buildNetWorthCard(
+    double net,
+    double activos,
+    double deudas,
+    Iterable<String> currencies,
+  ) {
+    final netLabel = _fmtAggregate(net, currencies);
+    final activosLabel = _fmtAggregate(activos, currencies);
+    final deudaLabel = _fmtAggregate(deudas.abs(), currencies);
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -227,7 +335,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            _fmt(net),
+            netLabel,
             style: const TextStyle(
               fontSize: 40,
               fontWeight: FontWeight.w900,
@@ -240,13 +348,13 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             children: [
               _SummaryStat(
                 label: "ACTIVOS",
-                value: _fmt(activos),
+                value: activosLabel,
                 color: const Color(0xFF6EE7B7),
               ),
               const SizedBox(width: 32),
               _SummaryStat(
                 label: "DEUDAS",
-                value: _fmt(deudas.abs()),
+                value: deudaLabel,
                 color: const Color(0xFFFCA5A5),
               ),
             ],
@@ -256,7 +364,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.only(top: 60),
@@ -288,6 +396,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             const Text(
               "Agrega tus cuentas bancarias o de efectivo",
               style: TextStyle(fontSize: 14, color: AppColors.g5),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: () => _openAddWallet(context),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.o5,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Crear primera cuenta'),
             ),
           ],
         ),
@@ -338,16 +455,18 @@ class _SummaryStat extends StatelessWidget {
 class _WalletGroupSection extends StatelessWidget {
   final _WalletGroup group;
   final List<WalletAccount> items;
-  final double total;
+  final String totalLabel;
   final bool isDeuda;
-  final String Function(double) fmt;
+  final String Function(double, {String currency}) fmt;
+  final void Function(Object error) onError;
 
   const _WalletGroupSection({
     required this.group,
     required this.items,
-    required this.total,
+    required this.totalLabel,
     required this.isDeuda,
     required this.fmt,
+    required this.onError,
   });
 
   @override
@@ -395,7 +514,9 @@ class _WalletGroupSection extends StatelessWidget {
                 ],
               ),
               Text(
-                "${isDeuda ? '-' : ''}${fmt(total)}",
+                isDeuda && totalLabel != 'Multimoneda'
+                    ? '-$totalLabel'
+                    : totalLabel,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
@@ -424,7 +545,8 @@ class _WalletGroupSection extends StatelessWidget {
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (_) => WalletDetailSheet(wallet: w),
+                      builder: (_) =>
+                          WalletDetailSheet(wallet: w, onError: onError),
                     );
                   },
                 );
@@ -439,7 +561,7 @@ class _WalletGroupSection extends StatelessWidget {
 
 class _WalletTile extends StatelessWidget {
   final WalletAccount wallet;
-  final String Function(double) fmt;
+  final String Function(double, {String currency}) fmt;
   final bool isLast;
   final VoidCallback onTap;
 
@@ -500,7 +622,9 @@ class _WalletTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  fmt(wallet.saldo),
+                  wallet.saldo < 0
+                      ? '-${fmt(wallet.saldo, currency: wallet.moneda)}'
+                      : fmt(wallet.saldo, currency: wallet.moneda),
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w900,

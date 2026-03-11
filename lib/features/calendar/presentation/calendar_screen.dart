@@ -2,31 +2,56 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
+import '../../transactions/providers/transaction_providers.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
 
-class CalendarScreen extends StatefulWidget {
+class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
 
   @override
-  State<CalendarScreen> createState() => _CalendarScreenState();
+  ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
 }
 
-class _CalendarScreenState extends State<CalendarScreen> {
-  int _selectedDay = 7; // Assuming 7 is "today" for the mockup
+class _CalendarScreenState extends ConsumerState<CalendarScreen> {
+  int _selectedDay = DateTime.now().day;
 
   String _fmt(double val) =>
       "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
 
+  String _monthName(int month) {
+    const months = [
+      '',
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+    return months[month.clamp(0, 12)];
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Process mock data
+    final txns = ref.watch(selectedBudgetPeriodTransactionsProvider);
+    final now = DateTime.now();
+
     final Map<int, double> gastoPorDia = {};
-    for (var t in mockTxns) {
+    for (final t in txns) {
       if (t.tipo != "gasto") continue;
-      final int d = int.parse(t.dateString.split("-")[2]);
+      final date = DateTime.tryParse(t.dateString);
+      if (date == null) continue;
+      final d = date.day;
       gastoPorDia[d] = (gastoPorDia[d] ?? 0) + (t.monto).abs();
     }
 
@@ -37,8 +62,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final double totalGasto = gastoPorDia.values.fold(0, (s, v) => s + v);
 
     // Day txns
-    final List<MenudoTransaction> dayTxns = mockTxns
-        .where((t) => int.parse(t.dateString.split("-")[2]) == _selectedDay)
+    final List<MenudoTransaction> dayTxns = txns
+        .where((t) => DateTime.tryParse(t.dateString)?.day == _selectedDay)
         .toList();
     final double dayTotal = dayTxns
         .where((t) => t.tipo == "gasto")
@@ -72,7 +97,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
               background: Container(color: Colors.white),
             ),
-            actions: [_MonthSelector()],
+            actions: [
+              _MonthSelector(label: '${_monthName(now.month)} ${now.year}'),
+            ],
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -109,6 +136,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   _DayHeader(
                     selectedDay: _selectedDay,
                     dayTotal: dayTotal,
+                    monthLabel: _monthName(now.month),
                     fmt: _fmt,
                   ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
 
@@ -131,6 +159,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
 }
 
 class _MonthSelector extends StatelessWidget {
+  final String label;
+
+  const _MonthSelector({required this.label});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -144,8 +176,8 @@ class _MonthSelector extends StatelessWidget {
         children: [
           Icon(LucideIcons.chevronLeft, size: 14, color: AppColors.g4),
           const SizedBox(width: 8),
-          const Text(
-            "Marzo 2026",
+          Text(
+            label,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -423,11 +455,13 @@ class _HeatmapLegend extends StatelessWidget {
 class _DayHeader extends StatelessWidget {
   final int selectedDay;
   final double dayTotal;
+  final String monthLabel;
   final String Function(double) fmt;
 
   const _DayHeader({
     required this.selectedDay,
     required this.dayTotal,
+    required this.monthLabel,
     required this.fmt,
   });
 
@@ -437,7 +471,7 @@ class _DayHeader extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          "$selectedDay de Marzo",
+          "$selectedDay de $monthLabel",
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w900,

@@ -9,6 +9,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../shared/widgets/menudo_chip.dart';
 import '../../../../shared/widgets/menudo_gauge.dart';
+import '../../categories/providers/category_providers.dart';
+import 'wizard/create_budget_wizard.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
 
 class BudgetDetailSheet extends ConsumerStatefulWidget {
@@ -26,8 +28,26 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   String _fmt(double val) =>
       "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
 
+  Future<void> _openBudgetEditor() async {
+    HapticFeedback.lightImpact();
+    final navigator = Navigator.of(context);
+    final updated = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => CreateBudgetWizard(initialBudget: widget.budget),
+    );
+    if (updated == true && mounted) {
+      navigator.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final categories = ref.watch(effectiveCategoriesProvider);
+    final categoriesById = <int, MenudoCategory>{
+      for (final category in categories) category.id: category,
+    };
     final double spent = widget.budget.cats.values.fold(
       0,
       (sum, c) => sum + c.gastado,
@@ -69,22 +89,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                   children: [
                     _HeaderAction(
                       icon: LucideIcons.pencil,
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text(
-                              'Editando presupuesto...',
-                              style: TextStyle(fontWeight: FontWeight.w700),
-                            ),
-                            backgroundColor: AppColors.e6,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        );
-                      },
+                      onTap: _openBudgetEditor,
                     ),
                     Expanded(
                       child: Column(
@@ -165,12 +170,13 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
               children: [
+                _buildEditBudgetButton(),
                 if (_tab == "resumen") ...[
                   _buildSummaryMetrics(spent, left),
                   if (isShared) _buildSharedSpaceSection(spent),
-                  _buildCategoriesSection(),
+                  _buildCategoriesSection(categoriesById),
                 ],
-                if (_tab == "plan") _buildPlanTab(),
+                if (_tab == "plan") _buildPlanTab(categoriesById),
                 if (_tab == "insights") _buildInsightsTab(),
               ],
             ),
@@ -178,6 +184,16 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         ],
       ),
     );
+  }
+
+  Widget _buildEditBudgetButton() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: _SmallActionButton(
+        label: 'Editar presupuesto',
+        onTap: _openBudgetEditor,
+      ),
+    ).animate().fadeIn(duration: 300.ms);
   }
 
   Widget _buildSummaryMetrics(double spent, double left) {
@@ -299,7 +315,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     );
   }
 
-  Widget _buildCategoriesSection() {
+  Widget _buildCategoriesSection(Map<int, MenudoCategory> categoriesById) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -316,17 +332,21 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
           ),
         ),
         ...widget.budget.cats.values.toList().asMap().entries.map((entry) {
-          return _CategoryDetailCard(cat: entry.value, fmt: _fmt)
+          return _CategoryDetailCard(
+                cat: entry.value,
+                parentLabel: _parentLabelForExpense(
+                  entry.value,
+                  categoriesById,
+                ),
+                fmt: _fmt,
+              )
               .animate()
               .fadeIn(duration: 400.ms, delay: (entry.key * 50).ms)
               .slideX(begin: 0.05, end: 0);
         }),
         const SizedBox(height: 8),
         GestureDetector(
-          onTap: () {
-            HapticFeedback.mediumImpact();
-            // Trigger category addition flow
-          },
+          onTap: _openBudgetEditor,
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
@@ -359,24 +379,81 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     );
   }
 
-  Widget _buildPlanTab() {
+  Widget _buildPlanTab(Map<int, MenudoCategory> categoriesById) {
+    final incomeSources = [...widget.budget.incomeSources]
+      ..sort((a, b) {
+        final parentCompare = _parentLabelForIncome(
+          a,
+          categoriesById,
+        ).compareTo(_parentLabelForIncome(b, categoriesById));
+        if (parentCompare != 0) return parentCompare;
+        return a.label.compareTo(b.label);
+      });
+    final expenseCategories = [...widget.budget.cats.values]
+      ..sort((a, b) {
+        final parentCompare = _parentLabelForExpense(
+          a,
+          categoriesById,
+        ).compareTo(_parentLabelForExpense(b, categoriesById));
+        if (parentCompare != 0) return parentCompare;
+        return a.label.compareTo(b.label);
+      });
+    final actualIncomeTotal = incomeSources.fold<double>(
+      0,
+      (sum, source) => sum + source.actual,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _PlanSummaryHeader(
-          total: _fmt(widget.budget.ingresos),
+          plannedTotal: _fmt(widget.budget.ingresos),
+          actualTotal: _fmt(actualIncomeTotal),
           savings: _fmt(widget.budget.ahorroObjetivo),
         ),
         const SizedBox(height: 20),
-        ...widget.budget.cats.values.map(
+        if (incomeSources.isNotEmpty) ...[
+          const _BudgetSectionTitle(title: 'Ingresos planeados vs reales'),
+          const SizedBox(height: 10),
+          ...incomeSources.map(
+            (source) => _IncomePlanRow(
+              source: source,
+              parentLabel: _parentLabelForIncome(source, categoriesById),
+              fmt: _fmt,
+            ),
+          ),
+          const SizedBox(height: 18),
+        ],
+        const _BudgetSectionTitle(title: 'Limites por categoria'),
+        const SizedBox(height: 10),
+        ...expenseCategories.map(
           (cat) => _PlanCategoryRow(
             cat: cat,
+            parentLabel: _parentLabelForExpense(cat, categoriesById),
             budgetTotal: widget.budget.ingresos,
             fmt: _fmt,
           ),
         ),
       ],
     ).animate().fadeIn(duration: 400.ms);
+  }
+
+  String _parentLabelForExpense(
+    BudgetCategory category,
+    Map<int, MenudoCategory> categoriesById,
+  ) {
+    final parentId = category.parentCategoryId;
+    if (parentId == null) return '';
+    return categoriesById[parentId]?.nombre ?? '';
+  }
+
+  String _parentLabelForIncome(
+    BudgetIncomeSource source,
+    Map<int, MenudoCategory> categoriesById,
+  ) {
+    final parentId = source.parentCategoryId;
+    if (parentId == null) return '';
+    return categoriesById[parentId]?.nombre ?? '';
   }
 
   Widget _buildInsightsTab() {
@@ -681,9 +758,14 @@ class _MemberRow extends StatelessWidget {
 
 class _CategoryDetailCard extends StatelessWidget {
   final BudgetCategory cat;
+  final String parentLabel;
   final String Function(double) fmt;
 
-  const _CategoryDetailCard({required this.cat, required this.fmt});
+  const _CategoryDetailCard({
+    required this.cat,
+    required this.parentLabel,
+    required this.fmt,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -722,6 +804,16 @@ class _CategoryDetailCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (parentLabel.isNotEmpty)
+                      Text(
+                        parentLabel.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.g4,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
                     Text(
                       cat.label,
                       style: const TextStyle(
@@ -793,9 +885,13 @@ class _CategoryDetailCard extends StatelessWidget {
 }
 
 class _PlanSummaryHeader extends StatelessWidget {
-  final String total, savings;
+  final String plannedTotal, actualTotal, savings;
 
-  const _PlanSummaryHeader({required this.total, required this.savings});
+  const _PlanSummaryHeader({
+    required this.plannedTotal,
+    required this.actualTotal,
+    required this.savings,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -821,7 +917,7 @@ class _PlanSummaryHeader extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  total,
+                  plannedTotal,
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
@@ -831,6 +927,38 @@ class _PlanSummaryHeader extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 20),
+          Container(
+            width: 1,
+            height: 40,
+            color: Colors.white.withValues(alpha: 0.1),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "INGRESO ACTUAL",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white.withValues(alpha: 0.5),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                Text(
+                  actualTotal,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF6EE7B7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 20),
           Container(
             width: 1,
             height: 40,
@@ -869,11 +997,13 @@ class _PlanSummaryHeader extends StatelessWidget {
 
 class _PlanCategoryRow extends StatelessWidget {
   final BudgetCategory cat;
+  final String parentLabel;
   final double budgetTotal;
   final String Function(double) fmt;
 
   const _PlanCategoryRow({
     required this.cat,
+    required this.parentLabel,
     required this.budgetTotal,
     required this.fmt,
   });
@@ -906,6 +1036,16 @@ class _PlanCategoryRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (parentLabel.isNotEmpty)
+                  Text(
+                    parentLabel.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.g4,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 Text(
                   cat.label,
                   style: const TextStyle(
@@ -922,6 +1062,17 @@ class _PlanCategoryRow extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                const SizedBox(height: 2),
+                Text(
+                  'Planeado ${fmt(cat.limite)} · Actual ${fmt(cat.gastado)}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: cat.gastado > cat.limite
+                        ? AppColors.r5
+                        : AppColors.e6,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
           ),
@@ -934,6 +1085,121 @@ class _PlanCategoryRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _IncomePlanRow extends StatelessWidget {
+  const _IncomePlanRow({
+    required this.source,
+    required this.parentLabel,
+    required this.fmt,
+  });
+
+  final BudgetIncomeSource source;
+  final String parentLabel;
+  final String Function(double) fmt;
+
+  @override
+  Widget build(BuildContext context) {
+    final isPositive = source.difference >= 0;
+    final accent = isPositive ? AppColors.e6 : AppColors.r5;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.g2),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: source.color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(source.icono, size: 18, color: source.color),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (parentLabel.isNotEmpty)
+                  Text(
+                    parentLabel.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.g4,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                Text(
+                  source.label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.e8,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Planeado ${fmt(source.planned)} · Actual ${fmt(source.actual)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.g4,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              isPositive
+                  ? '+${fmt(source.difference.abs())}'
+                  : '-${fmt(source.difference.abs())}',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: accent,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BudgetSectionTitle extends StatelessWidget {
+  const _BudgetSectionTitle({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 2),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w900,
+          color: AppColors.e8,
+          letterSpacing: -0.3,
+        ),
       ),
     );
   }

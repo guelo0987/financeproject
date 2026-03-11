@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class AppEnv {
@@ -25,8 +26,29 @@ class AppEnv {
     _loaded = true;
   }
 
-  static String get apiBaseUrl =>
-      _values['API_BASE_URL'] ?? 'http://localhost:3000';
+  static String get apiBaseUrl {
+    final baseUrl = switch (defaultTargetPlatform) {
+      TargetPlatform.android =>
+        _values['API_BASE_URL_ANDROID'] ?? _values['API_BASE_URL'],
+      TargetPlatform.iOS => _values['API_BASE_URL_IOS'] ?? _values['API_BASE_URL'],
+      TargetPlatform.macOS =>
+        _values['API_BASE_URL_MACOS'] ?? _values['API_BASE_URL'],
+      TargetPlatform.windows =>
+        _values['API_BASE_URL_WINDOWS'] ?? _values['API_BASE_URL'],
+      TargetPlatform.linux =>
+        _values['API_BASE_URL_LINUX'] ?? _values['API_BASE_URL'],
+      _ => _values['API_BASE_URL'],
+    };
+
+    final resolved = baseUrl ?? 'http://localhost:3000';
+    final uri = Uri.parse(resolved);
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        (uri.host == 'localhost' || uri.host == '127.0.0.1')) {
+      return uri.replace(host: '10.0.2.2').toString();
+    }
+
+    return resolved;
+  }
 
   static Duration get timeout {
     final seconds = int.tryParse(_values['API_TIMEOUT_SECONDS'] ?? '');

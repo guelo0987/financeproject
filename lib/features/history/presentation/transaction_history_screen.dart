@@ -69,17 +69,9 @@ class _TransactionHistoryScreenState
 
   @override
   Widget build(BuildContext context) {
-    final txns = ref.watch(transactionNotifierProvider).valueOrNull ?? mockTxns;
-    final wallets =
-        ref.watch(walletNotifierProvider).valueOrNull ?? mockWallets;
-    final budgets =
-        ref.watch(budgetNotifierProvider).valueOrNull ?? mockBudgets;
-    final selectedIdx = ref
-        .watch(selectedBudgetIdxProvider)
-        .clamp(0, budgets.isEmpty ? 0 : budgets.length - 1);
-    final activeBudget = budgets.isNotEmpty
-        ? budgets[selectedIdx]
-        : mockBudgets.first;
+    final txns = ref.watch(effectiveTransactionsProvider);
+    final wallets = ref.watch(effectiveWalletsProvider);
+    final activeBudget = ref.watch(selectedBudgetProvider);
 
     final filtered = _filtered(txns);
     final grouped = _grouped(filtered);
@@ -168,7 +160,7 @@ class _TransactionHistoryScreenState
               ),
             ),
           ),
-          if (grouped.isEmpty)
+          if (grouped.isEmpty || activeBudget == null)
             SliverFillRemaining(child: _buildEmptyState())
           else
             SliverPadding(
