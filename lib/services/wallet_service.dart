@@ -23,6 +23,10 @@ class WalletService {
   Future<void> deleteWallet(int walletId) {
     return _repository.deleteWallet(walletId);
   }
+
+  Future<void> setDefaultWallet(int walletId) {
+    return _repository.setDefaultWallet(walletId);
+  }
 }
 
 final walletServiceProvider = Provider<WalletService>((ref) {

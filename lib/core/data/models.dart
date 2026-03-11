@@ -17,6 +17,8 @@ class WalletAccount {
   final Color color;
   final IconData icono;
   final String moneda;
+  final bool esDefault;
+  final bool incluirEnPatrimonio;
 
   const WalletAccount({
     required this.id,
@@ -26,6 +28,8 @@ class WalletAccount {
     required this.color,
     required this.icono,
     this.moneda = 'DOP',
+    this.esDefault = false,
+    this.incluirEnPatrimonio = true,
   });
 
   factory WalletAccount.fromJson(Map<String, dynamic> json) {
@@ -39,6 +43,32 @@ class WalletAccount {
       color: colorFromHex(json['color_hex'] as String? ?? '#4F46E5'),
       icono: iconFromKey(json['icono'] as String? ?? 'landmark'),
       moneda: json['moneda'] as String? ?? 'DOP',
+      esDefault: json['es_default'] as bool? ?? false,
+      incluirEnPatrimonio: json['incluir_en_patrimonio'] as bool? ?? true,
+    );
+  }
+
+  WalletAccount copyWith({
+    int? id,
+    String? nombre,
+    String? tipo,
+    double? saldo,
+    Color? color,
+    IconData? icono,
+    String? moneda,
+    bool? esDefault,
+    bool? incluirEnPatrimonio,
+  }) {
+    return WalletAccount(
+      id: id ?? this.id,
+      nombre: nombre ?? this.nombre,
+      tipo: tipo ?? this.tipo,
+      saldo: saldo ?? this.saldo,
+      color: color ?? this.color,
+      icono: icono ?? this.icono,
+      moneda: moneda ?? this.moneda,
+      esDefault: esDefault ?? this.esDefault,
+      incluirEnPatrimonio: incluirEnPatrimonio ?? this.incluirEnPatrimonio,
     );
   }
 
@@ -50,6 +80,8 @@ class WalletAccount {
       'color_hex': colorToHex(color),
       'icono': iconToKey(icono),
       'moneda': moneda,
+      'es_default': esDefault,
+      'incluir_en_patrimonio': incluirEnPatrimonio,
     };
   }
 }
@@ -500,6 +532,7 @@ final List<WalletAccount> mockWallets = [
     color: AppColors.b5,
     icono: LucideIcons.landmark,
     moneda: 'DOP',
+    esDefault: true,
   ),
   const WalletAccount(
     id: 2,

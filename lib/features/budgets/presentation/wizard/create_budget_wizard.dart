@@ -380,9 +380,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               label: _isSaving
                   ? (_isEditing ? "GUARDANDO..." : "CREANDO...")
                   : _step == 5
-                  ? (_isEditing
-                        ? "Guardar presupuesto"
-                        : "🎉 Crear presupuesto")
+                  ? (_isEditing ? "Guardar presupuesto" : "Crear presupuesto")
                   : "Siguiente \u2192", // right arrow
               isFullWidth: true,
               isDisabled: !_canNext() || _isSaving,
@@ -1179,6 +1177,51 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
     );
   }
 
+  Widget _buildStepHeading({
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBackgroundColor,
+    required String title,
+    required String subtitle,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: iconBackgroundColor,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, color: iconColor, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.e8,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 14, color: AppColors.g4),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildStep4() {
     final profile = ref.watch(authProvider).profile;
     final currentUserName = profile?.name.isNotEmpty == true
@@ -1194,18 +1237,12 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "👥 Miembros",
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            color: AppColors.e8,
-          ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          "Invita hasta 3 personas (máximo 4 contigo).",
-          style: TextStyle(fontSize: 14, color: AppColors.g4),
+        _buildStepHeading(
+          icon: Icons.groups_rounded,
+          iconColor: AppColors.e8,
+          iconBackgroundColor: AppColors.e1,
+          title: "Miembros",
+          subtitle: "Invita hasta 3 personas (máximo 4 contigo).",
         ),
         const SizedBox(height: 20),
 
@@ -1441,18 +1478,12 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "✅ Resumen",
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            color: AppColors.e8,
-          ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          "Todo listo. Revisa antes de crear.",
-          style: TextStyle(fontSize: 14, color: AppColors.g4),
+        _buildStepHeading(
+          icon: Icons.task_alt_rounded,
+          iconColor: AppColors.o5,
+          iconBackgroundColor: AppColors.o1,
+          title: "Resumen",
+          subtitle: "Todo listo. Revisa antes de crear.",
         ),
         const SizedBox(height: 20),
 

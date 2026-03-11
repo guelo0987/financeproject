@@ -42,6 +42,10 @@ class WalletRepository {
     await _api.delete<void>(ApiPaths.walletById(walletId));
   }
 
+  Future<void> setDefaultWallet(int walletId) async {
+    await _api.patch<void>(ApiPaths.setDefaultWallet(walletId));
+  }
+
   Map<String, dynamic> _walletBody(WalletAccount wallet) {
     return {
       'nombre': wallet.nombre,
@@ -50,6 +54,7 @@ class WalletRepository {
       'moneda': wallet.moneda,
       'color_hex': colorToHex(wallet.color),
       'icono': iconToKey(wallet.icono),
+      'incluir_en_patrimonio': wallet.incluirEnPatrimonio,
     };
   }
 
@@ -66,6 +71,8 @@ class WalletRepository {
       'color_hex': row['color_hex'],
       'icono': row['icono'],
       'moneda': row['moneda'],
+      'es_default': row['es_default'],
+      'incluir_en_patrimonio': row['incluir_en_patrimonio'],
     });
   }
 

@@ -252,11 +252,106 @@ class _RegisterTransactionSheetState
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  WalletAccount? _findWallet(int? id, List<WalletAccount> wallets) {
+    if (id == null) return null;
+    for (final wallet in wallets) {
+      if (wallet.id == id) return wallet;
+    }
+    return null;
+  }
+
   String _accountName(int? id, List<WalletAccount> wallets) {
     if (id == null) return "Seleccionar";
     final fallback = wallets.isNotEmpty ? wallets.first : null;
-    final wallet = wallets.where((wallet) => wallet.id == id).firstOrNull;
+    final wallet = _findWallet(id, wallets);
     return wallet?.nombre ?? fallback?.nombre ?? "Seleccionar";
+  }
+
+  Widget _buildTransferContextCard(List<WalletAccount> wallets) {
+    final fromWallet = _findWallet(_fromAccountId, wallets);
+    final toWallet = _findWallet(_toAccountId, wallets);
+
+    IconData icon = LucideIcons.arrowLeftRight;
+    Color accent = AppColors.b5;
+    String title = 'Transferencia entre wallets';
+    String subtitle =
+        'Mueve dinero entre cuentas, tarjetas y deudas según tu flujo real.';
+
+    if (fromWallet != null && toWallet != null) {
+      if (fromWallet.tipo == 'deudas' && toWallet.tipo != 'deudas') {
+        icon = LucideIcons.arrowDownToLine;
+        accent = AppColors.r5;
+        title = 'Tomando dinero prestado';
+        subtitle =
+            'El monto entra en ${toWallet.nombre} y aumenta lo que debes en ${fromWallet.nombre}.';
+      } else if (toWallet.tipo == 'deudas' && fromWallet.tipo != 'deudas') {
+        icon = LucideIcons.badgeDollarSign;
+        accent = AppColors.e6;
+        title = 'Abonando a una deuda';
+        subtitle =
+            'El monto sale de ${fromWallet.nombre} y reduce lo que debes en ${toWallet.nombre}.';
+      } else if (toWallet.tipo == 'deudas' && fromWallet.tipo == 'deudas') {
+        icon = LucideIcons.scale;
+        accent = AppColors.p5;
+        title = 'Movimiento entre deudas';
+        subtitle =
+            'Esta transferencia cambia dónde queda registrada la obligación.';
+      } else {
+        title = 'Movimiento entre wallets';
+        subtitle =
+            'El dinero sale de ${fromWallet.nombre} y entra en ${toWallet.nombre}.';
+      }
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: 0.18), width: 1.4),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 18, color: accent),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: accent,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.g5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickCategory() async {
@@ -424,6 +519,7 @@ class _RegisterTransactionSheetState
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
+                if (isTransfer) _buildTransferContextCard(wallets),
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -785,9 +881,14 @@ class _AccountPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visibleAccounts = accounts
-        .where((wallet) => wallet.id != excludeId)
-        .toList();
+    final visibleAccounts =
+        accounts.where((wallet) => wallet.id != excludeId).toList()
+          ..sort((a, b) {
+            if (a.esDefault != b.esDefault) {
+              return a.esDefault ? -1 : 1;
+            }
+            return a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase());
+          });
 
     return Container(
       decoration: const BoxDecoration(
@@ -838,16 +939,95 @@ class _AccountPickerSheet extends StatelessWidget {
                           : wallet.color,
                     ),
                     const SizedBox(width: 16),
-                    Text(
-                      wallet.nombre,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: wallet.id == selectedId
-                            ? Colors.white
-                            : AppColors.e8,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  wallet.nombre,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: wallet.id == selectedId
+                                        ? Colors.white
+                                        : AppColors.e8,
+                                  ),
+                                ),
+                              ),
+                              if (wallet.esDefault) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: wallet.id == selectedId
+                                        ? Colors.white.withValues(alpha: 0.16)
+                                        : AppColors.e1,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    'PRINCIPAL',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                      color: wallet.id == selectedId
+                                          ? Colors.white
+                                          : AppColors.e8,
+                                      letterSpacing: 0.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            wallet.tipo == 'deudas'
+                                ? 'Deuda o prestamo'
+                                : wallet.tipo == 'gastos'
+                                ? 'Tarjeta o efectivo'
+                                : 'Cuenta bancaria o ahorro',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: wallet.id == selectedId
+                                  ? Colors.white.withValues(alpha: 0.76)
+                                  : AppColors.g4,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const Spacer(),
+                    if (wallet.tipo == 'deudas' && wallet.id != selectedId)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.r1,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Text(
+                            'DEUDA',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.r5,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        ),
+                      ),
                     if (wallet.id == selectedId)
                       const Icon(
                         LucideIcons.check,

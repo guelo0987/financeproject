@@ -4,8 +4,6 @@ import '../features/auth/auth_state.dart';
 import '../model/models.dart';
 import '../services/wallet_service.dart';
 
-final defaultWalletIdProvider = StateProvider<int?>((ref) => null);
-
 class WalletController extends AsyncNotifier<List<WalletAccount>> {
   int _uid() {
     final uid = ref.read(authProvider).userId;
@@ -30,9 +28,6 @@ class WalletController extends AsyncNotifier<List<WalletAccount>> {
       final wallets = await ref
           .read(walletServiceProvider)
           .fetchWallets(userId);
-      if (ref.read(defaultWalletIdProvider) == null && wallets.isNotEmpty) {
-        ref.read(defaultWalletIdProvider.notifier).state = createdWallet.id;
-      }
       state = AsyncValue.data(wallets);
       return createdWallet;
     } catch (error, stackTrace) {
@@ -63,18 +58,28 @@ class WalletController extends AsyncNotifier<List<WalletAccount>> {
   Future<void> removeWallet(int walletId) async {
     final userId = _uid();
     if (userId == 0) return;
-    final currentDefault = ref.read(defaultWalletIdProvider);
     state = const AsyncValue.loading();
     try {
       await ref.read(walletServiceProvider).deleteWallet(walletId);
       final wallets = await ref
           .read(walletServiceProvider)
           .fetchWallets(userId);
-      if (currentDefault == walletId) {
-        ref.read(defaultWalletIdProvider.notifier).state = wallets.isEmpty
-            ? null
-            : wallets.first.id;
-      }
+      state = AsyncValue.data(wallets);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<void> setDefaultWallet(int walletId) async {
+    final userId = _uid();
+    if (userId == 0) return;
+    state = const AsyncValue.loading();
+    try {
+      await ref.read(walletServiceProvider).setDefaultWallet(walletId);
+      final wallets = await ref
+          .read(walletServiceProvider)
+          .fetchWallets(userId);
       state = AsyncValue.data(wallets);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);

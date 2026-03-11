@@ -109,14 +109,21 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     bool isLoading = false,
     String? errorMessage,
   }) {
-    final double net = wallets.fold(0, (s, w) => s + w.saldo);
-    final double activos = wallets
+    final patrimonioWallets = wallets
+        .where((wallet) => wallet.incluirEnPatrimonio)
+        .toList(growable: false);
+    final excludedWallets = wallets
+        .where((wallet) => !wallet.incluirEnPatrimonio)
+        .toList(growable: false);
+
+    final double net = patrimonioWallets.fold(0, (s, w) => s + w.saldo);
+    final double activos = patrimonioWallets
         .where((w) => w.saldo > 0)
         .fold(0, (s, w) => s + w.saldo);
-    final double deudas = wallets
+    final double deudas = patrimonioWallets
         .where((w) => w.saldo < 0)
         .fold(0, (s, w) => s + w.saldo);
-    final allCurrencies = wallets.map((wallet) => wallet.moneda);
+    final allCurrencies = patrimonioWallets.map((wallet) => wallet.moneda);
 
     final groups = {
       "cuentas": _WalletGroup(
@@ -128,13 +135,13 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       "gastos": _WalletGroup(
         icon: LucideIcons.creditCard,
         label: "Gastos",
-        sub: "Efectivo y día a día",
+        sub: "Tarjetas y dinero de uso diario",
         color: AppColors.b5,
       ),
       "deudas": _WalletGroup(
         icon: LucideIcons.alertCircle,
         label: "Deudas",
-        sub: "Préstamos y créditos",
+        sub: "Préstamos, hipotecas y otras deudas",
         color: AppColors.r5,
       ),
     };
@@ -193,7 +200,13 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Patrimonio Neto Card
-                _buildNetWorthCard(net, activos, deudas, allCurrencies)
+                _buildNetWorthCard(
+                      net,
+                      activos,
+                      deudas,
+                      allCurrencies,
+                      excludedCount: excludedWallets.length,
+                    )
                     .animate()
                     .fadeIn(duration: 500.ms)
                     .slideY(begin: 0.1, end: 0, curve: Curves.easeOutBack),
@@ -263,9 +276,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   ...groups.entries.map((groupEntry) {
                     final tipoKey = groupEntry.key;
                     final g = groupEntry.value;
-                    final items = wallets
-                        .where((w) => w.tipo == tipoKey)
-                        .toList();
+                    final items =
+                        wallets.where((w) => w.tipo == tipoKey).toList()
+                          ..sort((a, b) {
+                            if (a.esDefault != b.esDefault) {
+                              return a.esDefault ? -1 : 1;
+                            }
+                            return a.nombre.toLowerCase().compareTo(
+                              b.nombre.toLowerCase(),
+                            );
+                          });
                     if (items.isEmpty) return const SizedBox.shrink();
 
                     final double total = items.fold(
@@ -302,8 +322,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     double net,
     double activos,
     double deudas,
-    Iterable<String> currencies,
-  ) {
+    Iterable<String> currencies, {
+    int excludedCount = 0,
+  }) {
     final netLabel = _fmtAggregate(net, currencies);
     final activosLabel = _fmtAggregate(activos, currencies);
     final deudaLabel = _fmtAggregate(deudas.abs(), currencies);
@@ -359,6 +380,39 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               ),
             ],
           ),
+          if (excludedCount > 0) ...[
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    LucideIcons.info,
+                    size: 14,
+                    color: Color(0xFFDCFCE7),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      excludedCount == 1
+                          ? '1 wallet está fuera del patrimonio.'
+                          : '$excludedCount wallets están fuera del patrimonio.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withValues(alpha: 0.82),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -476,51 +530,64 @@ class _WalletGroupSection extends StatelessWidget {
       child: Column(
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: group.color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: group.color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(group.icon, size: 16, color: group.color),
                     ),
-                    child: Icon(group.icon, size: 16, color: group.color),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        group.label,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.e8,
-                          letterSpacing: -0.4,
-                        ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            group.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.e8,
+                              letterSpacing: -0.4,
+                            ),
+                          ),
+                          Text(
+                            group.sub,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.g4,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(
-                        group.sub,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.g4,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-              Text(
-                isDeuda && totalLabel != 'Multimoneda'
-                    ? '-$totalLabel'
-                    : totalLabel,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  color: isDeuda ? AppColors.r5 : AppColors.e8,
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  isDeuda && totalLabel != 'Multimoneda'
+                      ? '-$totalLabel'
+                      : totalLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: isDeuda ? AppColors.r5 : AppColors.e8,
+                  ),
                 ),
               ),
             ],
@@ -608,28 +675,91 @@ class _WalletTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        wallet.tipo.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: AppColors.g4,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
-                        ),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            wallet.tipo.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.g4,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          if (wallet.esDefault) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.e1,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: const Text(
+                                'PRINCIPAL',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.e8,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (!wallet.incluirEnPatrimonio)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.g1,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: const Text(
+                                'FUERA PATR.',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.g5,
+                                  letterSpacing: 0.35,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  wallet.saldo < 0
-                      ? '-${fmt(wallet.saldo, currency: wallet.moneda)}'
-                      : fmt(wallet.saldo, currency: wallet.moneda),
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                    color: wallet.saldo < 0 ? AppColors.r5 : AppColors.e8,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      wallet.saldo < 0
+                          ? '-${fmt(wallet.saldo, currency: wallet.moneda)}'
+                          : fmt(wallet.saldo, currency: wallet.moneda),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: wallet.saldo < 0 ? AppColors.r5 : AppColors.e8,
+                      ),
+                    ),
+                    if (wallet.esDefault)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 3),
+                        child: Icon(
+                          LucideIcons.star,
+                          size: 12,
+                          color: AppColors.o5,
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),

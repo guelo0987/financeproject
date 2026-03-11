@@ -23,10 +23,21 @@ class _DefaultWalletToggle extends ConsumerStatefulWidget {
 }
 
 class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
+  bool _isUpdating = false;
+
+  WalletAccount? _findWallet(List<WalletAccount> wallets) {
+    for (final wallet in wallets) {
+      if (wallet.id == widget.walletId) {
+        return wallet;
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final defaultId = ref.watch(defaultWalletIdProvider);
-    final isDefault = defaultId == widget.walletId;
+    final wallet = _findWallet(ref.watch(effectiveWalletsProvider));
+    final isDefault = wallet?.esDefault ?? false;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -44,7 +55,7 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.g1,
+                  color: isDefault ? AppColors.o1 : AppColors.g1,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -77,16 +88,48 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
                   ],
                 ),
               ),
-              Switch.adaptive(
-                value: isDefault,
-                activeThumbColor: AppColors.e8,
-                activeTrackColor: AppColors.e8.withValues(alpha: 0.35),
-                onChanged: (val) {
-                  HapticFeedback.mediumImpact();
-                  ref.read(defaultWalletIdProvider.notifier).state = val
-                      ? widget.walletId
-                      : null;
-                },
+              FilledButton(
+                onPressed: isDefault || _isUpdating
+                    ? null
+                    : () async {
+                        HapticFeedback.mediumImpact();
+                        setState(() => _isUpdating = true);
+                        try {
+                          await ref
+                              .read(walletNotifierProvider.notifier)
+                              .setDefaultWallet(widget.walletId);
+                        } catch (error) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(error.toString()),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        } finally {
+                          if (mounted) {
+                            setState(() => _isUpdating = false);
+                          }
+                        }
+                      },
+                style: FilledButton.styleFrom(
+                  backgroundColor: isDefault ? AppColors.e1 : AppColors.e8,
+                  foregroundColor: isDefault ? AppColors.e8 : Colors.white,
+                  disabledBackgroundColor: AppColors.e1,
+                  disabledForegroundColor: AppColors.e8,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  isDefault
+                      ? 'Principal'
+                      : _isUpdating
+                      ? 'Guardando...'
+                      : 'Marcar',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
               ),
             ],
           ),
@@ -116,6 +159,159 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
   }
 }
 
+class _NetWorthWalletToggle extends ConsumerStatefulWidget {
+  const _NetWorthWalletToggle({required this.walletId});
+
+  final int walletId;
+
+  @override
+  ConsumerState<_NetWorthWalletToggle> createState() =>
+      _NetWorthWalletToggleState();
+}
+
+class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
+  bool _isUpdating = false;
+
+  WalletAccount? _findWallet(List<WalletAccount> wallets) {
+    for (final wallet in wallets) {
+      if (wallet.id == widget.walletId) {
+        return wallet;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final wallet = _findWallet(ref.watch(effectiveWalletsProvider));
+    final isIncluded = wallet?.incluirEnPatrimonio ?? true;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isIncluded ? AppColors.e1 : AppColors.g2),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isIncluded ? AppColors.e1 : AppColors.g1,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  isIncluded
+                      ? Icons.pie_chart_rounded
+                      : Icons.remove_circle_outline_rounded,
+                  size: 18,
+                  color: isIncluded ? AppColors.e8 : AppColors.g5,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Incluir en patrimonio",
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.e8,
+                      ),
+                    ),
+                    Text(
+                      isIncluded
+                          ? "Esta wallet cuenta en el patrimonio neto."
+                          : "Esta wallet queda fuera del patrimonio neto.",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.g4,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              FilledButton(
+                onPressed: wallet == null || _isUpdating
+                    ? null
+                    : () async {
+                        HapticFeedback.mediumImpact();
+                        setState(() => _isUpdating = true);
+                        try {
+                          await ref
+                              .read(walletNotifierProvider.notifier)
+                              .updateWallet(
+                                wallet.copyWith(
+                                  incluirEnPatrimonio:
+                                      !wallet.incluirEnPatrimonio,
+                                ),
+                              );
+                        } catch (error) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(error.toString()),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        } finally {
+                          if (mounted) {
+                            setState(() => _isUpdating = false);
+                          }
+                        }
+                      },
+                style: FilledButton.styleFrom(
+                  backgroundColor: isIncluded ? AppColors.g1 : AppColors.e8,
+                  foregroundColor: isIncluded ? AppColors.g5 : Colors.white,
+                  disabledBackgroundColor: AppColors.g1,
+                  disabledForegroundColor: AppColors.g4,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  _isUpdating
+                      ? 'Guardando...'
+                      : isIncluded
+                      ? 'Excluir'
+                      : 'Incluir',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isIncluded ? AppColors.e0 : AppColors.g0,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Text(
+              isIncluded
+                  ? 'Se usará en la tarjeta de patrimonio y en los totales de activos/deudas.'
+                  : 'Útil para tarjetas de crédito u otras wallets que no deben sumarse al patrimonio.',
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.g5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class WalletDetailSheet extends ConsumerWidget {
   final WalletAccount wallet;
   final void Function(Object error)? onError;
@@ -138,6 +334,15 @@ class WalletDetailSheet extends ConsumerWidget {
     return null;
   }
 
+  WalletAccount? _findWallet(List<WalletAccount> wallets, int walletId) {
+    for (final wallet in wallets) {
+      if (wallet.id == walletId) {
+        return wallet;
+      }
+    }
+    return null;
+  }
+
   void _showError(BuildContext context, Object error) {
     if (onError != null) {
       onError!(error);
@@ -154,14 +359,15 @@ class WalletDetailSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final w = wallet;
+    final wallets = ref.watch(effectiveWalletsProvider);
+    final w = _findWallet(wallets, wallet.id) ?? wallet;
     final bool isNegative = w.saldo < 0;
 
     // Type labels
     final Map<String, String> tipoLabels = {
       'cuentas': 'Cuenta principal',
-      'gastos': 'Cuenta de gastos',
-      'deudas': 'Deuda / Crédito',
+      'gastos': 'Tarjeta o efectivo',
+      'deudas': 'Préstamo o deuda',
     };
 
     final activeBudget = ref.watch(selectedBudgetProvider);
@@ -403,6 +609,74 @@ class WalletDetailSheet extends ConsumerWidget {
                       ),
                     ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
 
+                    if (w.esDefault)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.o5,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                LucideIcons.star,
+                                size: 12,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'Cuenta principal',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ).animate().fadeIn(duration: 400.ms, delay: 120.ms),
+
+                    if (!w.incluirEnPatrimonio)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.remove_circle_outline_rounded,
+                                size: 12,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'Fuera del patrimonio',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ).animate().fadeIn(duration: 400.ms, delay: 140.ms),
+
                     const SizedBox(height: 16),
 
                     // Balance
@@ -543,6 +817,10 @@ class WalletDetailSheet extends ConsumerWidget {
 
                     // Default Wallet Toggle
                     _DefaultWalletToggle(walletId: w.id),
+
+                    const SizedBox(height: 20),
+
+                    _NetWorthWalletToggle(walletId: w.id),
 
                     const SizedBox(height: 20),
 

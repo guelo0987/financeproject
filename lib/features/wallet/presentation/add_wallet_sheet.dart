@@ -23,30 +23,31 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
   Color _selectedColor = AppColors.e6;
   IconData _selectedIcon = LucideIcons.landmark;
   String _currency = 'DOP';
+  bool _includeInNetWorth = true;
 
   bool get _isEditing => widget.initialWallet != null;
 
   final List<Map<String, dynamic>> _typeOptions = [
     {
       'label': 'Cuentas',
-      'sub': 'Banco, ahorro, fondo o inversión',
+      'sub': 'Cuenta bancaria o cuenta de ahorros',
       'tipo': 'cuentas',
       'color': AppColors.e6,
       'defaultIcon': LucideIcons.landmark,
     },
     {
       'label': 'Gastos',
-      'sub': 'Efectivo y dinero del día a día',
+      'sub': 'Tarjeta de crédito, efectivo o fondos de uso diario',
       'tipo': 'gastos',
       'color': AppColors.b5,
-      'defaultIcon': LucideIcons.wallet,
+      'defaultIcon': LucideIcons.creditCard,
     },
     {
       'label': 'Deudas',
-      'sub': 'Tarjeta de crédito o préstamo',
+      'sub': 'Préstamo, hipoteca o deuda pendiente',
       'tipo': 'deudas',
       'color': AppColors.r5,
-      'defaultIcon': LucideIcons.creditCard,
+      'defaultIcon': LucideIcons.shieldAlert,
     },
   ];
 
@@ -78,6 +79,7 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
     final initialWallet = widget.initialWallet;
     final baseCurrency = ref.read(authProvider).profile?.baseCurrency ?? 'DOP';
     _currency = initialWallet?.moneda ?? baseCurrency;
+    _includeInNetWorth = initialWallet?.incluirEnPatrimonio ?? true;
 
     if (initialWallet == null) {
       _applyTypeDefaults(0, force: true);
@@ -148,6 +150,7 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
       color: _selectedColor,
       icono: _selectedIcon,
       moneda: _currency,
+      incluirEnPatrimonio: _includeInNetWorth,
     );
     Navigator.pop(context, wallet);
   }
@@ -428,6 +431,86 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
                                   ),
                                 ),
                             ],
+                          ),
+                          const SizedBox(height: 14),
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: _includeInNetWorth
+                                  ? AppColors.e0
+                                  : AppColors.g0,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: _includeInNetWorth
+                                    ? AppColors.e1
+                                    : AppColors.g2,
+                                width: 1.4,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: _includeInNetWorth
+                                        ? AppColors.e1
+                                        : AppColors.g1,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Icon(
+                                    _includeInNetWorth
+                                        ? Icons.pie_chart_rounded
+                                        : Icons.remove_circle_outline_rounded,
+                                    size: 18,
+                                    color: _includeInNetWorth
+                                        ? AppColors.e8
+                                        : AppColors.g5,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Incluir en patrimonio',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.e8,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        _includeInNetWorth
+                                            ? 'Esta wallet contará en la tarjeta de patrimonio neto.'
+                                            : 'Úsalo para tarjetas de crédito u otras wallets que no quieras sumar al patrimonio.',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                          color: AppColors.g5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Switch.adaptive(
+                                  value: _includeInNetWorth,
+                                  activeThumbColor: AppColors.e8,
+                                  activeTrackColor: AppColors.e8.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                  onChanged: (value) {
+                                    HapticFeedback.selectionClick();
+                                    setState(() => _includeInNetWorth = value);
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 14),
                           const Text(

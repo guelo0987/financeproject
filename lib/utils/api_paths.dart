@@ -40,6 +40,9 @@ abstract final class ApiPaths {
 
   static String walletById(int walletId) => '$wallets/$walletId';
 
+  static String setDefaultWallet(int walletId) =>
+      '${walletById(walletId)}/set-default';
+
   static String walletTransactions(int walletId) =>
       '$wallets/$walletId/transactions';
 

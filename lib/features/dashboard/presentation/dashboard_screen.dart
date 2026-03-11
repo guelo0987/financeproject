@@ -296,15 +296,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          if (authState.profile != null) ...[
-                            const SizedBox(height: 12),
-                            _ProfileSnippet(
-                              name: authState.profile?.name ?? '',
-                              email: authState.profile?.email ?? '',
-                              currency:
-                                  authState.profile?.baseCurrency ?? 'DOP',
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -946,94 +937,6 @@ class _HeaderCircleButton extends StatelessWidget {
           border: Border.all(color: AppColors.g2, width: 1.5),
         ),
         child: Icon(icon, size: 20, color: AppColors.e8),
-      ),
-    );
-  }
-}
-
-class _ProfileSnippet extends StatelessWidget {
-  const _ProfileSnippet({
-    required this.name,
-    required this.email,
-    required this.currency,
-  });
-
-  final String name;
-  final String email;
-  final String currency;
-
-  String get _initials {
-    final parts = name
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((part) => part.isNotEmpty)
-        .take(2)
-        .toList();
-    if (parts.isEmpty) return 'T';
-    return parts.map((part) => part[0].toUpperCase()).join();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.g2, width: 1.5),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: AppColors.e1,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              _initials,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-                color: AppColors.e8,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.e8,
-                  ),
-                ),
-                if (email.isNotEmpty)
-                  Text(
-                    email,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, color: AppColors.g4),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          MenudoChip.custom(
-            label: currency,
-            color: AppColors.e8,
-            bgColor: AppColors.g1,
-            isSmall: true,
-          ),
-        ],
       ),
     );
   }
