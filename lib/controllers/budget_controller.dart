@@ -41,8 +41,9 @@ class BudgetController extends AsyncNotifier<List<MenudoBudget>> {
   Future<MenudoBudget?> createBudget(
     MenudoBudget budget,
     Map<String, int> catSlugToId,
-    Map<int, double> incomeDetails,
-  ) async {
+    Map<int, double> incomeDetails, {
+    List<String> invitedEmails = const [],
+  }) async {
     final userId = _uid();
     if (userId == 0) return null;
 
@@ -50,7 +51,13 @@ class BudgetController extends AsyncNotifier<List<MenudoBudget>> {
     try {
       final created = await ref
           .read(budgetServiceProvider)
-          .createBudget(userId, budget, catSlugToId, incomeDetails);
+          .createBudget(
+            userId,
+            budget,
+            catSlugToId,
+            incomeDetails,
+            invitedEmails,
+          );
       final budgets = await ref
           .read(budgetServiceProvider)
           .fetchBudgets(userId);
@@ -112,6 +119,20 @@ class BudgetController extends AsyncNotifier<List<MenudoBudget>> {
 
   Future<Map<String, double>> fetchSpentPerCategory(int budgetId) {
     return ref.read(budgetServiceProvider).fetchSpentPerCategory(budgetId);
+  }
+
+  Future<List<BudgetMember>> fetchBudgetMembers(int budgetId) {
+    return ref.read(budgetServiceProvider).fetchBudgetMembers(budgetId);
+  }
+
+  Future<void> removeBudgetMember(int budgetId, int targetUserId) async {
+    final userId = _uid();
+    if (userId == 0) return;
+
+    await ref
+        .read(budgetServiceProvider)
+        .removeBudgetMember(budgetId, targetUserId);
+    await refresh();
   }
 
   void _syncSelectedBudgetIndex(

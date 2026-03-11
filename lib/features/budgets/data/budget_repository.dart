@@ -31,21 +31,28 @@ class BudgetRepository {
   }
 
   Future<Map<String, double>> fetchSpentPerCategory(int presupuestoId) async {
-    final response = await _api.get<List<dynamic>>(
+    final response = await _api.get<Map<String, dynamic>>(
       ApiPaths.budgetSpending(presupuestoId),
-      parser: asJsonList,
+      parser: asJsonMap,
     );
     final data = response.requireData();
     final result = <String, double>{};
-    for (final row in data) {
+    final categories = asJsonList(data['categorias'] ?? const []);
+    final others = asJsonList(data['otros_gastos'] ?? const []);
+
+    for (final row in categories) {
       final map = asJsonMap(row);
-      final categoryPayload = map['category'] ?? map['categorias'];
-      final category = categoryPayload == null
-          ? null
-          : asJsonMap(categoryPayload);
-      final slug = map['slug'] as String? ?? category?['slug'] as String? ?? '';
+      final slug = map['slug'] as String? ?? '';
       final monto =
           (map['spent'] ?? map['gastado'] ?? map['monto'] ?? 0) as num;
+      result[slug] = (result[slug] ?? 0) + monto;
+    }
+    for (final row in others) {
+      final map = asJsonMap(row);
+      final slug =
+          map['slug'] as String? ??
+          'other:${(map['categoriaId'] ?? map['categoria_id'] ?? 'na')}';
+      final monto = (map['gastado'] ?? map['monto'] ?? 0) as num;
       result[slug] = (result[slug] ?? 0) + monto;
     }
     return result;
@@ -56,10 +63,16 @@ class BudgetRepository {
     MenudoBudget budget,
     Map<String, int> catSlugToId,
     Map<int, double> incomeDetails,
+    List<String> invitedEmails,
   ) async {
     final response = await _api.post<Map<String, dynamic>>(
       ApiPaths.budgets,
-      body: _budgetBody(budget, catSlugToId, incomeDetails),
+      body: _budgetBody(
+        budget,
+        catSlugToId,
+        incomeDetails,
+        invitedEmails: invitedEmails,
+      ),
       parser: asJsonMap,
     );
     return _budgetFromApi(response.requireData());
@@ -88,11 +101,26 @@ class BudgetRepository {
     await _api.patch<void>(ApiPaths.activateBudget(presupuestoId));
   }
 
+  Future<List<BudgetMember>> fetchBudgetMembers(int budgetId) async {
+    final response = await _api.get<List<dynamic>>(
+      ApiPaths.budgetMembers(budgetId),
+      parser: asJsonList,
+    );
+    return response.requireData().map((row) {
+      return BudgetMember.fromJson(asJsonMap(row));
+    }).toList();
+  }
+
+  Future<void> removeBudgetMember(int budgetId, int userId) {
+    return _api.delete<void>(ApiPaths.budgetMemberById(budgetId, userId));
+  }
+
   Map<String, dynamic> _budgetBody(
     MenudoBudget budget,
     Map<String, int> catSlugToId,
-    Map<int, double> incomeDetails,
-  ) {
+    Map<int, double> incomeDetails, {
+    List<String> invitedEmails = const [],
+  }) {
     return {
       'nombre': budget.nombre,
       'periodo': budget.periodo,
@@ -100,7 +128,6 @@ class BudgetRepository {
       'ingresos': budget.ingresos,
       'ahorro_objetivo': budget.ahorroObjetivo,
       'activo': budget.activo,
-      'espacio_id': budget.espacioId,
       'categorias': [
         for (final entry in budget.cats.entries)
           if (catSlugToId[entry.key] != null)
@@ -113,12 +140,16 @@ class BudgetRepository {
         for (final entry in incomeDetails.entries)
           {'categoriaId': entry.key, 'monto': entry.value},
       ],
+      if (invitedEmails.isNotEmpty)
+        'invitados': invitedEmails.map((email) => email.trim()).toList(),
     };
   }
 
   MenudoBudget _budgetFromApi(Map<String, dynamic> row) {
     final categories = asJsonList(row['categorias'] ?? const []);
+    final otherExpensesRaw = asJsonList(row['otros_gastos'] ?? const []);
     final cats = <String, BudgetCategory>{};
+    final otherExpenses = <BudgetCategory>[];
     final incomePlan = <int, double>{};
     final incomeSources = <BudgetIncomeSource>[];
 
@@ -139,6 +170,24 @@ class BudgetRepository {
         'limite': category['limite'],
         'gastado': category['gastado'],
       });
+    }
+
+    for (final item in otherExpensesRaw) {
+      final category = asJsonMap(item);
+      otherExpenses.add(
+        BudgetCategory.fromJson({
+          'categoria_id': category['categoriaId'] ?? category['categoria_id'],
+          'categoria_padre_id':
+              category['categoria_padre_id'] ?? category['parentCategoryId'],
+          'slug': category['slug'],
+          'nombre': category['nombre'],
+          'tipo': category['tipo'],
+          'icono': category['icono'],
+          'color_hex': category['color_hex'],
+          'limite': 0,
+          'gastado': category['gastado'],
+        }),
+      );
     }
 
     final actualIncomePayload = row['ingresos_actuales'];
@@ -203,8 +252,10 @@ class BudgetRepository {
         'ahorro_objetivo': row['ahorro_objetivo'],
       },
       cats: cats,
+      otherExpenses: otherExpenses,
       incomePlan: incomePlan,
       incomeSources: incomeSources,
+      totalSpentReal: (row['total_gastado_real'] as num?)?.toDouble(),
     );
   }
 }

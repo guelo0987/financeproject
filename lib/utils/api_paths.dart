@@ -18,6 +18,11 @@ abstract final class ApiPaths {
 
   static String activateBudget(int budgetId) => '$budgets/$budgetId/activate';
 
+  static String budgetMembers(int budgetId) => '$budgets/$budgetId/members';
+
+  static String budgetMemberById(int budgetId, int userId) =>
+      '${budgetMembers(budgetId)}/$userId';
+
   static String categoryById(int categoryId) => '$categories/$categoryId';
 
   static String spaceById(int spaceId) => '$spaces/$spaceId';

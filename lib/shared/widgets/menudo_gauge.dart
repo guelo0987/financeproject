@@ -43,8 +43,8 @@ class _MenudoGaugeState extends State<MenudoGauge>
     final budget = widget.budget;
     final isDark = widget.isDark;
     final double ingresos = budget.ingresos > 0 ? budget.ingresos : 1;
-    final List<BudgetCategory> cats = budget.cats.values.toList();
-    final double totalSpent = cats.fold(0.0, (s, c) => s + c.gastado);
+    final List<BudgetCategory> cats = budget.spendingCategories;
+    final double totalSpent = budget.totalSpent;
 
     return RepaintBoundary(
       child: SizedBox(
@@ -116,7 +116,7 @@ class _MenudoGaugeState extends State<MenudoGauge>
     List<Widget> segments = [];
     double currentAngle = 180.0;
 
-    final double totalSpent = cats.fold(0.0, (s, c) => s + c.gastado);
+    final double totalSpent = widget.budget.totalSpent;
     // Normalize if spent > income to fit in 180 degrees visually, but usually we want to show overflow?
     // Let's normalize to totalSpent if totalSpent > ingresos to keep it within the semi-circle
     final double divisor = max(ingresos, totalSpent);

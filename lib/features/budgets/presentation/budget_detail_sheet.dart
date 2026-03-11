@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../shared/widgets/menudo_chip.dart';
 import '../../../../shared/widgets/menudo_gauge.dart';
+import '../../auth/auth_state.dart';
+import '../budget_providers.dart';
 import '../../categories/providers/category_providers.dart';
 import 'wizard/create_budget_wizard.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
@@ -24,9 +25,33 @@ class BudgetDetailSheet extends ConsumerStatefulWidget {
 
 class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   String _tab = "resumen"; // plan, resumen, insights
+  List<BudgetMember> _members = const [];
+  bool _isLoadingMembers = false;
+  String? _membersError;
 
   String _fmt(double val) =>
       "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
+
+  bool get _shouldLoadMembers {
+    return widget.budget.espacioId != null || widget.budget.miembros.isNotEmpty;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _members = widget.budget.miembros;
+    _loadMembers();
+  }
+
+  @override
+  void didUpdateWidget(covariant BudgetDetailSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.budget.id != widget.budget.id ||
+        oldWidget.budget.espacioId != widget.budget.espacioId) {
+      _members = widget.budget.miembros;
+      _loadMembers();
+    }
+  }
 
   Future<void> _openBudgetEditor() async {
     HapticFeedback.lightImpact();
@@ -42,19 +67,80 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     }
   }
 
+  Future<void> _loadMembers() async {
+    if (!_shouldLoadMembers) {
+      if (mounted) {
+        setState(() => _membersError = null);
+      }
+      return;
+    }
+
+    setState(() {
+      _isLoadingMembers = true;
+      _membersError = null;
+    });
+
+    try {
+      final members = await ref
+          .read(budgetControllerProvider.notifier)
+          .fetchBudgetMembers(widget.budget.id);
+      if (!mounted) return;
+      setState(() {
+        _members = members;
+        _isLoadingMembers = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _membersError = error.toString();
+        _isLoadingMembers = false;
+      });
+    }
+  }
+
+  Future<void> _openMembersManager() async {
+    HapticFeedback.lightImpact();
+    final updatedMembers = await showModalBottomSheet<List<BudgetMember>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BudgetMembersSheet(
+        budgetId: widget.budget.id,
+        initialMembers: _members,
+      ),
+    );
+
+    if (!mounted) return;
+    if (updatedMembers != null) {
+      setState(() {
+        _members = updatedMembers;
+        _membersError = null;
+      });
+    } else {
+      await _loadMembers();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final categories = ref.watch(effectiveCategoriesProvider);
     final categoriesById = <int, MenudoCategory>{
       for (final category in categories) category.id: category,
     };
-    final double spent = widget.budget.cats.values.fold(
-      0,
-      (sum, c) => sum + c.gastado,
-    );
-    final double left = widget.budget.ingresos - spent;
+    final extraExpenseCategories = [...widget.budget.otherExpenses]
+      ..sort((a, b) {
+        final parentCompare = _parentLabelForExpense(
+          a,
+          categoriesById,
+        ).compareTo(_parentLabelForExpense(b, categoriesById));
+        if (parentCompare != 0) return parentCompare;
+        return a.label.compareTo(b.label);
+      });
+    final displayBudget = widget.budget;
+    final double spent = displayBudget.totalSpent;
+    final double left = displayBudget.ingresos - spent;
     final bool isShared =
-        widget.budget.miembros.length > 1 || widget.budget.espacioId != null;
+        _members.length > 1 || displayBudget.espacioId != null;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.94,
@@ -109,7 +195,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               MenudoChip.custom(
-                                label: widget.budget.periodo.toUpperCase(),
+                                label: displayBudget.periodo.toUpperCase(),
                                 color: Colors.white.withValues(alpha: 0.9),
                                 bgColor: Colors.white.withValues(alpha: 0.15),
                                 isSmall: true,
@@ -148,7 +234,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
 
                 const SizedBox(height: 24),
                 MenudoGauge(
-                  budget: widget.budget,
+                  budget: displayBudget,
                   isDark: true,
                 ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
                 const SizedBox(height: 24),
@@ -173,10 +259,27 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                 _buildEditBudgetButton(),
                 if (_tab == "resumen") ...[
                   _buildSummaryMetrics(spent, left),
-                  if (isShared) _buildSharedSpaceSection(spent),
-                  _buildCategoriesSection(categoriesById),
+                  if (extraExpenseCategories.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: _InlineInfoCard(
+                        text:
+                            'Incluye ${_fmt(extraExpenseCategories.fold<double>(0, (sum, category) => sum + category.gastado))} en gastos fuera del plan. Si luego agregas esa categoría al presupuesto, se moverá automáticamente a su límite.',
+                      ),
+                    ),
+                  if (isShared) _buildSharedBudgetSection(),
+                  _buildCategoriesSection(
+                    displayBudget,
+                    categoriesById,
+                    extraExpenseCategories,
+                  ),
                 ],
-                if (_tab == "plan") _buildPlanTab(categoriesById),
+                if (_tab == "plan")
+                  _buildPlanTab(
+                    displayBudget,
+                    categoriesById,
+                    extraExpenseCategories,
+                  ),
                 if (_tab == "insights") _buildInsightsTab(),
               ],
             ),
@@ -223,7 +326,10 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         .slideY(begin: 0.1, end: 0, curve: Curves.easeOut);
   }
 
-  Widget _buildSharedSpaceSection(double totalSpent) {
+  Widget _buildSharedBudgetSection() {
+    final previewMembers = _members.take(3).toList();
+    final extraMembers = _members.length - previewMembers.length;
+
     return Container(
       margin: const EdgeInsets.only(top: 20),
       padding: const EdgeInsets.all(20),
@@ -232,90 +338,117 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: AppColors.g2),
       ),
-      child:
-          Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.e1,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      LucideIcons.users,
+                      size: 16,
+                      color: AppColors.e6,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppColors.e1,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              LucideIcons.users,
-                              size: 16,
-                              color: AppColors.e6,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Espacio Compartido",
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.e8,
-                                  letterSpacing: -0.3,
-                                ),
-                              ),
-                              Text(
-                                "Distribución de gastos",
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.g4,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                      Text(
+                        "Presupuesto compartido",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.e8,
+                          letterSpacing: -0.3,
+                        ),
                       ),
-                      _SmallActionButton(
-                        label: "Gestionar",
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          Navigator.pop(context); // Close sheet
-                          context.push('/spaces-manager');
-                        },
+                      Text(
+                        _isLoadingMembers
+                            ? "Cargando miembros..."
+                            : "${_members.length} miembro${_members.length == 1 ? '' : 's'} con acceso",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.g4,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  ...widget.budget.miembros.asMap().entries.map((entry) {
-                    final idx = entry.key;
-                    final m = entry.value;
-                    // Simulated split for mock UI
-                    final ratios = [0.65, 0.35, 0.2, 0.1];
-                    final memberSpent =
-                        totalSpent * (ratios.length > idx ? ratios[idx] : 0.1);
-                    final pct = totalSpent > 0 ? memberSpent / totalSpent : 0.0;
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _MemberRow(
-                        member: m,
-                        amount: _fmt(memberSpent),
-                        pct: pct,
-                      ),
-                    );
-                  }),
                 ],
-              )
-              .animate()
-              .fadeIn(duration: 400.ms, delay: 100.ms)
-              .slideY(begin: 0.05, end: 0),
+              ),
+              _SmallActionButton(
+                label: "Gestionar",
+                onTap: _openMembersManager,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          if (_isLoadingMembers && previewMembers.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2.2),
+                ),
+              ),
+            )
+          else if (_membersError != null && previewMembers.isEmpty)
+            _InlineInfoCard(
+              text: _membersError!,
+              tone: _InfoCardTone.error,
+              actionLabel: 'Reintentar',
+              onTap: _loadMembers,
+            )
+          else if (previewMembers.isEmpty)
+            const _InlineInfoCard(
+              text:
+                  'Todavía no hay colaboradores aceptados en este presupuesto.',
+            )
+          else ...[
+            ...previewMembers.map(
+              (member) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _MemberRow(member: member),
+              ),
+            ),
+            if (extraMembers > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '+$extraMembers miembro${extraMembers == 1 ? '' : 's'} más',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.g4,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: 0.05, end: 0),
     );
   }
 
-  Widget _buildCategoriesSection(Map<int, MenudoCategory> categoriesById) {
+  Widget _buildCategoriesSection(
+    MenudoBudget budget,
+    Map<int, MenudoCategory> categoriesById,
+    List<BudgetCategory> extraExpenseCategories,
+  ) {
+    final plannedCategories = budget.cats.values
+        .where((category) => category.limite > 0)
+        .toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -331,7 +464,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
             ),
           ),
         ),
-        ...widget.budget.cats.values.toList().asMap().entries.map((entry) {
+        ...plannedCategories.asMap().entries.map((entry) {
           return _CategoryDetailCard(
                 cat: entry.value,
                 parentLabel: _parentLabelForExpense(
@@ -344,6 +477,27 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
               .fadeIn(duration: 400.ms, delay: (entry.key * 50).ms)
               .slideX(begin: 0.05, end: 0);
         }),
+        if (extraExpenseCategories.isNotEmpty) ...[
+          const Padding(
+            padding: EdgeInsets.fromLTRB(4, 20, 0, 12),
+            child: Text(
+              "Otros gastos fuera del plan",
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                color: AppColors.e8,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ),
+          ...extraExpenseCategories.map(
+            (category) => _UnplannedExpenseCard(
+              cat: category,
+              parentLabel: _parentLabelForExpense(category, categoriesById),
+              fmt: _fmt,
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         GestureDetector(
           onTap: _openBudgetEditor,
@@ -379,8 +533,12 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     );
   }
 
-  Widget _buildPlanTab(Map<int, MenudoCategory> categoriesById) {
-    final incomeSources = [...widget.budget.incomeSources]
+  Widget _buildPlanTab(
+    MenudoBudget budget,
+    Map<int, MenudoCategory> categoriesById,
+    List<BudgetCategory> extraExpenseCategories,
+  ) {
+    final incomeSources = [...budget.incomeSources]
       ..sort((a, b) {
         final parentCompare = _parentLabelForIncome(
           a,
@@ -389,15 +547,16 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         if (parentCompare != 0) return parentCompare;
         return a.label.compareTo(b.label);
       });
-    final expenseCategories = [...widget.budget.cats.values]
-      ..sort((a, b) {
-        final parentCompare = _parentLabelForExpense(
-          a,
-          categoriesById,
-        ).compareTo(_parentLabelForExpense(b, categoriesById));
-        if (parentCompare != 0) return parentCompare;
-        return a.label.compareTo(b.label);
-      });
+    final expenseCategories =
+        [...budget.cats.values.where((category) => category.limite > 0)]
+          ..sort((a, b) {
+            final parentCompare = _parentLabelForExpense(
+              a,
+              categoriesById,
+            ).compareTo(_parentLabelForExpense(b, categoriesById));
+            if (parentCompare != 0) return parentCompare;
+            return a.label.compareTo(b.label);
+          });
     final actualIncomeTotal = incomeSources.fold<double>(
       0,
       (sum, source) => sum + source.actual,
@@ -407,9 +566,9 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _PlanSummaryHeader(
-          plannedTotal: _fmt(widget.budget.ingresos),
+          plannedTotal: _fmt(budget.ingresos),
           actualTotal: _fmt(actualIncomeTotal),
-          savings: _fmt(widget.budget.ahorroObjetivo),
+          savings: _fmt(budget.ahorroObjetivo),
         ),
         const SizedBox(height: 20),
         if (incomeSources.isNotEmpty) ...[
@@ -430,10 +589,22 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
           (cat) => _PlanCategoryRow(
             cat: cat,
             parentLabel: _parentLabelForExpense(cat, categoriesById),
-            budgetTotal: widget.budget.ingresos,
+            budgetTotal: budget.ingresos,
             fmt: _fmt,
           ),
         ),
+        if (extraExpenseCategories.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          const _BudgetSectionTitle(title: 'Gastos sin límite configurado'),
+          const SizedBox(height: 10),
+          ...extraExpenseCategories.map(
+            (cat) => _UnplannedExpenseCard(
+              cat: cat,
+              parentLabel: _parentLabelForExpense(cat, categoriesById),
+              fmt: _fmt,
+            ),
+          ),
+        ],
       ],
     ).animate().fadeIn(duration: 400.ms);
   }
@@ -681,14 +852,8 @@ class _MetricCard extends StatelessWidget {
 
 class _MemberRow extends StatelessWidget {
   final BudgetMember member;
-  final String amount;
-  final double pct;
 
-  const _MemberRow({
-    required this.member,
-    required this.amount,
-    required this.pct,
-  });
+  const _MemberRow({required this.member});
 
   @override
   Widget build(BuildContext context) {
@@ -718,40 +883,415 @@ class _MemberRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    member.n,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.e8,
+                  Expanded(
+                    child: Text(
+                      member.n,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.e8,
+                      ),
                     ),
                   ),
-                  Text(
-                    amount,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.e8,
-                    ),
+                  MenudoChip.custom(
+                    label: member.isOwner
+                        ? 'DUEÑO'
+                        : (member.role ?? 'MIEMBRO').toUpperCase(),
+                    color: member.isOwner ? AppColors.e8 : AppColors.o5,
+                    bgColor: member.isOwner ? AppColors.e1 : AppColors.o1,
+                    isSmall: true,
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: LinearProgressIndicator(
-                  value: pct,
-                  backgroundColor: AppColors.g1,
-                  valueColor: AlwaysStoppedAnimation<Color>(member.c),
-                  minHeight: 5,
+              if ((member.email ?? '').isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  member.email!,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.g4,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class _InlineInfoCard extends StatelessWidget {
+  final String text;
+  final _InfoCardTone tone;
+  final String? actionLabel;
+  final VoidCallback? onTap;
+
+  const _InlineInfoCard({
+    required this.text,
+    this.tone = _InfoCardTone.neutral,
+    this.actionLabel,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isError = tone == _InfoCardTone.error;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isError ? AppColors.r1 : AppColors.g1,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+                color: isError ? AppColors.r5 : AppColors.g5,
+              ),
+            ),
+          ),
+          if (actionLabel != null && onTap != null) ...[
+            const SizedBox(width: 12),
+            GestureDetector(
+              onTap: onTap,
+              child: Text(
+                actionLabel!,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: isError ? AppColors.r5 : AppColors.e8,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+enum _InfoCardTone { neutral, error }
+
+class _BudgetMembersSheet extends ConsumerStatefulWidget {
+  final int budgetId;
+  final List<BudgetMember> initialMembers;
+
+  const _BudgetMembersSheet({
+    required this.budgetId,
+    required this.initialMembers,
+  });
+
+  @override
+  ConsumerState<_BudgetMembersSheet> createState() =>
+      _BudgetMembersSheetState();
+}
+
+class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
+  List<BudgetMember> _members = const [];
+  bool _isLoading = false;
+  String? _error;
+  int? _removingUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _members = widget.initialMembers;
+    _loadMembers();
+  }
+
+  Future<void> _loadMembers() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final members = await ref
+          .read(budgetControllerProvider.notifier)
+          .fetchBudgetMembers(widget.budgetId);
+      if (!mounted) return;
+      setState(() {
+        _members = members;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _removeMember(BudgetMember member) async {
+    final targetUserId = member.userId;
+    if (targetUserId == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Quitar miembro'),
+        content: Text('Se removerá a ${member.n} de este presupuesto.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Quitar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _removingUserId = targetUserId);
+    try {
+      await ref
+          .read(budgetControllerProvider.notifier)
+          .removeBudgetMember(widget.budgetId, targetUserId);
+      if (!mounted) return;
+      await _loadMembers();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _removingUserId = null);
+      }
+    }
+  }
+
+  void _closeSheet() {
+    Navigator.pop(context, _members);
+  }
+
+  bool get _canManageMembers {
+    final currentUserId = int.tryParse(ref.read(authProvider).userId ?? '');
+    if (currentUserId == null) return false;
+
+    for (final member in _members) {
+      if (member.userId == currentUserId) {
+        return member.isOwner || member.role == 'admin';
+      }
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.82,
+      decoration: const BoxDecoration(
+        color: AppColors.g0,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.g3,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Miembros',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.e8,
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Acceso real a este presupuesto',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.g4,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _closeSheet,
+                    icon: const Icon(LucideIcons.x, size: 20),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadMembers,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  children: [
+                    if (_isLoading && _members.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 60),
+                        child: Center(
+                          child: CircularProgressIndicator(strokeWidth: 2.4),
+                        ),
+                      )
+                    else if (_error != null && _members.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: _InlineInfoCard(
+                          text: _error!,
+                          tone: _InfoCardTone.error,
+                          actionLabel: 'Reintentar',
+                          onTap: _loadMembers,
+                        ),
+                      )
+                    else if (_members.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 12),
+                        child: _InlineInfoCard(
+                          text:
+                              'Este presupuesto todavía no tiene miembros adicionales.',
+                        ),
+                      )
+                    else
+                      ..._members.map((member) {
+                        final isRemoving = _removingUserId == member.userId;
+                        final canRemove =
+                            _canManageMembers &&
+                            !member.isOwner &&
+                            member.userId != null;
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.g2),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: member.c,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  member.i,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            member.n,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w800,
+                                              color: AppColors.e8,
+                                            ),
+                                          ),
+                                        ),
+                                        MenudoChip.custom(
+                                          label: member.isOwner
+                                              ? 'DUEÑO'
+                                              : (member.role ?? 'MIEMBRO')
+                                                    .toUpperCase(),
+                                          color: member.isOwner
+                                              ? AppColors.e8
+                                              : AppColors.o5,
+                                          bgColor: member.isOwner
+                                              ? AppColors.e1
+                                              : AppColors.o1,
+                                          isSmall: true,
+                                        ),
+                                      ],
+                                    ),
+                                    if ((member.email ?? '').isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        member.email!,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.g4,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              if (canRemove) ...[
+                                const SizedBox(width: 10),
+                                TextButton(
+                                  onPressed: isRemoving
+                                      ? null
+                                      : () => _removeMember(member),
+                                  child: isRemoving
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text('Quitar'),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      }),
+                    const SizedBox(height: 8),
+                    const _InlineInfoCard(
+                      text:
+                          'Los colaboradores nuevos se envían al crear el presupuesto. Desde aquí puedes revisar o remover miembros existentes.',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -877,6 +1417,106 @@ class _CategoryDetailCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UnplannedExpenseCard extends StatelessWidget {
+  final BudgetCategory cat;
+  final String parentLabel;
+  final String Function(double) fmt;
+
+  const _UnplannedExpenseCard({
+    required this.cat,
+    required this.parentLabel,
+    required this.fmt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.a1),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: cat.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(cat.icono, size: 20, color: cat.color),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (parentLabel.isNotEmpty)
+                            Text(
+                              parentLabel.toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.g4,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          Text(
+                            cat.label,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.e8,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    MenudoChip.custom(
+                      label: 'SIN LIMITE',
+                      color: AppColors.o5,
+                      bgColor: AppColors.o1,
+                      isSmall: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Gastado ${fmt(cat.gastado)}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.r5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Este gasto cuenta dentro del presupuesto, pero todavía no tiene un límite configurado.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.35,
+                    color: AppColors.g5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

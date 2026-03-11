@@ -236,16 +236,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         .watch(selectedBudgetIdxProvider)
         .clamp(0, budgets.length - 1);
     final budget = ref.watch(selectedBudgetProvider) ?? budgets[selectedIdx];
-    final double spent = budget.cats.values.fold(0, (s, c) => s + c.gastado);
+    final double spent = budget.totalSpent;
     final double remaining = budget.ingresos - spent;
     final double pct = spent / (budget.ingresos > 0 ? budget.ingresos : 1);
 
     final double ingresos = txnsThisPeriod
         .where((t) => t.tipo == 'ingreso')
         .fold(0.0, (s, t) => s + t.monto.abs());
-    final double gastos = txnsThisPeriod
-        .where((t) => t.tipo == 'gasto')
-        .fold(0.0, (s, t) => s + t.monto.abs());
+    final double gastos = spent;
     final recent = txnsThisPeriod
         .where((t) => t.tipo != 'transferencia')
         .take(4)

@@ -45,6 +45,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
   bool _isSaving = false;
 
   bool get _isEditing => widget.initialBudget != null;
+  bool get _canInviteMembers => !_isEditing;
 
   @override
   void initState() {
@@ -149,6 +150,33 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
   double get aho => _parseAmount(_savingsTarget);
   double get sobrante => ing - gastos - aho;
 
+  bool _isValidEmail(String value) {
+    final normalized = value.trim();
+    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(normalized);
+  }
+
+  void _addMemberEmail() {
+    final normalized = _emailInput.trim().toLowerCase();
+    if (normalized.isEmpty) return;
+    if (!_isValidEmail(normalized)) {
+      _showError('Escribe un correo válido antes de agregarlo.');
+      return;
+    }
+    if (_miembros.contains(normalized)) {
+      _showError('Ese correo ya está agregado.');
+      return;
+    }
+    if (_miembros.length >= 3) {
+      _showError('Solo puedes invitar hasta 3 personas.');
+      return;
+    }
+
+    setState(() {
+      _miembros.add(normalized);
+      _emailInput = '';
+    });
+  }
+
   bool _canNext() {
     switch (_step) {
       case 0:
@@ -250,7 +278,12 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
       if (_isEditing) {
         await notifier.updateBudget(budget, categoryMap, configuredIncome);
       } else {
-        await notifier.createBudget(budget, categoryMap, configuredIncome);
+        await notifier.createBudget(
+          budget,
+          categoryMap,
+          configuredIncome,
+          invitedEmails: _miembros,
+        );
       }
       if (!mounted) return;
       Navigator.pop(context, true);
@@ -1242,9 +1275,31 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           iconColor: AppColors.e8,
           iconBackgroundColor: AppColors.e1,
           title: "Miembros",
-          subtitle: "Invita hasta 3 personas (máximo 4 contigo).",
+          subtitle: _canInviteMembers
+              ? "Invita hasta 3 personas (máximo 4 contigo)."
+              : "La colaboración nueva se define al crear el presupuesto.",
         ),
         const SizedBox(height: 20),
+
+        if (!_canInviteMembers)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.e1,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.g2),
+            ),
+            child: const Text(
+              "Los miembros actuales se gestionan desde el detalle del presupuesto. En esta edición puedes actualizar nombre, ingresos y límites, pero este backend no agrega invitados nuevos vía update.",
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                color: AppColors.e8,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
 
         Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -1359,7 +1414,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           );
         }),
 
-        if (_miembros.length < 3)
+        if (_canInviteMembers && _miembros.length < 3)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1421,14 +1476,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                     ),
                     const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: () {
-                        if (_emailInput.isNotEmpty) {
-                          setState(() {
-                            _miembros.add(_emailInput);
-                            _emailInput = "";
-                          });
-                        }
-                      },
+                      onTap: _addMemberEmail,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,

@@ -377,22 +377,103 @@ class BudgetIncomeSource {
 }
 
 class BudgetMember {
+  final int? userId;
   final String n; // Name
   final String i; // Initial
   final Color c; // Color
+  final String? email;
+  final String? role;
+  final bool isOwner;
+  final DateTime? joinedAt;
 
-  const BudgetMember({required this.n, required this.i, required this.c});
+  const BudgetMember({
+    this.userId,
+    required this.n,
+    required this.i,
+    required this.c,
+    this.email,
+    this.role,
+    this.isOwner = false,
+    this.joinedAt,
+  });
 
   factory BudgetMember.fromJson(Map<String, dynamic> json) {
+    final name = json['nombre'] as String? ?? json['n'] as String? ?? 'Miembro';
+    final email = json['email'] as String?;
+    final providedInitials =
+        json['iniciales'] as String? ?? json['i'] as String?;
+    final role = json['rol'] as String?;
+
     return BudgetMember(
-      n: json['nombre'] as String? ?? json['n'] as String,
-      i: json['iniciales'] as String? ?? json['i'] as String,
-      c: colorFromHex(json['color_hex'] as String? ?? '#065F46'),
+      userId: json['usuario_id'] != null
+          ? (json['usuario_id'] as num).toInt()
+          : null,
+      n: name,
+      i: _budgetMemberInitials(
+        providedInitials: providedInitials,
+        name: name,
+        email: email,
+      ),
+      c: colorFromHex(
+        json['color_hex'] as String? ?? _budgetMemberColorHex(role),
+      ),
+      email: email,
+      role: role,
+      isOwner: json['es_propietario'] as bool? ?? false,
+      joinedAt: DateTime.tryParse(json['unido_en'] as String? ?? ''),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'nombre': n, 'iniciales': i, 'color_hex': colorToHex(c)};
+    return {
+      if (userId != null) 'usuario_id': userId,
+      'nombre': n,
+      'iniciales': i,
+      'color_hex': colorToHex(c),
+      if (email != null) 'email': email,
+      if (role != null) 'rol': role,
+      'es_propietario': isOwner,
+      if (joinedAt != null) 'unido_en': joinedAt!.toIso8601String(),
+    };
+  }
+}
+
+String _budgetMemberInitials({
+  required String? providedInitials,
+  required String name,
+  required String? email,
+}) {
+  final sanitized = (providedInitials ?? '').trim();
+  if (sanitized.isNotEmpty) {
+    return sanitized.characters.take(2).toString().toUpperCase();
+  }
+
+  final parts = name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((part) => part.isNotEmpty)
+      .toList();
+  if (parts.length >= 2) {
+    return '${parts.first[0]}${parts[1][0]}'.toUpperCase();
+  }
+  if (parts.length == 1) {
+    final end = parts.first.length < 2 ? parts.first.length : 2;
+    return parts.first.substring(0, end).toUpperCase();
+  }
+
+  final emailName = email?.split('@').first.trim() ?? 'M';
+  final end = emailName.length < 2 ? emailName.length : 2;
+  return emailName.substring(0, end).toUpperCase();
+}
+
+String _budgetMemberColorHex(String? role) {
+  switch (role) {
+    case 'admin':
+      return '#065F46';
+    case 'miembro':
+      return '#F97316';
+    default:
+      return '#065F46';
   }
 }
 
@@ -463,8 +544,10 @@ class MenudoBudget {
   final double ingresos;
   final double ahorroObjetivo;
   final Map<String, BudgetCategory> cats;
+  final List<BudgetCategory> otherExpenses;
   final Map<int, double> incomePlan;
   final List<BudgetIncomeSource> incomeSources;
+  final double? totalSpentReal;
 
   const MenudoBudget({
     required this.id,
@@ -477,16 +560,64 @@ class MenudoBudget {
     required this.ingresos,
     this.ahorroObjetivo = 0,
     required this.cats,
+    this.otherExpenses = const [],
     this.incomePlan = const {},
     this.incomeSources = const [],
+    this.totalSpentReal,
   });
+
+  List<BudgetCategory> get spendingCategories => [
+    ...cats.values,
+    ...otherExpenses,
+  ];
+
+  double get totalSpent =>
+      totalSpentReal ??
+      spendingCategories.fold(0.0, (sum, category) => sum + category.gastado);
+
+  MenudoBudget copyWith({
+    int? id,
+    int? espacioId,
+    bool clearEspacioId = false,
+    String? nombre,
+    String? periodo,
+    int? diaInicio,
+    bool? activo,
+    List<BudgetMember>? miembros,
+    double? ingresos,
+    double? ahorroObjetivo,
+    Map<String, BudgetCategory>? cats,
+    List<BudgetCategory>? otherExpenses,
+    Map<int, double>? incomePlan,
+    List<BudgetIncomeSource>? incomeSources,
+    double? totalSpentReal,
+  }) {
+    return MenudoBudget(
+      id: id ?? this.id,
+      espacioId: clearEspacioId ? null : (espacioId ?? this.espacioId),
+      nombre: nombre ?? this.nombre,
+      periodo: periodo ?? this.periodo,
+      diaInicio: diaInicio ?? this.diaInicio,
+      activo: activo ?? this.activo,
+      miembros: miembros ?? this.miembros,
+      ingresos: ingresos ?? this.ingresos,
+      ahorroObjetivo: ahorroObjetivo ?? this.ahorroObjetivo,
+      cats: cats ?? this.cats,
+      otherExpenses: otherExpenses ?? this.otherExpenses,
+      incomePlan: incomePlan ?? this.incomePlan,
+      incomeSources: incomeSources ?? this.incomeSources,
+      totalSpentReal: totalSpentReal ?? this.totalSpentReal,
+    );
+  }
 
   factory MenudoBudget.fromJson(
     Map<String, dynamic> json, {
     List<BudgetMember> miembros = const [],
     Map<String, BudgetCategory> cats = const {},
+    List<BudgetCategory> otherExpenses = const [],
     Map<int, double> incomePlan = const {},
     List<BudgetIncomeSource> incomeSources = const [],
+    double? totalSpentReal,
   }) {
     return MenudoBudget(
       id: (json['presupuesto_id'] as num).toInt(),
@@ -501,14 +632,15 @@ class MenudoBudget {
       ahorroObjetivo: (json['ahorro_objetivo'] as num? ?? 0).toDouble(),
       miembros: miembros,
       cats: cats,
+      otherExpenses: otherExpenses,
       incomePlan: incomePlan,
       incomeSources: incomeSources,
+      totalSpentReal: totalSpentReal,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      if (espacioId != null) 'espacio_id': espacioId,
       'nombre': nombre,
       'periodo': periodo,
       'dia_inicio': diaInicio,

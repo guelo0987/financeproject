@@ -9,11 +9,17 @@ import '../../budgets/budget_providers.dart';
 import '../../categories/providers/category_providers.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
 import '../../wallet/providers/wallet_providers.dart';
+import 'transaction_presentation_utils.dart';
 
 class TransactionDetailSheet extends ConsumerWidget {
   final MenudoTransaction transaction;
+  final int? contextWalletId;
 
-  const TransactionDetailSheet({super.key, required this.transaction});
+  const TransactionDetailSheet({
+    super.key,
+    required this.transaction,
+    this.contextWalletId,
+  });
 
   String fmt(double val) =>
       "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
@@ -38,18 +44,6 @@ class TransactionDetailSheet extends ConsumerWidget {
     return null;
   }
 
-  WalletAccount? _findWallet(
-    List<WalletAccount> wallets,
-    MenudoTransaction transaction,
-  ) {
-    final accountId = transaction.fromAccountId ?? transaction.toAccountId;
-    if (accountId == null) return null;
-    for (final wallet in wallets) {
-      if (wallet.id == accountId) return wallet;
-    }
-    return null;
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = transaction;
@@ -61,7 +55,11 @@ class TransactionDetailSheet extends ConsumerWidget {
     final activeBudget = _findBudget(budgets, t, selectedBudget);
     final budgetCat = activeBudget?.cats[t.catKey];
     final category = _findCategory(categories, t.catKey);
-    final wallet = _findWallet(wallets, t);
+    final presentation = buildTransactionPresentation(
+      t,
+      wallets,
+      contextWalletId: contextWalletId,
+    );
 
     final String catLabel =
         budgetCat?.label ??
@@ -70,11 +68,23 @@ class TransactionDetailSheet extends ConsumerWidget {
     final IconData catIcon = budgetCat?.icono ?? category?.icono ?? t.icono;
     final Color catColor = budgetCat?.color ?? category?.color ?? AppColors.g4;
 
+    final bool isTransfer = t.tipo == 'transferencia';
     final bool isGasto = t.tipo == 'gasto';
-    final Color amountColor = isGasto ? AppColors.r5 : AppColors.e6;
-    final String amountPrefix = isGasto ? '-' : '+';
-    final bool isSharedBudget = (activeBudget?.miembros.length ?? 0) > 1;
-    final String accountLabel = wallet?.nombre ?? 'Cuenta sin asignar';
+    final Color amountColor = presentation.amountColor;
+    final String amountPrefix = presentation.prefix;
+    final String transferBadgeLabel = contextWalletId == null
+        ? 'Transferencia'
+        : (presentation.destinationWallet?.id == contextWalletId &&
+                  presentation.destinationWallet?.tipo == 'deudas'
+              ? 'Abono'
+              : (amountPrefix == '+' ? 'Entrada' : 'Salida'));
+    final bool isSharedBudget =
+        (activeBudget?.miembros.length ?? 0) > 1 ||
+        activeBudget?.espacioId != null;
+    final String accountLabel =
+        presentation.sourceWallet?.nombre ??
+        presentation.destinationWallet?.nombre ??
+        'Cuenta sin asignar';
 
     // Format date in Spanish
     final parts = t.dateString.split('-');
@@ -136,19 +146,21 @@ class TransactionDetailSheet extends ConsumerWidget {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: isGasto ? AppColors.r1 : AppColors.e1,
+                          color: isTransfer
+                              ? amountColor.withValues(alpha: 0.12)
+                              : isGasto
+                              ? AppColors.r1
+                              : AppColors.e1,
                           borderRadius: BorderRadius.circular(100),
                         ),
                         child: Text(
-                          isGasto
-                              ? 'Gasto'
-                              : (t.tipo == 'ingreso'
-                                    ? 'Ingreso'
-                                    : 'Transferencia'),
+                          isTransfer
+                              ? transferBadgeLabel
+                              : (isGasto ? 'Gasto' : 'Ingreso'),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: amountColor,
+                            color: isTransfer ? amountColor : amountColor,
                           ),
                         ),
                       ),
@@ -159,7 +171,9 @@ class TransactionDetailSheet extends ConsumerWidget {
                     // Large amount
                     Center(
                           child: Text(
-                            "$amountPrefix ${fmt(t.monto.abs())}",
+                            amountPrefix.isEmpty
+                                ? fmt(t.monto.abs())
+                                : "$amountPrefix${fmt(t.monto.abs())}",
                             style: TextStyle(
                               fontSize: 40,
                               fontWeight: FontWeight.w800,
@@ -186,6 +200,47 @@ class TransactionDetailSheet extends ConsumerWidget {
                         textAlign: TextAlign.center,
                       ),
                     ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
+
+                    if (isTransfer &&
+                        (presentation.contextTitle != null ||
+                            presentation.contextSubtitle != null)) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: amountColor.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: amountColor.withValues(alpha: 0.18),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (presentation.contextTitle != null)
+                              Text(
+                                presentation.contextTitle!,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: amountColor,
+                                ),
+                              ),
+                            if (presentation.contextSubtitle != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                presentation.contextSubtitle!,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.g5,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ).animate().fadeIn(duration: 350.ms, delay: 120.ms),
+                    ],
 
                     const SizedBox(height: 24),
 
@@ -230,19 +285,49 @@ class TransactionDetailSheet extends ConsumerWidget {
                                 endIndent: 16,
                               ),
 
-                              // Account row
-                              _buildDetailRow(
-                                icon: LucideIcons.landmark,
-                                iconColor: AppColors.e7,
-                                label: 'Cuenta',
-                                value: accountLabel,
-                              ),
-                              const Divider(
-                                height: 1,
-                                color: Color(0xFFF3F4F6),
-                                indent: 16,
-                                endIndent: 16,
-                              ),
+                              if (isTransfer) ...[
+                                _buildDetailRow(
+                                  icon: LucideIcons.arrowUpFromLine,
+                                  iconColor: AppColors.e8,
+                                  label: 'Origen',
+                                  value:
+                                      presentation.sourceWallet?.nombre ??
+                                      'Cuenta origen sin asignar',
+                                ),
+                                const Divider(
+                                  height: 1,
+                                  color: Color(0xFFF3F4F6),
+                                  indent: 16,
+                                  endIndent: 16,
+                                ),
+                                _buildDetailRow(
+                                  icon: LucideIcons.arrowDownToLine,
+                                  iconColor: AppColors.e6,
+                                  label: 'Destino',
+                                  value:
+                                      presentation.destinationWallet?.nombre ??
+                                      'Cuenta destino sin asignar',
+                                ),
+                                const Divider(
+                                  height: 1,
+                                  color: Color(0xFFF3F4F6),
+                                  indent: 16,
+                                  endIndent: 16,
+                                ),
+                              ] else ...[
+                                _buildDetailRow(
+                                  icon: LucideIcons.landmark,
+                                  iconColor: AppColors.e7,
+                                  label: 'Cuenta',
+                                  value: accountLabel,
+                                ),
+                                const Divider(
+                                  height: 1,
+                                  color: Color(0xFFF3F4F6),
+                                  indent: 16,
+                                  endIndent: 16,
+                                ),
+                              ],
 
                               // Performed by row
                               if (t.userName != null) ...[
@@ -335,11 +420,39 @@ class TransactionDetailSheet extends ConsumerWidget {
                                       ),
                                     ),
                                     if (isSharedBudget)
-                                      Row(
-                                        children:
-                                            (activeBudget?.miembros ??
-                                                    const <BudgetMember>[])
-                                                .take(3)
+                                      Builder(
+                                        builder: (context) {
+                                          final members =
+                                              (activeBudget?.miembros ??
+                                                      const <BudgetMember>[])
+                                                  .take(3)
+                                                  .toList();
+                                          if (members.isEmpty) {
+                                            return Container(
+                                              width: 26,
+                                              height: 26,
+                                              margin: const EdgeInsets.only(
+                                                left: 3,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.e1,
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: Colors.white,
+                                                  width: 1.5,
+                                                ),
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: const Icon(
+                                                LucideIcons.users,
+                                                size: 12,
+                                                color: AppColors.e8,
+                                              ),
+                                            );
+                                          }
+
+                                          return Row(
+                                            children: members
                                                 .map(
                                                   (m) => Container(
                                                     width: 26,
@@ -369,6 +482,8 @@ class TransactionDetailSheet extends ConsumerWidget {
                                                   ),
                                                 )
                                                 .toList(),
+                                          );
+                                        },
                                       ),
                                   ],
                                 ),

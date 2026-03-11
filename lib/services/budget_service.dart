@@ -25,8 +25,15 @@ class BudgetService {
     MenudoBudget budget,
     Map<String, int> catSlugToId,
     Map<int, double> incomeDetails,
+    List<String> invitedEmails,
   ) {
-    return _repository.createBudget(userId, budget, catSlugToId, incomeDetails);
+    return _repository.createBudget(
+      userId,
+      budget,
+      catSlugToId,
+      incomeDetails,
+      invitedEmails,
+    );
   }
 
   Future<MenudoBudget> updateBudget(
@@ -39,6 +46,14 @@ class BudgetService {
 
   Future<void> activateBudget(int budgetId) {
     return _repository.setActiveBudget(budgetId);
+  }
+
+  Future<List<BudgetMember>> fetchBudgetMembers(int budgetId) {
+    return _repository.fetchBudgetMembers(budgetId);
+  }
+
+  Future<void> removeBudgetMember(int budgetId, int userId) {
+    return _repository.removeBudgetMember(budgetId, userId);
   }
 }
 

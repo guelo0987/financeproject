@@ -381,7 +381,7 @@ class _BudgetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double spent = budget.cats.values.fold(0, (s, c) => s + c.gastado);
+    final double spent = budget.totalSpent;
     final double remaining = budget.ingresos - spent;
     final double pct = min(
       spent / (budget.ingresos > 0 ? budget.ingresos : 1),
@@ -454,7 +454,10 @@ class _BudgetCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  _buildAvatars(budget.miembros),
+                  _buildAvatars(
+                    budget.miembros,
+                    isShared: budget.espacioId != null,
+                  ),
                 ],
               ),
             ),
@@ -513,7 +516,22 @@ class _BudgetCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatars(List<BudgetMember> miembros) {
+  Widget _buildAvatars(List<BudgetMember> miembros, {required bool isShared}) {
+    if (miembros.isEmpty) {
+      if (!isShared) return const SizedBox.shrink();
+      return Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: AppColors.e1,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 2),
+        ),
+        alignment: Alignment.center,
+        child: const Icon(LucideIcons.users, size: 14, color: AppColors.e8),
+      );
+    }
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(miembros.length, (i) {

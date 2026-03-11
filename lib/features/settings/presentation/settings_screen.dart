@@ -105,19 +105,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                     const SizedBox(height: 24),
 
-                    _buildSectionHeader('Espacios'),
+                    _buildSectionHeader('Automatización'),
                     MenudoCard(
                       padding: EdgeInsets.zero,
                       child: Column(
                         children: [
-                          _buildListTile(
-                            Icons.group,
-                            'Gestionar Espacios Compartidos',
-                            () {
-                              context.push('/spaces-manager');
-                            },
-                          ),
-                          const Divider(height: 1, color: MenudoColors.divider),
                           _buildListTile(
                             Icons.repeat,
                             'Transacciones Automáticas',

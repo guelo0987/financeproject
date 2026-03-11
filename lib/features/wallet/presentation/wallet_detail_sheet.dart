@@ -8,6 +8,7 @@ import '../../../core/data/models.dart';
 import '../../budgets/budget_providers.dart';
 import '../../categories/providers/category_providers.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
+import '../../transactions/presentation/transaction_presentation_utils.dart';
 import '../../transactions/providers/transaction_providers.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
 import '../providers/wallet_providers.dart';
@@ -871,6 +872,12 @@ class WalletDetailSheet extends ConsumerWidget {
                               children: List.generate(recentTxns.length, (i) {
                                 final t = recentTxns[i];
                                 final ci = activeBudget?.cats[t.catKey];
+                                final presentation =
+                                    buildTransactionPresentation(
+                                      t,
+                                      wallets,
+                                      contextWalletId: w.id,
+                                    );
                                 final category = _findCategory(
                                   categories,
                                   t.catKey,
@@ -893,6 +900,12 @@ class WalletDetailSheet extends ConsumerWidget {
                                 ];
                                 final monthLabel =
                                     months[int.tryParse(dayStr[1]) ?? 0];
+                                final subtitleText = t.tipo == 'transferencia'
+                                    ? '${presentation.routeLabel} · ${dayStr[2]} $monthLabel'
+                                    : '${ci?.label ?? category?.nombre ?? t.catKey} · ${dayStr[2]} $monthLabel';
+                                final amountText = presentation.prefix.isEmpty
+                                    ? fmt(t.monto.abs(), currency: t.moneda)
+                                    : '${presentation.prefix}${fmt(t.monto.abs(), currency: t.moneda)}';
 
                                 return Column(
                                   children: [
@@ -913,6 +926,7 @@ class WalletDetailSheet extends ConsumerWidget {
                                           builder: (_) =>
                                               TransactionDetailSheet(
                                                 transaction: t,
+                                                contextWalletId: w.id,
                                               ),
                                         );
                                       },
@@ -969,26 +983,25 @@ class WalletDetailSheet extends ConsumerWidget {
                                                   ),
                                                   const SizedBox(height: 2),
                                                   Text(
-                                                    "${ci?.label ?? category?.nombre ?? t.catKey} \u00B7 ${dayStr[2]} $monthLabel",
+                                                    subtitleText,
                                                     style: const TextStyle(
                                                       fontSize: 12,
                                                       color: AppColors.g4,
                                                     ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ],
                                               ),
                                             ),
                                             const SizedBox(width: 8),
                                             Text(
-                                              t.tipo == "ingreso"
-                                                  ? "+ ${fmt(t.monto.abs(), currency: t.moneda)}"
-                                                  : "- ${fmt(t.monto.abs(), currency: t.moneda)}",
+                                              amountText,
                                               style: TextStyle(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w800,
-                                                color: t.tipo == "ingreso"
-                                                    ? AppColors.e6
-                                                    : AppColors.e8,
+                                                color: presentation.amountColor,
                                               ),
                                             ),
                                           ],
