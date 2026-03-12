@@ -14,26 +14,34 @@ class BudgetController extends AsyncNotifier<List<MenudoBudget>> {
 
   @override
   Future<List<MenudoBudget>> build() async {
-    final uid = ref.watch(authProvider).userId;
+    final authState = ref.watch(authProvider);
+    final uid = authState.userId;
     if (uid == null) return const [];
 
     final budgets = await ref
         .read(budgetServiceProvider)
         .fetchBudgets(int.parse(uid));
-    _syncSelectedBudgetIndex(budgets);
+    _syncSelectedBudgetIndex(
+      budgets,
+      preferredBudgetId: authState.profile?.defaultBudgetId,
+    );
     return budgets;
   }
 
   Future<void> refresh() async {
     final userId = _uid();
     if (userId == 0) return;
+    final currentSelectedBudgetId = _currentSelectedBudgetId();
 
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final budgets = await ref
           .read(budgetServiceProvider)
           .fetchBudgets(userId);
-      _syncSelectedBudgetIndex(budgets);
+      _syncSelectedBudgetIndex(
+        budgets,
+        preferredBudgetId: currentSelectedBudgetId,
+      );
       return budgets;
     });
   }
@@ -113,6 +121,24 @@ class BudgetController extends AsyncNotifier<List<MenudoBudget>> {
     }
   }
 
+  Future<void> deleteBudget(int budgetId) async {
+    final userId = _uid();
+    if (userId == 0) return;
+
+    state = const AsyncValue.loading();
+    try {
+      await ref.read(budgetServiceProvider).deleteBudget(budgetId);
+      final budgets = await ref
+          .read(budgetServiceProvider)
+          .fetchBudgets(userId);
+      _syncSelectedBudgetIndex(budgets);
+      state = AsyncValue.data(budgets);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    }
+  }
+
   Future<MenudoBudget> fetchBudgetById(int budgetId) {
     return ref.read(budgetServiceProvider).fetchBudgetById(budgetId);
   }
@@ -133,6 +159,32 @@ class BudgetController extends AsyncNotifier<List<MenudoBudget>> {
         .read(budgetServiceProvider)
         .removeBudgetMember(budgetId, targetUserId);
     await refresh();
+  }
+
+  void selectBudgetLocally(int budgetId) {
+    final budgets = state.valueOrNull ?? const <MenudoBudget>[];
+    if (budgets.isEmpty) return;
+
+    final nextIndex = budgets.indexWhere((budget) => budget.id == budgetId);
+    if (nextIndex == -1) return;
+
+    ref.read(selectedBudgetIdxProvider.notifier).state = nextIndex;
+  }
+
+  Future<void> selectBudget(int budgetId, {bool persist = false}) async {
+    selectBudgetLocally(budgetId);
+    if (!persist) return;
+    await ref.read(authProvider.notifier).setDefaultBudget(budgetId);
+  }
+
+  int? _currentSelectedBudgetId() {
+    final budgets = state.valueOrNull;
+    if (budgets == null || budgets.isEmpty) return null;
+
+    final selectedIdx = ref.read(selectedBudgetIdxProvider);
+    if (selectedIdx < 0 || selectedIdx >= budgets.length) return null;
+
+    return budgets[selectedIdx].id;
   }
 
   void _syncSelectedBudgetIndex(

@@ -71,7 +71,7 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "Cuenta principal",
+                      "Principal en transacciones",
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -79,7 +79,7 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
                       ),
                     ),
                     Text(
-                      "Usar por defecto en transacciones",
+                      "Se preselecciona al registrar movimientos.",
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.g4,
@@ -143,7 +143,7 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
-                      "Esta cuenta aparecerá seleccionada automáticamente al registrar gastos o ingresos.",
+                      "Se usará primero al registrar movimientos nuevos.",
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.e6,
@@ -218,7 +218,7 @@ class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "Incluir en patrimonio",
+                      "Cuenta patrimonio",
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -227,8 +227,8 @@ class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
                     ),
                     Text(
                       isIncluded
-                          ? "Esta wallet cuenta en el patrimonio neto."
-                          : "Esta wallet queda fuera del patrimonio neto.",
+                          ? "Se suma al patrimonio neto."
+                          : "No se suma al patrimonio neto.",
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.g4,
@@ -298,8 +298,8 @@ class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
             ),
             child: Text(
               isIncluded
-                  ? 'Se usará en la tarjeta de patrimonio y en los totales de activos/deudas.'
-                  : 'Útil para tarjetas de crédito u otras wallets que no deben sumarse al patrimonio.',
+                  ? 'Se refleja en los totales de patrimonio.'
+                  : 'Útil para tarjetas de crédito y cuentas excluidas.',
               style: const TextStyle(
                 fontSize: 11,
                 color: AppColors.g5,
@@ -416,6 +416,7 @@ class WalletDetailSheet extends ConsumerWidget {
       HapticFeedback.lightImpact();
       await showModalBottomSheet<void>(
         context: context,
+        useRootNavigator: true,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (_) => RegisterTransactionSheet(
@@ -429,6 +430,7 @@ class WalletDetailSheet extends ConsumerWidget {
       HapticFeedback.lightImpact();
       final updatedWallet = await showModalBottomSheet<WalletAccount>(
         context: context,
+        useRootNavigator: true,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (_) => AddWalletSheet(initialWallet: w),
@@ -644,74 +646,6 @@ class WalletDetailSheet extends ConsumerWidget {
                       ),
                     ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
 
-                    if (w.esDefault)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.o5,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                LucideIcons.star,
-                                size: 12,
-                                color: Colors.white,
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                'Cuenta principal',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ).animate().fadeIn(duration: 400.ms, delay: 120.ms),
-
-                    if (!w.incluirEnPatrimonio)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.remove_circle_outline_rounded,
-                                size: 12,
-                                color: Colors.white,
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                'Fuera del patrimonio',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ).animate().fadeIn(duration: 400.ms, delay: 140.ms),
-
                     const SizedBox(height: 14),
 
                     Wrap(
@@ -722,19 +656,6 @@ class WalletDetailSheet extends ConsumerWidget {
                         _HeaderMetaPill(
                           icon: LucideIcons.badgeDollarSign,
                           label: w.moneda,
-                        ),
-                        if (activeBudget != null)
-                          _HeaderMetaPill(
-                            icon: LucideIcons.layoutGrid,
-                            label: activeBudget.nombre,
-                          ),
-                        _HeaderMetaPill(
-                          icon: w.incluirEnPatrimonio
-                              ? LucideIcons.pieChart
-                              : LucideIcons.minusCircle,
-                          label: w.incluirEnPatrimonio
-                              ? 'Cuenta en patrimonio'
-                              : 'Fuera patrimonio',
                         ),
                       ],
                     ).animate().fadeIn(duration: 400.ms, delay: 145.ms),
@@ -899,7 +820,7 @@ class WalletDetailSheet extends ConsumerWidget {
                     Text(
                       activeBudget == null
                           ? "Movimientos recientes de esta cuenta."
-                          : "Movimientos recientes dentro de ${activeBudget.nombre}.",
+                          : "En ${activeBudget.nombre}.",
                       style: const TextStyle(fontSize: 12, color: AppColors.g4),
                     ),
                     const SizedBox(height: 12),
@@ -984,6 +905,7 @@ class WalletDetailSheet extends ConsumerWidget {
                                         HapticFeedback.lightImpact();
                                         showModalBottomSheet(
                                           context: context,
+                                          useRootNavigator: true,
                                           isScrollControlled: true,
                                           backgroundColor: Colors.transparent,
                                           builder: (_) =>

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
@@ -38,13 +39,63 @@ WalletAccount? findWalletById(List<WalletAccount> wallets, int? walletId) {
   return null;
 }
 
+Color _fallbackWalletColor(String? type) {
+  switch (type) {
+    case 'deudas':
+      return AppColors.r5;
+    case 'gastos':
+      return AppColors.b5;
+    default:
+      return AppColors.e7;
+  }
+}
+
+IconData _fallbackWalletIcon(String? type) {
+  switch (type) {
+    case 'deudas':
+      return LucideIcons.alertCircle;
+    case 'gastos':
+      return LucideIcons.creditCard;
+    default:
+      return LucideIcons.landmark;
+  }
+}
+
+WalletAccount? resolveTransactionWallet(
+  List<WalletAccount> wallets,
+  int? walletId,
+  TransactionWalletInfo? snapshot,
+) {
+  final localWallet = findWalletById(wallets, walletId);
+  if (localWallet != null) return localWallet;
+  if (snapshot == null) return null;
+
+  return WalletAccount(
+    id: snapshot.id,
+    nombre: snapshot.nombre,
+    tipo: snapshot.tipo ?? 'cuentas',
+    saldo: 0,
+    color: _fallbackWalletColor(snapshot.tipo),
+    icono: _fallbackWalletIcon(snapshot.tipo),
+    moneda: snapshot.moneda ?? 'DOP',
+  );
+}
+
 TransactionViewPresentation buildTransactionPresentation(
   MenudoTransaction transaction,
   List<WalletAccount> wallets, {
   int? contextWalletId,
 }) {
-  final sourceWallet = findWalletById(wallets, transaction.fromAccountId);
-  final destinationWallet = findWalletById(wallets, transaction.toAccountId);
+  final sourceWallet = resolveTransactionWallet(
+    wallets,
+    transaction.fromAccountId,
+    transaction.fromWallet,
+  );
+  final destinationWallet = resolveTransactionWallet(
+    wallets,
+    transaction.toAccountId,
+    transaction.toWallet,
+  );
 
   if (transaction.tipo == 'gasto') {
     return TransactionViewPresentation(

@@ -35,10 +35,7 @@ class AuthService {
     return _repository.clearSession();
   }
 
-  Future<AuthSession> login({
-    required String email,
-    required String password,
-  }) {
+  Future<AuthSession> login({required String email, required String password}) {
     return _repository.login(email: email, password: password);
   }
 
@@ -58,6 +55,10 @@ class AuthService {
 
   Future<UserProfile> fetchProfile() {
     return _repository.fetchProfile();
+  }
+
+  Future<int?> setDefaultBudget(int? budgetId) {
+    return _repository.setDefaultBudget(budgetId);
   }
 }
 

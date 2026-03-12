@@ -281,6 +281,7 @@ class ApiService {
     await _storage.delete(key: StorageKeys.userName);
     await _storage.delete(key: StorageKeys.userEmail);
     await _storage.delete(key: StorageKeys.userCurrency);
+    await _storage.delete(key: StorageKeys.userDefaultBudgetId);
   }
 
   Future<bool> _refreshAuthToken() async {

@@ -3,6 +3,7 @@ abstract final class ApiPaths {
   static const authRegister = '/auth/register';
   static const authRefresh = '/auth/refresh';
   static const authMe = '/auth/me';
+  static const authDefaultBudget = '$authMe/default-budget';
 
   static const budgets = '/budgets';
   static const categories = '/categories';

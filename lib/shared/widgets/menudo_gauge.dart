@@ -42,9 +42,10 @@ class _MenudoGaugeState extends State<MenudoGauge>
   Widget build(BuildContext context) {
     final budget = widget.budget;
     final isDark = widget.isDark;
-    final double ingresos = budget.ingresos > 0 ? budget.ingresos : 1;
+    final double ingresos = budget.displayIncomeBase > 0
+        ? budget.displayIncomeBase
+        : 1;
     final List<BudgetCategory> cats = budget.spendingCategories;
-    final double totalSpent = budget.totalSpent;
 
     return RepaintBoundary(
       child: SizedBox(
@@ -81,7 +82,7 @@ class _MenudoGaugeState extends State<MenudoGauge>
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                "Restante",
+                "Disponible",
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -93,7 +94,7 @@ class _MenudoGaugeState extends State<MenudoGauge>
               ),
               const SizedBox(height: 2),
               Text(
-                "RD\$${(budget.ingresos - totalSpent).toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                "RD\$${budget.availableToSpend.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
                 style: TextStyle(
                   fontSize: 34,
                   fontWeight: FontWeight.w900,

@@ -32,6 +32,7 @@ class MainShell extends StatelessWidget {
   void _openQuickLog(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const RegisterTransactionSheet(),

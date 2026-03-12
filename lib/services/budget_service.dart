@@ -48,6 +48,10 @@ class BudgetService {
     return _repository.setActiveBudget(budgetId);
   }
 
+  Future<void> deleteBudget(int budgetId) {
+    return _repository.deleteBudget(budgetId);
+  }
+
   Future<List<BudgetMember>> fetchBudgetMembers(int budgetId) {
     return _repository.fetchBudgetMembers(budgetId);
   }

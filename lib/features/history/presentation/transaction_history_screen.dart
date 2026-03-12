@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
 import '../../budgets/budget_providers.dart';
+import '../../transactions/presentation/transaction_presentation_utils.dart';
 import '../../transactions/providers/transaction_providers.dart';
 import '../../wallet/providers/wallet_providers.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
@@ -172,6 +173,9 @@ class _TransactionHistoryScreenState
                   final dayTotal = dayTxns
                       .where((t) => t.tipo == 'gasto')
                       .fold(0.0, (s, t) => s + t.monto.abs());
+                  final isSharedBudget =
+                      activeBudget.miembros.length > 1 ||
+                      activeBudget.espacioId != null;
 
                   return _DayGroupSection(
                         dateKey: dateKey,
@@ -179,6 +183,7 @@ class _TransactionHistoryScreenState
                         dayTxns: dayTxns,
                         activeBudget: activeBudget,
                         wallets: wallets,
+                        isSharedBudget: isSharedBudget,
                         fmt: _fmt,
                       )
                       .animate()
@@ -382,6 +387,7 @@ class _DayGroupSection extends StatelessWidget {
   final List<MenudoTransaction> dayTxns;
   final MenudoBudget activeBudget;
   final List<WalletAccount> wallets;
+  final bool isSharedBudget;
   final String Function(double) fmt;
 
   const _DayGroupSection({
@@ -390,6 +396,7 @@ class _DayGroupSection extends StatelessWidget {
     required this.dayTxns,
     required this.activeBudget,
     required this.wallets,
+    required this.isSharedBudget,
     required this.fmt,
   });
 
@@ -443,20 +450,13 @@ class _DayGroupSection extends StatelessWidget {
               children: List.generate(dayTxns.length, (i) {
                 final t = dayTxns[i];
                 final ci = activeBudget.cats[t.catKey];
-                final isTransfer = t.tipo == 'transferencia';
-                final fromW = t.fromAccountId != null
-                    ? wallets.where((w) => w.id == t.fromAccountId).firstOrNull
-                    : null;
-                final toW = t.toAccountId != null
-                    ? wallets.where((w) => w.id == t.toAccountId).firstOrNull
-                    : null;
+                final presentation = buildTransactionPresentation(t, wallets);
 
                 return _HistoryTile(
                   transaction: t,
                   category: ci,
-                  isTransfer: isTransfer,
-                  fromWallet: fromW,
-                  toWallet: toW,
+                  presentation: presentation,
+                  isSharedBudget: isSharedBudget,
                   isLast: i == dayTxns.length - 1,
                   fmt: fmt,
                 );
@@ -472,30 +472,43 @@ class _DayGroupSection extends StatelessWidget {
 class _HistoryTile extends StatelessWidget {
   final MenudoTransaction transaction;
   final BudgetCategory? category;
-  final bool isTransfer;
-  final WalletAccount? fromWallet, toWallet;
+  final TransactionViewPresentation presentation;
+  final bool isSharedBudget;
   final bool isLast;
   final String Function(double) fmt;
 
   const _HistoryTile({
     required this.transaction,
     this.category,
-    required this.isTransfer,
-    this.fromWallet,
-    this.toWallet,
+    required this.presentation,
+    required this.isSharedBudget,
     required this.isLast,
     required this.fmt,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isTransfer = transaction.tipo == 'transferencia';
     final color = isTransfer ? AppColors.b5 : (category?.color ?? AppColors.g4);
+    final walletRoute = presentation.routeLabel;
+    final sharedLabel =
+        transaction.userName != null && transaction.userName!.trim().isNotEmpty
+        ? transaction.userName!.trim()
+        : null;
+    final subtitle = isTransfer
+        ? (isSharedBudget && sharedLabel != null
+              ? '$sharedLabel · $walletRoute'
+              : walletRoute)
+        : (isSharedBudget && sharedLabel != null
+              ? '$sharedLabel · ${category?.label ?? transaction.catKey.toUpperCase()}'
+              : category?.label ?? transaction.catKey.toUpperCase());
 
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
         showModalBottomSheet(
           context: context,
+          useRootNavigator: true,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
           builder: (_) => TransactionDetailSheet(transaction: transaction),
@@ -533,26 +546,16 @@ class _HistoryTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
-                      if (isTransfer && fromWallet != null && toWallet != null)
-                        Text(
-                          "${fromWallet!.nombre.split('—').first.trim()} → ${toWallet!.nombre.split('—').first.trim()}",
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.g4,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        )
-                      else
-                        Text(
-                          category?.label ?? transaction.catKey.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.g4,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.g4,
+                          fontWeight: FontWeight.w600,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),

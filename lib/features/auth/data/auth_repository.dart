@@ -18,6 +18,9 @@ class AuthRepository {
     final userName = await _storage.read(key: StorageKeys.userName);
     final userEmail = await _storage.read(key: StorageKeys.userEmail);
     final userCurrency = await _storage.read(key: StorageKeys.userCurrency);
+    final userDefaultBudgetId = await _storage.read(
+      key: StorageKeys.userDefaultBudgetId,
+    );
     if (token == null || userIdStr == null) return null;
     final userId = int.tryParse(userIdStr);
     if (userId == null) return null;
@@ -32,6 +35,7 @@ class AuthRepository {
               name: userName ?? '',
               email: userEmail ?? '',
               baseCurrency: userCurrency ?? 'DOP',
+              defaultBudgetId: int.tryParse(userDefaultBudgetId ?? ''),
             ),
     );
   }
@@ -55,6 +59,7 @@ class AuthRepository {
       await _storage.delete(key: StorageKeys.userName);
       await _storage.delete(key: StorageKeys.userEmail);
       await _storage.delete(key: StorageKeys.userCurrency);
+      await _storage.delete(key: StorageKeys.userDefaultBudgetId);
       return;
     }
 
@@ -64,6 +69,14 @@ class AuthRepository {
       key: StorageKeys.userCurrency,
       value: profile.baseCurrency,
     );
+    if (profile.defaultBudgetId != null) {
+      await _storage.write(
+        key: StorageKeys.userDefaultBudgetId,
+        value: profile.defaultBudgetId.toString(),
+      );
+    } else {
+      await _storage.delete(key: StorageKeys.userDefaultBudgetId);
+    }
   }
 
   Future<void> clearSession() async {
@@ -73,6 +86,7 @@ class AuthRepository {
     await _storage.delete(key: StorageKeys.userName);
     await _storage.delete(key: StorageKeys.userEmail);
     await _storage.delete(key: StorageKeys.userCurrency);
+    await _storage.delete(key: StorageKeys.userDefaultBudgetId);
   }
 
   Future<AuthSession> login({
@@ -114,6 +128,23 @@ class AuthRepository {
       parser: asJsonMap,
     );
     return UserProfile.fromJson(response.requireData());
+  }
+
+  Future<int?> setDefaultBudget(int? budgetId) async {
+    final response = await _api.patch<Map<String, dynamic>>(
+      ApiPaths.authDefaultBudget,
+      body: {'presupuesto_id': budgetId},
+      parser: asJsonMap,
+    );
+    final data = response.requireData();
+    final rawBudgetId =
+        data['presupuesto_default_id'] ?? data['default_budget_id'];
+    return switch (rawBudgetId) {
+      int value => value,
+      String value => int.tryParse(value),
+      num value => value.toInt(),
+      _ => null,
+    };
   }
 }
 

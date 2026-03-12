@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
+import '../../auth/auth_state.dart';
 import '../../budgets/budget_providers.dart';
 import '../../categories/providers/category_providers.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
@@ -51,6 +52,7 @@ class TransactionDetailSheet extends ConsumerWidget {
     final selectedBudget = ref.watch(selectedBudgetProvider);
     final categories = ref.watch(effectiveCategoriesProvider);
     final wallets = ref.watch(effectiveWalletsProvider);
+    final authState = ref.watch(authProvider);
 
     final activeBudget = _findBudget(budgets, t, selectedBudget);
     final budgetCat = activeBudget?.cats[t.catKey];
@@ -72,6 +74,10 @@ class TransactionDetailSheet extends ConsumerWidget {
     final bool isGasto = t.tipo == 'gasto';
     final Color amountColor = presentation.amountColor;
     final String amountPrefix = presentation.prefix;
+    final currentUserId = int.tryParse(authState.userId ?? '');
+    final performerLabel = (t.userName != null && t.userName!.trim().isNotEmpty)
+        ? t.userName!.trim()
+        : (currentUserId != null && t.usuarioId == currentUserId ? 'Tú' : null);
     final String transferBadgeLabel = contextWalletId == null
         ? 'Transferencia'
         : (presentation.destinationWallet?.id == contextWalletId &&
@@ -81,10 +87,9 @@ class TransactionDetailSheet extends ConsumerWidget {
     final bool isSharedBudget =
         (activeBudget?.miembros.length ?? 0) > 1 ||
         activeBudget?.espacioId != null;
-    final String accountLabel =
+    final String? accountLabel =
         presentation.sourceWallet?.nombre ??
-        presentation.destinationWallet?.nombre ??
-        'Cuenta sin asignar';
+        presentation.destinationWallet?.nombre;
 
     // Format date in Spanish
     final parts = t.dateString.split('-');
@@ -203,115 +208,7 @@ class TransactionDetailSheet extends ConsumerWidget {
 
                     const SizedBox(height: 14),
 
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: AppColors.g2),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isTransfer
-                                ? 'Ruta del dinero'
-                                : 'Contexto del movimiento',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.g4,
-                              letterSpacing: 0.4,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          if (isTransfer) ...[
-                            _FlowLine(
-                              icon: LucideIcons.arrowUpFromLine,
-                              color: AppColors.e8,
-                              label: 'Origen',
-                              value:
-                                  presentation.sourceWallet?.nombre ??
-                                  'Cuenta origen sin asignar',
-                            ),
-                            const SizedBox(height: 10),
-                            _FlowLine(
-                              icon: LucideIcons.arrowDownToLine,
-                              color:
-                                  presentation.destinationWallet?.tipo ==
-                                      'deudas'
-                                  ? AppColors.e6
-                                  : AppColors.b5,
-                              label: 'Destino',
-                              value:
-                                  presentation.destinationWallet?.nombre ??
-                                  'Cuenta destino sin asignar',
-                            ),
-                          ] else ...[
-                            _FlowLine(
-                              icon: LucideIcons.landmark,
-                              color: AppColors.e7,
-                              label: 'Cuenta',
-                              value: accountLabel,
-                            ),
-                            const SizedBox(height: 10),
-                            _FlowLine(
-                              icon: isSharedBudget
-                                  ? LucideIcons.users
-                                  : LucideIcons.layoutGrid,
-                              color: isSharedBudget
-                                  ? AppColors.e6
-                                  : AppColors.p5,
-                              label: 'Presupuesto',
-                              value: activeBudget?.nombre ?? 'Sin presupuesto',
-                            ),
-                          ],
-                        ],
-                      ),
-                    ).animate().fadeIn(duration: 350.ms, delay: 115.ms),
-
-                    if (isTransfer &&
-                        (presentation.contextTitle != null ||
-                            presentation.contextSubtitle != null)) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: amountColor.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: amountColor.withValues(alpha: 0.18),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (presentation.contextTitle != null)
-                              Text(
-                                presentation.contextTitle!,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                  color: amountColor,
-                                ),
-                              ),
-                            if (presentation.contextSubtitle != null) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                presentation.contextSubtitle!,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.g5,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ).animate().fadeIn(duration: 350.ms, delay: 120.ms),
-                    ],
-
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
 
                     // Detail card
                     Container(
@@ -361,7 +258,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                                   label: 'Origen',
                                   value:
                                       presentation.sourceWallet?.nombre ??
-                                      'Cuenta origen sin asignar',
+                                      'No registrada',
                                 ),
                                 const Divider(
                                   height: 1,
@@ -375,7 +272,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                                   label: 'Destino',
                                   value:
                                       presentation.destinationWallet?.nombre ??
-                                      'Cuenta destino sin asignar',
+                                      'No registrada',
                                 ),
                                 const Divider(
                                   height: 1,
@@ -384,27 +281,29 @@ class TransactionDetailSheet extends ConsumerWidget {
                                   endIndent: 16,
                                 ),
                               ] else ...[
-                                _buildDetailRow(
-                                  icon: LucideIcons.landmark,
-                                  iconColor: AppColors.e7,
-                                  label: 'Cuenta',
-                                  value: accountLabel,
-                                ),
-                                const Divider(
-                                  height: 1,
-                                  color: Color(0xFFF3F4F6),
-                                  indent: 16,
-                                  endIndent: 16,
-                                ),
+                                if (accountLabel != null) ...[
+                                  _buildDetailRow(
+                                    icon: LucideIcons.landmark,
+                                    iconColor: AppColors.e7,
+                                    label: 'Cuenta',
+                                    value: accountLabel,
+                                  ),
+                                  const Divider(
+                                    height: 1,
+                                    color: Color(0xFFF3F4F6),
+                                    indent: 16,
+                                    endIndent: 16,
+                                  ),
+                                ],
                               ],
 
-                              // Performed by row
-                              if (t.userName != null) ...[
+                              if (performerLabel != null &&
+                                  (isSharedBudget || t.usuarioId != null)) ...[
                                 _buildDetailRow(
                                   icon: LucideIcons.user,
                                   iconColor: AppColors.o5,
-                                  label: 'Realizado por',
-                                  value: t.userName!,
+                                  label: 'Hecho por',
+                                  value: performerLabel,
                                 ),
                                 const Divider(
                                   height: 1,
@@ -414,149 +313,68 @@ class TransactionDetailSheet extends ConsumerWidget {
                                 ),
                               ],
 
-                              // ID row
-                              _buildDetailRow(
-                                icon: LucideIcons.hash,
-                                iconColor: AppColors.g4,
-                                label: 'ID',
-                                value: '#${t.id.toString().padLeft(4, '0')}',
-                              ),
-                              const Divider(
-                                height: 1,
-                                color: Color(0xFFF3F4F6),
-                                indent: 16,
-                                endIndent: 16,
-                              ),
-
-                              // Budget / space row
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 14,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color:
-                                            (isSharedBudget
-                                                    ? AppColors.e6
-                                                    : AppColors.p5)
-                                                .withValues(alpha: 0.13),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      alignment: Alignment.center,
-                                      child: Icon(
-                                        isSharedBudget
-                                            ? LucideIcons.users
-                                            : LucideIcons.layoutGrid,
-                                        size: 18,
-                                        color: isSharedBudget
-                                            ? AppColors.e6
-                                            : AppColors.p5,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            isSharedBudget
-                                                ? 'Espacio compartido'
-                                                : 'Presupuesto',
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: AppColors.g4,
-                                              fontWeight: FontWeight.w600,
-                                              letterSpacing: 0.3,
-                                            ),
+                              if (activeBudget != null)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 34,
+                                        height: 34,
+                                        decoration: BoxDecoration(
+                                          color:
+                                              (isSharedBudget
+                                                      ? AppColors.e6
+                                                      : AppColors.p5)
+                                                  .withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
                                           ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            activeBudget?.nombre ??
-                                                'Sin presupuesto',
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w700,
-                                              color: AppColors.e8,
-                                            ),
-                                          ),
-                                        ],
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Icon(
+                                          isSharedBudget
+                                              ? LucideIcons.users
+                                              : LucideIcons.layoutGrid,
+                                          size: 16,
+                                          color: isSharedBudget
+                                              ? AppColors.e6
+                                              : AppColors.p5,
+                                        ),
                                       ),
-                                    ),
-                                    if (isSharedBudget)
-                                      Builder(
-                                        builder: (context) {
-                                          final members =
-                                              (activeBudget?.miembros ??
-                                                      const <BudgetMember>[])
-                                                  .take(3)
-                                                  .toList();
-                                          if (members.isEmpty) {
-                                            return Container(
-                                              width: 26,
-                                              height: 26,
-                                              margin: const EdgeInsets.only(
-                                                left: 3,
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Presupuesto',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors.g4,
+                                                fontWeight: FontWeight.w600,
+                                                letterSpacing: 0.3,
                                               ),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.e1,
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: Colors.white,
-                                                  width: 1.5,
-                                                ),
-                                              ),
-                                              alignment: Alignment.center,
-                                              child: const Icon(
-                                                LucideIcons.users,
-                                                size: 12,
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              activeBudget.nombre,
+                                              style: const TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w700,
                                                 color: AppColors.e8,
                                               ),
-                                            );
-                                          }
-
-                                          return Row(
-                                            children: members
-                                                .map(
-                                                  (m) => Container(
-                                                    width: 26,
-                                                    height: 26,
-                                                    margin:
-                                                        const EdgeInsets.only(
-                                                          left: 3,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: m.c,
-                                                      shape: BoxShape.circle,
-                                                      border: Border.all(
-                                                        color: Colors.white,
-                                                        width: 1.5,
-                                                      ),
-                                                    ),
-                                                    alignment: Alignment.center,
-                                                    child: Text(
-                                                      m.i,
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: 10,
-                                                        fontWeight:
-                                                            FontWeight.w800,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                )
-                                                .toList(),
-                                          );
-                                        },
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         )
@@ -581,6 +399,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                               Navigator.pop(context);
                               showModalBottomSheet(
                                 context: context,
+                                useRootNavigator: true,
                                 isScrollControlled: true,
                                 backgroundColor: Colors.transparent,
                                 builder: (_) =>
@@ -700,16 +519,16 @@ class TransactionDetailSheet extends ConsumerWidget {
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
               color: iconColor.withValues(alpha: 0.13),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
-            child: Icon(icon, size: 18, color: iconColor),
+            child: Icon(icon, size: 16, color: iconColor),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -737,63 +556,6 @@ class TransactionDetailSheet extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _FlowLine extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String label;
-  final String value;
-
-  const _FlowLine({
-    required this.icon,
-    required this.color,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          alignment: Alignment.center,
-          child: Icon(icon, size: 16, color: color),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.g4,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.e8,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

@@ -44,6 +44,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final result = await showModalBottomSheet<WalletAccount>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const AddWalletSheet(),
@@ -275,8 +276,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 else ...[
                   const _WalletSectionLead(
                     title: 'Tus wallets',
-                    subtitle:
-                        'Cada tipo muestra su total y te deja entrar rápido al detalle.',
                   ).animate().fadeIn(duration: 350.ms, delay: 150.ms),
                   const SizedBox(height: 16),
                   ...groups.entries.map((groupEntry) {
@@ -356,26 +355,39 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "PATRIMONIO NETO",
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.white.withValues(alpha: 0.45),
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.5,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            excludedCount > 0
-                ? 'Se calcula solo con las wallets incluidas en patrimonio.'
-                : 'Vista rápida de tus activos y deudas incluidas.',
-            style: TextStyle(
-              fontSize: 12,
-              height: 1.35,
-              color: Colors.white.withValues(alpha: 0.72),
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  "PATRIMONIO NETO",
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.white.withValues(alpha: 0.45),
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ),
+              if (excludedCount > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    excludedCount == 1 ? '1 fuera' : '$excludedCount fuera',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white.withValues(alpha: 0.82),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 10),
           Text(
@@ -407,39 +419,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               ),
             ],
           ),
-          if (excludedCount > 0) ...[
-            const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    LucideIcons.info,
-                    size: 14,
-                    color: Color(0xFFDCFCE7),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      excludedCount == 1
-                          ? '1 wallet está fuera del patrimonio.'
-                          : '$excludedCount wallets están fuera del patrimonio.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white.withValues(alpha: 0.82),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -549,35 +528,19 @@ class _SummaryStat extends StatelessWidget {
 
 class _WalletSectionLead extends StatelessWidget {
   final String title;
-  final String subtitle;
 
-  const _WalletSectionLead({required this.title, required this.subtitle});
+  const _WalletSectionLead({required this.title});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-            color: AppColors.e8,
-            letterSpacing: -0.3,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: const TextStyle(
-            fontSize: 12,
-            height: 1.35,
-            color: AppColors.g5,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w900,
+        color: AppColors.e8,
+        letterSpacing: -0.3,
+      ),
     );
   }
 }
@@ -699,6 +662,7 @@ class _WalletGroupSection extends StatelessWidget {
                     HapticFeedback.lightImpact();
                     showModalBottomSheet(
                       context: context,
+                      useRootNavigator: true,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
                       builder: (_) =>
@@ -774,11 +738,6 @@ class _WalletTile extends StatelessWidget {
                             fg: AppColors.g5,
                             bg: AppColors.g1,
                           ),
-                          _WalletPill(
-                            label: wallet.tipo.toUpperCase(),
-                            fg: AppColors.g5,
-                            bg: AppColors.g1,
-                          ),
                           if (wallet.esDefault)
                             const _WalletPill(
                               label: 'PRINCIPAL',
@@ -810,15 +769,6 @@ class _WalletTile extends StatelessWidget {
                         color: wallet.saldo < 0 ? AppColors.r5 : AppColors.e8,
                       ),
                     ),
-                    if (wallet.esDefault)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 3),
-                        child: Icon(
-                          LucideIcons.star,
-                          size: 12,
-                          color: AppColors.o5,
-                        ),
-                      ),
                     const SizedBox(height: 3),
                     Icon(
                       LucideIcons.chevronRight,

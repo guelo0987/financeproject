@@ -100,11 +100,23 @@ class TransactionRepository {
     final category = categoryPayload == null
         ? null
         : asJsonMap(categoryPayload);
+    final userPayload = row['usuario'] ?? row['usuarios'];
+    final user = userPayload == null ? null : asJsonMap(userPayload);
+    final walletPayload = row['wallet'] ?? row['wallet_origen'];
+    final wallet = walletPayload == null ? null : asJsonMap(walletPayload);
+    final toWalletPayload = row['wallet_destino'] ?? row['to_wallet'];
+    final toWallet = toWalletPayload == null
+        ? null
+        : asJsonMap(toWalletPayload);
     final categoryId = row['catId'] ?? row['categoria_id'];
     final budgetId = row['budgetId'] ?? row['presupuesto_id'];
     final walletId = row['walletId'] ?? row['activo_id'];
     final toWalletId = row['toWalletId'] ?? row['activo_destino_id'];
-    final userId = row['userId'] ?? row['usuario_id'];
+    final userId =
+        row['userId'] ??
+        row['usuario_id'] ??
+        user?['id'] ??
+        user?['usuario_id'];
 
     return MenudoTransaction.fromJson({
       'transaccion_id': row['id'] ?? row['transaccion_id'],
@@ -121,6 +133,13 @@ class TransactionRepository {
       'nota': row['nota'],
       'moneda': row['moneda'],
       'usuario_id': userId,
+      ...?wallet == null ? null : {'wallet': wallet},
+      ...?toWallet == null ? null : {'wallet_destino': toWallet},
+      'user_name':
+          row['user_name'] ??
+          row['usuario_nombre'] ??
+          user?['nombre'] ??
+          user?['name'],
     }, catKey: row['catKey'] as String? ?? category?['slug'] as String? ?? '');
   }
 }

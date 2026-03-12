@@ -35,6 +35,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => BudgetDetailSheet(budget: b),
@@ -45,6 +46,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const CreateBudgetWizard(),
@@ -52,6 +54,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   }
 
   void _showError(Object error) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(error.toString()),
@@ -60,12 +63,13 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     );
   }
 
-  Future<void> _activateBudget(MenudoBudget budget) async {
+  Future<void> _selectBudget(MenudoBudget budget) async {
     HapticFeedback.mediumImpact();
     try {
-      await ref.read(budgetNotifierProvider.notifier).activateBudget(budget.id);
+      await ref
+          .read(budgetNotifierProvider.notifier)
+          .selectBudget(budget.id, persist: true);
     } catch (error) {
-      if (!mounted) return;
       _showError(error);
     }
   }
@@ -164,7 +168,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                             budget: b,
                             isDashboardActive: globalIdx == selectedIdx,
                             onTap: () => _showDetail(b),
-                            onSetActive: () => _activateBudget(b),
+                            onSetActive: () async => _selectBudget(b),
                             fmt: _fmt,
                           )
                           .animate()
@@ -382,11 +386,9 @@ class _BudgetCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double spent = budget.totalSpent;
-    final double remaining = budget.ingresos - spent;
-    final double pct = min(
-      spent / (budget.ingresos > 0 ? budget.ingresos : 1),
-      1.0,
-    );
+    final double remaining = budget.availableToSpend;
+    final double incomeBase = budget.displayIncomeBase;
+    final double pct = min(spent / (incomeBase > 0 ? incomeBase : 1), 1.0);
 
     return GestureDetector(
       onTap: onTap,
@@ -480,7 +482,7 @@ class _BudgetCard extends StatelessWidget {
                         center: true,
                       ),
                       _BudgetStat(
-                        label: "TOTAL",
+                        label: "PLAN",
                         value: fmt(budget.ingresos),
                         color: AppColors.e8,
                         right: true,

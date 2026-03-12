@@ -101,6 +101,10 @@ class BudgetRepository {
     await _api.patch<void>(ApiPaths.activateBudget(presupuestoId));
   }
 
+  Future<void> deleteBudget(int budgetId) {
+    return _api.delete<void>(ApiPaths.budgetById(budgetId));
+  }
+
   Future<List<BudgetMember>> fetchBudgetMembers(int budgetId) async {
     final response = await _api.get<List<dynamic>>(
       ApiPaths.budgetMembers(budgetId),

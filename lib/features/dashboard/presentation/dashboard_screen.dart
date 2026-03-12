@@ -51,14 +51,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Future<void> _activateBudget(MenudoBudget budget) async {
-    try {
-      await ref.read(budgetNotifierProvider.notifier).activateBudget(budget.id);
-    } catch (error) {
-      _showError(error);
-    }
-  }
-
   bool _needsWalletTour(List<WalletAccount> wallets, bool demoMode) {
     return !demoMode && wallets.isEmpty;
   }
@@ -236,13 +228,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     _maybeShowWalletTour(wallets, demoMode);
     _maybeShowBudgetTour(budgets, txnsThisPeriod, wallets, demoMode);
 
-    final selectedIdx = ref
-        .watch(selectedBudgetIdxProvider)
-        .clamp(0, budgets.length - 1);
-    final budget = ref.watch(selectedBudgetProvider) ?? budgets[selectedIdx];
+    final budget = ref.watch(selectedBudgetProvider) ?? budgets.first;
     final double spent = budget.totalSpent;
-    final double remaining = budget.ingresos - spent;
-    final double pct = spent / (budget.ingresos > 0 ? budget.ingresos : 1);
+    final double remaining = budget.availableToSpend;
+    final double pct =
+        spent / (budget.displayIncomeBase > 0 ? budget.displayIncomeBase : 1);
 
     final double ingresos = txnsThisPeriod
         .where((t) => t.tipo == 'ingreso')
@@ -325,16 +315,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(height: 24),
 
             // ── Budget Card ────────────────────────────────────────────
-            _buildBudgetCard(
-                  context,
-                  ref,
-                  budgets,
-                  budget,
-                  selectedIdx,
-                  remaining,
-                  pct,
-                  periodoLabel,
-                )
+            _buildBudgetCard(context, budget, remaining, pct, periodoLabel)
                 .animate()
                 .fadeIn(duration: 500.ms, delay: 100.ms)
                 .scale(
@@ -455,6 +436,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => SpendingBreakdownSheet(
@@ -467,17 +449,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildBudgetCard(
     BuildContext context,
-    WidgetRef ref,
-    List<MenudoBudget> budgets,
     MenudoBudget budget,
-    int selectedIdx,
     double remaining,
     double pct,
     String periodoLabel,
   ) {
     final highlightCategories = [...budget.spendingCategories]
       ..sort((a, b) => b.gastado.compareTo(a.gastado));
-    final unplannedCount = budget.otherExpenses.length;
+    final isShared = budget.miembros.length > 1 || budget.espacioId != null;
 
     return Container(
       decoration: BoxDecoration(
@@ -527,10 +506,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             bgColor: Colors.white.withValues(alpha: 0.15),
                             isSmall: true,
                           ),
-                          if (unplannedCount > 0)
+                          if (isShared)
                             MenudoChip.custom(
-                              label: '$unplannedCount fuera del plan',
-                              color: Colors.white,
+                              label: 'COMPARTIDO',
+                              color: const Color(0xFFB7F7D7),
                               bgColor: Colors.white.withValues(alpha: 0.12),
                               isSmall: true,
                             ),
@@ -545,39 +524,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           ),
 
-          _buildBudgetSelector(ref, budgets, selectedIdx),
-
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 18, 24, 8),
+            padding: const EdgeInsets.fromLTRB(24, 10, 24, 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _BudgetAccentPill(
-                      icon: LucideIcons.trendingDown,
-                      label: 'Gastado',
-                      value: _fmt(budget.totalSpent),
-                    ),
-                    if (budget.ahorroObjetivo > 0)
-                      _BudgetAccentPill(
-                        icon: LucideIcons.piggyBank,
-                        label: 'Meta ahorro',
-                        value: _fmt(budget.ahorroObjetivo),
-                      ),
-                    if (unplannedCount > 0)
-                      _BudgetAccentPill(
-                        icon: LucideIcons.alertCircle,
-                        label: 'Fuera plan',
-                        value: '$unplannedCount',
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 18),
                 Text(
-                  "SALDO DISPONIBLE",
+                  "DISPONIBLE",
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -602,7 +555,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 6),
                       child: Text(
-                        "/ ${_fmt(budget.ingresos)}",
+                        "/ plan ${_fmt(budget.ingresos)}",
                         style: TextStyle(
                           fontSize: 15,
                           color: Colors.white.withValues(alpha: 0.3),
@@ -612,10 +565,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 6),
+                Text(
+                  "Ingresos recibidos ${_fmt(budget.actualIncomeTotal)}",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.68),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 _buildMainProgressBar(pct, periodoLabel),
-                const SizedBox(height: 16),
-                _buildSavingsGoal(budget),
               ],
             ),
           ),
@@ -651,6 +611,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         HapticFeedback.lightImpact();
         showModalBottomSheet(
           context: context,
+          useRootNavigator: true,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
           builder: (_) => BudgetDetailSheet(budget: budget),
@@ -671,59 +632,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             fontWeight: FontWeight.w800,
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBudgetSelector(
-    WidgetRef ref,
-    List<MenudoBudget> budgets,
-    int selectedIdx,
-  ) {
-    return SizedBox(
-      height: 38,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        itemCount: budgets.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (ctx, i) {
-          final b = budgets[i];
-          final isSelected = i == selectedIdx;
-          return GestureDetector(
-            onTap: () async {
-              HapticFeedback.selectionClick();
-              await _activateBudget(b);
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Colors.white
-                    : Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(100),
-                border: Border.all(
-                  color: isSelected
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.08),
-                ),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                b.nombre,
-                style: TextStyle(
-                  color: isSelected
-                      ? AppColors.e8
-                      : Colors.white.withValues(alpha: 0.6),
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                ),
-              ),
-            ),
-          );
-        },
       ),
     );
   }
@@ -784,47 +692,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               .toList(),
         );
       },
-    );
-  }
-
-  Widget _buildSavingsGoal(MenudoBudget budget) {
-    if (budget.ahorroObjetivo <= 0) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          const Icon(LucideIcons.piggyBank, size: 16, color: Color(0xFF6EE7B7)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "META DE AHORRO",
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white.withValues(alpha: 0.45),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                Text(
-                  _fmt(budget.ahorroObjetivo),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -951,6 +818,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         HapticFeedback.mediumImpact();
         showModalBottomSheet(
           context: context,
+          useRootNavigator: true,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
           builder: (_) => const RegisterTransactionSheet(),
@@ -1013,6 +881,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               HapticFeedback.lightImpact();
               showModalBottomSheet(
                 context: context,
+                useRootNavigator: true,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
                 builder: (_) => TransactionDetailSheet(transaction: t),
@@ -1247,59 +1116,6 @@ class _SectionHeader extends StatelessWidget {
         ),
         if (trailing != null) ...[const SizedBox(width: 12), trailing!],
       ],
-    );
-  }
-}
-
-class _BudgetAccentPill extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _BudgetAccentPill({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.11),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: Colors.white.withValues(alpha: 0.85)),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white.withValues(alpha: 0.45),
-                  letterSpacing: 0.6,
-                ),
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

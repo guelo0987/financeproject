@@ -14,9 +14,10 @@ import '../../../categories/presentation/categories_screen.dart';
 import '../../budget_providers.dart';
 
 class CreateBudgetWizard extends ConsumerStatefulWidget {
-  const CreateBudgetWizard({super.key, this.initialBudget});
+  const CreateBudgetWizard({super.key, this.initialBudget, this.initialStep});
 
   final MenudoBudget? initialBudget;
+  final int? initialStep;
 
   @override
   ConsumerState<CreateBudgetWizard> createState() => _CreateBudgetWizardState();
@@ -24,14 +25,6 @@ class CreateBudgetWizard extends ConsumerStatefulWidget {
 
 class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
   int _step = 0;
-  final List<String> _steps = [
-    "Básico",
-    "Ingresos",
-    "Gastos",
-    "Ahorro",
-    "Miembros",
-    "Resumen",
-  ];
 
   // Form Data
   String _nombre = "";
@@ -46,11 +39,18 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
 
   bool get _isEditing => widget.initialBudget != null;
   bool get _canInviteMembers => !_isEditing;
+  List<String> get _steps => _isEditing
+      ? const ["Básico", "Ingresos", "Gastos", "Ahorro"]
+      : const ["Básico", "Ingresos", "Gastos", "Ahorro", "Miembros", "Resumen"];
+  int get _lastStepIndex => _steps.length - 1;
 
   @override
   void initState() {
     super.initState();
     _seedInitialBudget();
+    if (widget.initialStep != null) {
+      _step = min(widget.initialStep!, _lastStepIndex);
+    }
   }
 
   double _parseAmount(String? rawValue) {
@@ -197,7 +197,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
   }
 
   Future<void> _onNextOrSave() async {
-    if (_step < 5) {
+    if (_step < _lastStepIndex) {
       setState(() => _step++);
     } else {
       await _saveBudget();
@@ -412,9 +412,9 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
             child: MenudoButton(
               label: _isSaving
                   ? (_isEditing ? "GUARDANDO..." : "CREANDO...")
-                  : _step == 5
+                  : _step == _lastStepIndex
                   ? (_isEditing
-                        ? "Guardar presupuesto"
+                        ? "Guardar cambios"
                         : _miembros.isNotEmpty
                         ? "Crear e invitar"
                         : "Crear presupuesto")
@@ -440,7 +440,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
       case 3:
         return _buildStep3();
       case 4:
-        return _buildStep4();
+        return _isEditing ? _buildStep5() : _buildStep4();
       case 5:
         return _buildStep5();
       default:
@@ -453,7 +453,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          _isEditing ? "Configurar presupuesto" : "Nuevo presupuesto",
+          _isEditing ? "Editar presupuesto" : "Nuevo presupuesto",
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
@@ -461,9 +461,11 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           ),
         ),
         const SizedBox(height: 4),
-        const Text(
-          "¿Cómo se llamará y qué período tendrá?",
-          style: TextStyle(fontSize: 14, color: AppColors.g4),
+        Text(
+          _isEditing
+              ? "Ajusta nombre y período si lo necesitas."
+              : "¿Cómo se llamará y qué período tendrá?",
+          style: const TextStyle(fontSize: 14, color: AppColors.g4),
         ),
         const SizedBox(height: 24),
 

@@ -86,6 +86,47 @@ class WalletAccount {
   }
 }
 
+class TransactionWalletInfo {
+  final int id;
+  final String nombre;
+  final String? tipo;
+  final String? moneda;
+
+  const TransactionWalletInfo({
+    required this.id,
+    required this.nombre,
+    this.tipo,
+    this.moneda,
+  });
+
+  factory TransactionWalletInfo.fromJson(Map<String, dynamic> json) {
+    int? parseInt(Object? value) {
+      return switch (value) {
+        int data => data,
+        num data => data.toInt(),
+        String data => int.tryParse(data),
+        _ => null,
+      };
+    }
+
+    return TransactionWalletInfo(
+      id: parseInt(json['id'] ?? json['activo_id'] ?? json['wallet_id']) ?? 0,
+      nombre: json['nombre']?.toString() ?? '',
+      tipo: json['tipo']?.toString(),
+      moneda: json['moneda']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nombre': nombre,
+      if (tipo != null) 'tipo': tipo,
+      if (moneda != null) 'moneda': moneda,
+    };
+  }
+}
+
 // ── Transaction ─────────────────────────────────
 class MenudoTransaction {
   final int id;
@@ -103,6 +144,8 @@ class MenudoTransaction {
   final String moneda;
   final int? usuarioId;
   final String? userName;
+  final TransactionWalletInfo? fromWallet;
+  final TransactionWalletInfo? toWallet;
 
   const MenudoTransaction({
     required this.id,
@@ -120,6 +163,8 @@ class MenudoTransaction {
     this.moneda = 'DOP',
     this.usuarioId,
     this.userName,
+    this.fromWallet,
+    this.toWallet,
   });
 
   factory MenudoTransaction.fromJson(
@@ -130,6 +175,9 @@ class MenudoTransaction {
     final rawMonto = (json['monto'] as num).toDouble();
     // In DB monto is always positive. We sign it for UI convenience.
     final monto = tipo == 'ingreso' ? rawMonto : -rawMonto;
+    final fromWalletPayload = json['wallet'] ?? json['wallet_origen'];
+    final toWalletPayload = json['wallet_destino'] ?? json['to_wallet'];
+
     return MenudoTransaction(
       id: (json['transaccion_id'] as num).toInt(),
       dateString: json['fecha'] as String,
@@ -156,6 +204,16 @@ class MenudoTransaction {
           ? (json['usuario_id'] as num).toInt()
           : null,
       userName: json['user_name'] as String?,
+      fromWallet: fromWalletPayload is Map
+          ? TransactionWalletInfo.fromJson(
+              Map<String, dynamic>.from(fromWalletPayload),
+            )
+          : null,
+      toWallet: toWalletPayload is Map
+          ? TransactionWalletInfo.fromJson(
+              Map<String, dynamic>.from(toWalletPayload),
+            )
+          : null,
     );
   }
 
@@ -172,6 +230,8 @@ class MenudoTransaction {
       if (toAccountId != null) 'activo_destino_id': toAccountId,
       if (categoryId != null) 'categoria_id': categoryId,
       if (usuarioId != null) 'usuario_id': usuarioId,
+      if (fromWallet != null) 'wallet': fromWallet!.toJson(),
+      if (toWallet != null) 'wallet_destino': toWallet!.toJson(),
     };
   }
 
@@ -186,8 +246,11 @@ class MenudoTransaction {
     int? fromAccountId,
     int? toAccountId,
     String? nota,
+    String? moneda,
     int? usuarioId,
     String? userName,
+    TransactionWalletInfo? fromWallet,
+    TransactionWalletInfo? toWallet,
   }) {
     return MenudoTransaction(
       id: id,
@@ -201,8 +264,11 @@ class MenudoTransaction {
       fromAccountId: fromAccountId ?? this.fromAccountId,
       toAccountId: toAccountId ?? this.toAccountId,
       nota: nota ?? this.nota,
+      moneda: moneda ?? this.moneda,
       usuarioId: usuarioId ?? this.usuarioId,
       userName: userName ?? this.userName,
+      fromWallet: fromWallet ?? this.fromWallet,
+      toWallet: toWallet ?? this.toWallet,
     );
   }
 }
@@ -585,6 +651,11 @@ class MenudoBudget {
         ...incomeSources,
         ...otherIncomeSources,
       ].fold(0.0, (sum, source) => sum + source.actual);
+
+  double get displayIncomeBase =>
+      actualIncomeTotal > 0 ? actualIncomeTotal : ingresos;
+
+  double get availableToSpend => displayIncomeBase - totalSpent;
 
   MenudoBudget copyWith({
     int? id,

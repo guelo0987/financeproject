@@ -102,6 +102,19 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> setDefaultBudget(int? budgetId) async {
+    final currentProfile = state.profile;
+    if (currentProfile == null) return;
+
+    final savedBudgetId = await _service.setDefaultBudget(budgetId);
+    final nextProfile = currentProfile.copyWith(
+      defaultBudgetId: savedBudgetId,
+      clearDefaultBudgetId: savedBudgetId == null,
+    );
+    await _service.saveProfile(nextProfile);
+    state = state.copyWith(profile: nextProfile);
+  }
+
   void _setAuthenticated(AuthSession session) {
     state = AuthState(
       isAuthenticated: true,
