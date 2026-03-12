@@ -384,8 +384,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             // ── Action Grid ────────────────────────────────────────────
             const _SectionHeader(
               title: "Accesos rápidos",
-              subtitle:
-                  "Atajos grandes y claros para registrar, revisar y organizar tu dinero.",
             ).animate().fadeIn(duration: 400.ms, delay: 360.ms),
 
             const SizedBox(height: 12),
@@ -400,7 +398,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             // ── Recent Transactions ────────────────────────────────────
             _SectionHeader(
               title: "Transacciones recientes",
-              subtitle: "Lo último que impactó el presupuesto activo.",
               trailing: TextButton(
                 onPressed: () => context.push('/history'),
                 child: Row(
@@ -505,24 +502,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           letterSpacing: -0.4,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      MenudoChip.custom(
-                        label: budget.periodo.toUpperCase(),
-                        color: Colors.white,
-                        bgColor: Colors.white.withValues(alpha: 0.15),
-                        isSmall: true,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        unplannedCount > 0
-                            ? '$unplannedCount categoría${unplannedCount == 1 ? '' : 's'} fuera del plan necesita${unplannedCount == 1 ? '' : 'n'} revisión.'
-                            : 'Tu presupuesto activo está listo para registrar movimientos.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          height: 1.35,
-                          color: Colors.white.withValues(alpha: 0.72),
-                          fontWeight: FontWeight.w600,
-                        ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          MenudoChip.custom(
+                            label: budget.periodo.toUpperCase(),
+                            color: Colors.white,
+                            bgColor: Colors.white.withValues(alpha: 0.15),
+                            isSmall: true,
+                          ),
+                          if (unplannedCount > 0)
+                            MenudoChip.custom(
+                              label: '$unplannedCount fuera del plan',
+                              color: Colors.white,
+                              bgColor: Colors.white.withValues(alpha: 0.12),
+                              isSmall: true,
+                            ),
+                        ],
                       ),
                     ],
                   ),
@@ -615,7 +613,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               children: [
                 if (highlightCategories.isNotEmpty)
                   Text(
-                    'Categorías que más están consumiendo el plan',
+                    'Top gastos',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.white.withValues(alpha: 0.7),
@@ -721,7 +719,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       (
         icon: LucideIcons.pieChart,
         label: 'Categorías',
-        subtitle: 'Agrupa y crea subcategorías.',
         color: AppColors.e6,
         bgColor: AppColors.e1,
         onTap: () => context.push('/categories'),
@@ -729,7 +726,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       (
         icon: LucideIcons.repeat2,
         label: 'Automáticas',
-        subtitle: 'Administra movimientos recurrentes.',
         color: AppColors.o5,
         bgColor: AppColors.o1,
         onTap: () => context.push('/recurring'),
@@ -737,17 +733,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       (
         icon: LucideIcons.clock,
         label: 'Historial',
-        subtitle: 'Revisa todo lo que ya pasó.',
-        color: AppColors.p5,
-        bgColor: const Color(0xFFF3EEFF),
+        color: AppColors.e8,
+        bgColor: AppColors.e0,
         onTap: () => context.push('/history'),
       ),
       (
         icon: LucideIcons.wrench,
         label: 'Herramientas',
-        subtitle: 'Accesos utilitarios y cálculos.',
-        color: AppColors.b5,
-        bgColor: const Color(0xFFEFF6FF),
+        color: AppColors.o5,
+        bgColor: AppColors.o1,
         onTap: () => context.push('/tools'),
       ),
     ];
@@ -767,7 +761,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: _QuickAction(
                     icon: action.icon,
                     label: action.label,
-                    subtitle: action.subtitle,
                     color: action.color,
                     bgColor: action.bgColor,
                     onTap: action.onTap,
@@ -856,7 +849,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          "${(pct * 100).round()}% de tu presupuesto utilizado",
+          "${(pct * 100).round()}% usado",
           style: TextStyle(
             fontSize: 12,
             color: Colors.white.withValues(alpha: 0.4),
@@ -1118,14 +1111,12 @@ class _SummaryCard extends StatelessWidget {
 class _QuickAction extends StatelessWidget {
   final IconData icon;
   final String label;
-  final String subtitle;
   final Color color, bgColor;
   final VoidCallback onTap;
 
   const _QuickAction({
     required this.icon,
     required this.label,
-    required this.subtitle,
     required this.color,
     required this.bgColor,
     required this.onTap,
@@ -1139,7 +1130,7 @@ class _QuickAction extends StatelessWidget {
         onTap();
       },
       child: Container(
-        constraints: const BoxConstraints(minHeight: 118),
+        constraints: const BoxConstraints(minHeight: 98),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -1169,19 +1160,9 @@ class _QuickAction extends StatelessWidget {
             Text(
               label,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: FontWeight.w800,
                 color: AppColors.e8,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 11,
-                height: 1.35,
-                fontWeight: FontWeight.w600,
-                color: AppColors.g4,
               ),
             ),
           ],
@@ -1193,14 +1174,9 @@ class _QuickAction extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-  final String subtitle;
   final Widget? trailing;
 
-  const _SectionHeader({
-    required this.title,
-    required this.subtitle,
-    this.trailing,
-  });
+  const _SectionHeader({required this.title, this.trailing});
 
   @override
   Widget build(BuildContext context) {
@@ -1214,20 +1190,10 @@ class _SectionHeader extends StatelessWidget {
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 18,
+                  fontSize: 17,
                   fontWeight: FontWeight.w900,
                   color: AppColors.e8,
                   letterSpacing: -0.4,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 12,
-                  height: 1.35,
-                  color: AppColors.g5,
-                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],

@@ -264,7 +264,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                       padding: const EdgeInsets.only(top: 12),
                       child: _InlineInfoCard(
                         text:
-                            'Incluye ${_fmt(extraExpenseCategories.fold<double>(0, (sum, category) => sum + category.gastado))} en gastos fuera del plan. Si luego agregas esa categoría al presupuesto, se moverá automáticamente a su límite.',
+                            'Incluye ${_fmt(extraExpenseCategories.fold<double>(0, (sum, category) => sum + category.gastado))} fuera del plan.',
                       ),
                     ),
                   if (isShared) _buildSharedBudgetSection(),
@@ -295,7 +295,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       child: GestureDetector(
         onTap: _openBudgetEditor,
         child: Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
@@ -311,8 +311,8 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
           child: Row(
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: AppColors.e1,
                   borderRadius: BorderRadius.circular(14),
@@ -330,21 +330,11 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Editar configuración del presupuesto',
+                      'Editar presupuesto',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
                         color: AppColors.e8,
-                      ),
-                    ),
-                    SizedBox(height: 3),
-                    Text(
-                      'Cambia nombre, ingresos, límites y categorías sin crear otro presupuesto.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        height: 1.35,
-                        color: AppColors.g5,
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -372,9 +362,8 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                   child: _MetricCard(
                     label: "GASTADO",
                     amount: _fmt(spent),
-                    color: AppColors.r5,
+                    color: AppColors.o5,
                     icon: LucideIcons.trendingDown,
-                    helper: 'Lo que ya salió del presupuesto.',
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -384,7 +373,6 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                     amount: _fmt(left),
                     color: AppColors.e6,
                     icon: LucideIcons.wallet,
-                    helper: 'Saldo disponible para este periodo.',
                   ),
                 ),
               ],
@@ -393,11 +381,8 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
             _MetricCard(
               label: "INGRESO REAL",
               amount: _fmt(incomeActual),
-              color: AppColors.b5,
+              color: AppColors.e8,
               icon: LucideIcons.trendingUp,
-              helper: widget.budget.otherIncomeSources.isNotEmpty
-                  ? 'Incluye ingresos fuera del plan configurado.'
-                  : 'Lo que realmente entró en este presupuesto.',
               isWide: true,
             ),
           ],
@@ -535,11 +520,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       children: [
         const Padding(
           padding: EdgeInsets.fromLTRB(4, 32, 0, 12),
-          child: _BudgetSectionTitle(
-            title: 'Categorías del presupuesto',
-            subtitle:
-                'Aquí ves lo que ya tiene límite y lo que está consumiendo el plan.',
-          ),
+          child: _BudgetSectionTitle(title: 'Categorías del presupuesto'),
         ),
         ...plannedCategories.asMap().entries.map((entry) {
           return _CategoryDetailCard(
@@ -557,11 +538,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         if (extraExpenseCategories.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.fromLTRB(4, 20, 0, 12),
-            child: _BudgetSectionTitle(
-              title: 'Otros gastos fuera del plan',
-              subtitle:
-                  'Sí cuentan dentro del presupuesto, pero todavía no tienen tope.',
-            ),
+            child: _BudgetSectionTitle(title: 'Otros gastos fuera del plan'),
           ),
           ...extraExpenseCategories.map(
             (category) => _UnplannedExpenseCard(
@@ -651,11 +628,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         ),
         const SizedBox(height: 20),
         if (incomeSources.isNotEmpty) ...[
-          const _BudgetSectionTitle(
-            title: 'Ingresos planeados vs reales',
-            subtitle:
-                'Cada fuente compara lo esperado con lo que realmente entró.',
-          ),
+          const _BudgetSectionTitle(title: 'Ingresos planeados vs reales'),
           const SizedBox(height: 10),
           ...incomeSources.map(
             (source) => _IncomePlanRow(
@@ -667,11 +640,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
           const SizedBox(height: 18),
         ],
         if (otherIncomeSources.isNotEmpty) ...[
-          const _BudgetSectionTitle(
-            title: 'Ingresos sin plan configurado',
-            subtitle:
-                'Sí cuentan en el presupuesto, pero todavía no tienen meta.',
-          ),
+          const _BudgetSectionTitle(title: 'Ingresos sin plan configurado'),
           const SizedBox(height: 10),
           ...otherIncomeSources.map(
             (source) => _IncomePlanRow(
@@ -682,11 +651,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
           ),
           const SizedBox(height: 18),
         ],
-        const _BudgetSectionTitle(
-          title: 'Límites por categoría',
-          subtitle:
-              'Estos topes son los que controlan qué tan rápido se consume el plan.',
-        ),
+        const _BudgetSectionTitle(title: 'Límites por categoría'),
         const SizedBox(height: 10),
         ...expenseCategories.map(
           (cat) => _PlanCategoryRow(
@@ -698,11 +663,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         ),
         if (extraExpenseCategories.isNotEmpty) ...[
           const SizedBox(height: 18),
-          const _BudgetSectionTitle(
-            title: 'Gastos sin límite configurado',
-            subtitle:
-                'Impactan el total real aunque todavía no tengan un límite asignado.',
-          ),
+          const _BudgetSectionTitle(title: 'Gastos sin límite configurado'),
           const SizedBox(height: 10),
           ...extraExpenseCategories.map(
             (cat) => _UnplannedExpenseCard(
@@ -745,7 +706,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       },
       {
         "icon": LucideIcons.alertTriangle,
-        "color": AppColors.r5,
+        "color": AppColors.o5,
         "title": "Alerta: Comida",
         "body":
             "Has gastado el 85% de tu límite en 'Comida' y solo ha pasado el 40% del periodo.",
@@ -902,7 +863,6 @@ class _MetricCard extends StatelessWidget {
   final String label, amount;
   final Color color;
   final IconData icon;
-  final String? helper;
   final bool isWide;
 
   const _MetricCard({
@@ -910,7 +870,6 @@ class _MetricCard extends StatelessWidget {
     required this.amount,
     required this.color,
     required this.icon,
-    this.helper,
     this.isWide = false,
   });
 
@@ -922,13 +881,6 @@ class _MetricCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.g2),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -943,20 +895,6 @@ class _MetricCard extends StatelessWidget {
                 ),
                 child: Icon(icon, size: 14, color: color),
               ),
-              if (isWide && helper != null) ...[
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    helper!,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      height: 1.3,
-                      color: AppColors.g4,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
           const SizedBox(height: 12),
@@ -979,18 +917,6 @@ class _MetricCard extends StatelessWidget {
               letterSpacing: -0.5,
             ),
           ),
-          if (!isWide && helper != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              helper!,
-              style: const TextStyle(
-                fontSize: 11,
-                height: 1.3,
-                color: AppColors.g4,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -1470,7 +1396,7 @@ class _CategoryDetailCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: over ? AppColors.r5.withValues(alpha: 0.3) : AppColors.g2,
+          color: over ? AppColors.o5.withValues(alpha: 0.3) : AppColors.g2,
         ),
       ),
       child: Column(
@@ -1523,8 +1449,8 @@ class _CategoryDetailCard extends StatelessWidget {
               if (over)
                 MenudoChip.custom(
                   label: "EXCEDIDO",
-                  color: AppColors.r5,
-                  bgColor: AppColors.r1,
+                  color: AppColors.o5,
+                  bgColor: AppColors.o1,
                   isSmall: true,
                 ),
             ],
@@ -1537,7 +1463,7 @@ class _CategoryDetailCard extends StatelessWidget {
               minHeight: 8,
               backgroundColor: AppColors.g1,
               valueColor: AlwaysStoppedAnimation<Color>(
-                over ? AppColors.r5 : cat.color,
+                over ? AppColors.o5 : cat.color,
               ),
             ),
           ),
@@ -1560,7 +1486,7 @@ class _CategoryDetailCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  color: over ? AppColors.r5 : AppColors.e6,
+                  color: over ? AppColors.o5 : AppColors.e6,
                 ),
               ),
             ],
@@ -1649,17 +1575,7 @@ class _UnplannedExpenseCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.r5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Este gasto cuenta dentro del presupuesto, pero todavía no tiene un límite configurado.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 1.35,
-                    color: AppColors.g5,
-                    fontWeight: FontWeight.w600,
+                    color: AppColors.o5,
                   ),
                 ),
               ],
@@ -1686,6 +1602,9 @@ class _PlanSummaryHeader extends StatelessWidget {
     final actualValue = _asCurrencyNumber(actualTotal);
     final difference = actualValue - plannedValue;
     final differencePositive = difference >= 0;
+    final differenceColor = differencePositive
+        ? const Color(0xFF6EE7B7)
+        : AppColors.o5;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1701,7 +1620,7 @@ class _PlanSummaryHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Resumen del plan',
+            'Plan del periodo',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -1709,17 +1628,7 @@ class _PlanSummaryHeader extends StatelessWidget {
               letterSpacing: 0.8,
             ),
           ),
-          const SizedBox(height: 6),
-          const Text(
-            'Lo planeado vs lo que ya pasó',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              letterSpacing: -0.6,
-            ),
-          ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
@@ -1739,79 +1648,74 @@ class _PlanSummaryHeader extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  differencePositive
-                      ? LucideIcons.badgePlus
-                      : LucideIcons.badgeMinus,
-                  size: 16,
-                  color: differencePositive
-                      ? const Color(0xFF6EE7B7)
-                      : const Color(0xFFFCA5A5),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 9,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    differencePositive
-                        ? 'Vas ${_formatDifference(difference)} por encima de lo planeado en ingresos.'
-                        : 'Vas ${_formatDifference(difference.abs())} por debajo de lo planeado en ingresos.',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      height: 1.35,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      differencePositive
+                          ? LucideIcons.badgePlus
+                          : LucideIcons.badgeMinus,
+                      size: 14,
+                      color: differenceColor,
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (savings != 'RD\$0') ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    LucideIcons.piggyBank,
-                    size: 18,
-                    color: Color(0xFF6EE7B7),
-                  ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text(
-                      'Meta de ahorro configurada',
+                    const SizedBox(width: 8),
+                    Text(
+                      '${differencePositive ? '+' : '-'}${_formatDifference(difference.abs())} vs plan',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.white,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ),
-                  Text(
-                    savings,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF6EE7B7),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+              if (savings != 'RD\$0')
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        LucideIcons.piggyBank,
+                        size: 14,
+                        color: Color(0xFF6EE7B7),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Ahorro $savings',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -1850,6 +1754,7 @@ class _PlanCategoryRow extends StatelessWidget {
         .round();
     final usage = cat.limite > 0 ? (cat.gastado / cat.limite) : 0.0;
     final over = usage > 1;
+    final statusColor = over ? AppColors.o5 : AppColors.e6;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(16),
@@ -1857,7 +1762,7 @@ class _PlanCategoryRow extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: over ? AppColors.r5.withValues(alpha: 0.24) : AppColors.g2,
+          color: over ? AppColors.o5.withValues(alpha: 0.24) : AppColors.g2,
         ),
       ),
       child: Row(
@@ -1915,10 +1820,10 @@ class _PlanCategoryRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Planeado ${fmt(cat.limite)} · Actual ${fmt(cat.gastado)}',
+                  'Límite ${fmt(cat.limite)} · Gastado ${fmt(cat.gastado)}',
                   style: TextStyle(
                     fontSize: 11,
-                    color: over ? AppColors.r5 : AppColors.g5,
+                    color: over ? AppColors.o5 : AppColors.g5,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1926,12 +1831,19 @@ class _PlanCategoryRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          Text(
-            fmt(cat.limite),
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: over ? AppColors.r5 : AppColors.e8,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              over ? 'Excedido' : '${(usage * 100).clamp(0, 999).round()}%',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: statusColor,
+              ),
             ),
           ),
         ],
@@ -1954,7 +1866,7 @@ class _IncomePlanRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPositive = source.difference >= 0;
-    final accent = isPositive ? AppColors.e6 : AppColors.r5;
+    final accent = isPositive ? AppColors.e6 : AppColors.o5;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -2034,10 +1946,9 @@ class _IncomePlanRow extends StatelessWidget {
 }
 
 class _BudgetSectionTitle extends StatelessWidget {
-  const _BudgetSectionTitle({required this.title, this.subtitle});
+  const _BudgetSectionTitle({required this.title});
 
   final String title;
-  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -2049,24 +1960,12 @@ class _BudgetSectionTitle extends StatelessWidget {
           Text(
             title,
             style: const TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.w900,
               color: AppColors.e8,
               letterSpacing: -0.3,
             ),
           ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              subtitle!,
-              style: const TextStyle(
-                fontSize: 12,
-                height: 1.35,
-                color: AppColors.g5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
         ],
       ),
     );
