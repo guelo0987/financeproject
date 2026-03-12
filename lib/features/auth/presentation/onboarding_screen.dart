@@ -50,7 +50,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   _buildPage(
                     title: 'Planifica con\ntu familia o pareja.',
-                    subtitle: 'Espacios compartidos en tiempo real.',
+                    subtitle: 'Presupuestos compartidos en tiempo real.',
                     icon: Icons.people_alt_rounded,
                   ),
                 ],

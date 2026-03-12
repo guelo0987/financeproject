@@ -12,13 +12,6 @@ class SpaceService {
     return _repository.fetchSpaces();
   }
 
-  Future<SpaceSummary> createSpace({
-    required String nombre,
-    String? descripcion,
-  }) {
-    return _repository.createSpace(nombre: nombre, descripcion: descripcion);
-  }
-
   Future<SpaceDetail> fetchSpaceDetail(int spaceId) async {
     final detail = await _repository.fetchSpaceDetail(spaceId);
     try {
@@ -36,10 +29,6 @@ class SpaceService {
     } catch (_) {
       return detail;
     }
-  }
-
-  Future<SpaceInvitation> inviteMember(int spaceId, String email) {
-    return _repository.inviteMember(spaceId, email);
   }
 
   Future<void> updateMemberRole(int spaceId, int userId, String rol) {

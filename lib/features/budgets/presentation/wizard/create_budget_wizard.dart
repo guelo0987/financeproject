@@ -413,7 +413,11 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               label: _isSaving
                   ? (_isEditing ? "GUARDANDO..." : "CREANDO...")
                   : _step == 5
-                  ? (_isEditing ? "Guardar presupuesto" : "Crear presupuesto")
+                  ? (_isEditing
+                        ? "Guardar presupuesto"
+                        : _miembros.isNotEmpty
+                        ? "Crear e invitar"
+                        : "Crear presupuesto")
                   : "Siguiente \u2192", // right arrow
               isFullWidth: true,
               isDisabled: !_canNext() || _isSaving,
@@ -1276,7 +1280,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           iconBackgroundColor: AppColors.e1,
           title: "Miembros",
           subtitle: _canInviteMembers
-              ? "Invita hasta 3 personas (máximo 4 contigo)."
+              ? "Agrega hasta 3 correos. Se enviarán al crear el presupuesto."
               : "La colaboración nueva se define al crear el presupuesto.",
         ),
         const SizedBox(height: 20),
@@ -1348,6 +1352,41 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
             ],
           ),
         ),
+
+        if (_canInviteMembers)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.o1,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.o1),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.mail_outline_rounded,
+                  color: AppColors.o5,
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _miembros.isEmpty
+                        ? "Si agregas correos aquí, las invitaciones se enviarán al final cuando toques Crear presupuesto."
+                        : "Tienes ${_miembros.length} invitación${_miembros.length == 1 ? '' : 'es'} lista${_miembros.length == 1 ? '' : 's'}. Se enviarán al finalizar.",
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.35,
+                      color: AppColors.g5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
         ...List.generate(_miembros.length, (i) {
           final m = _miembros[i];
@@ -1723,6 +1762,65 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
             ],
           ),
         ),
+
+        if (_miembros.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Invitaciones",
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.g5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  "Estos correos se enviarán cuando crees el presupuesto.",
+                  style: TextStyle(fontSize: 12, color: AppColors.g4),
+                ),
+                const SizedBox(height: 12),
+                ..._miembros.map((email) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: AppColors.o5,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            email,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.e8,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -30,41 +31,9 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
     return '$prefix$amount';
   }
 
-  void _showError(Object error) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(error.toString()),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  Future<void> _showCreateSpace() async {
-    HapticFeedback.mediumImpact();
-    final draft = await showModalBottomSheet<_CreateSpaceDraft>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const _CreateSpaceSheet(),
-    );
-
-    if (draft == null) return;
-
-    try {
-      await ref
-          .read(spaceControllerProvider.notifier)
-          .createSpace(nombre: draft.nombre, descripcion: draft.descripcion);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Espacio creado'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } catch (error) {
-      _showError(error);
-    }
+  void _openBudgets() {
+    HapticFeedback.selectionClick();
+    context.go('/budgets');
   }
 
   Future<void> _openSpaceDetail(SpaceSummary space) async {
@@ -111,7 +80,7 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
               ),
               centerTitle: false,
               title: const Text(
-                'Espacios',
+                'Colaboraciones',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
@@ -121,26 +90,6 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
               ),
               background: Container(color: Colors.white),
             ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: IconButton(
-                  onPressed: _showCreateSpace,
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: AppColors.o5,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      LucideIcons.plus,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                ),
-              ),
-            ],
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -154,7 +103,7 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
                       .slideY(begin: 0.1, end: 0, curve: Curves.easeOutBack),
                   const SizedBox(height: 32),
                   const Text(
-                    'TUS ESPACIOS COMPARTIDOS',
+                    'ESPACIOS EXISTENTES',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -212,8 +161,8 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
                           .slideY(begin: 0.05, end: 0);
                     }),
                   const SizedBox(height: 24),
-                  _CreateNewSpaceAction(
-                    onTap: _showCreateSpace,
+                  _SharedBudgetHintCard(
+                    onTap: _openBudgets,
                   ).animate().fadeIn(duration: 500.ms, delay: 300.ms),
                   const SizedBox(height: 120),
                 ],
@@ -234,7 +183,7 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
             const Icon(LucideIcons.users, size: 48, color: AppColors.g3),
             const SizedBox(height: 16),
             const Text(
-              'No tienes espacios aún',
+              'No tienes colaboraciones aún',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
@@ -243,17 +192,18 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Crea un espacio para compartir presupuestos',
+              'Los espacios se crean solos cuando compartes un presupuesto.',
               style: TextStyle(fontSize: 14, color: AppColors.g5),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
             FilledButton(
-              onPressed: _showCreateSpace,
+              onPressed: _openBudgets,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.o5,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Crear espacio'),
+              child: const Text('Ir a presupuestos'),
             ),
           ],
         ),
@@ -292,18 +242,18 @@ class _SpacesHeroCard extends StatelessWidget {
           ),
           SizedBox(height: 24),
           _HeroFeature(
-            icon: LucideIcons.eye,
-            text: 'Transparencia total en gastos',
+            icon: LucideIcons.walletCards,
+            text: 'Nacen desde presupuestos compartidos',
           ),
           SizedBox(height: 12),
           _HeroFeature(
-            icon: LucideIcons.splitSquareHorizontal,
-            text: 'Presupuestos compartidos por espacio',
+            icon: LucideIcons.users,
+            text: 'Revisa miembros y accesos',
           ),
           SizedBox(height: 12),
           _HeroFeature(
             icon: LucideIcons.bell,
-            text: 'Invitaciones y control de miembros',
+            text: 'Consulta invitaciones pendientes',
           ),
         ],
       ),
@@ -345,7 +295,7 @@ class _HeroText extends StatelessWidget {
           ),
         ),
         Text(
-          'Finanzas en equipo',
+          'Presupuestos compartidos',
           style: TextStyle(
             fontSize: 13,
             color: Color(0xFF6EE7B7),
@@ -570,7 +520,7 @@ class _SpaceCardState extends ConsumerState<_SpaceCard> {
                       miembros: detail?.miembros ?? const [],
                       currentUserId: widget.currentUserId,
                     ),
-                    _SmallInviteButton(onTap: widget.onOpenDetail),
+                    _SmallDetailButton(onTap: widget.onOpenDetail),
                   ],
                 );
               },
@@ -728,10 +678,10 @@ class _MemberAvatars extends StatelessWidget {
   }
 }
 
-class _CreateNewSpaceAction extends StatelessWidget {
+class _SharedBudgetHintCard extends StatelessWidget {
   final VoidCallback onTap;
 
-  const _CreateNewSpaceAction({required this.onTap});
+  const _SharedBudgetHintCard({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -763,12 +713,21 @@ class _CreateNewSpaceAction extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             const Text(
-              'CREAR NUEVO ESPACIO',
+              'NUEVO PRESUPUESTO COMPARTIDO',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w900,
                 color: AppColors.e8,
                 letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Invita personas al crear el presupuesto.',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.g4,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -800,10 +759,10 @@ class _IconAction extends StatelessWidget {
   }
 }
 
-class _SmallInviteButton extends StatelessWidget {
+class _SmallDetailButton extends StatelessWidget {
   final VoidCallback onTap;
 
-  const _SmallInviteButton({required this.onTap});
+  const _SmallDetailButton({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -811,10 +770,10 @@ class _SmallInviteButton extends StatelessWidget {
       onTap: onTap,
       child: const Row(
         children: [
-          Icon(LucideIcons.userPlus, size: 14, color: AppColors.o5),
+          Icon(LucideIcons.chevronRight, size: 14, color: AppColors.o5),
           SizedBox(width: 6),
           Text(
-            'Invitar',
+            'Ver',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -866,38 +825,6 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
         behavior: SnackBarBehavior.floating,
       ),
     );
-  }
-
-  Future<void> _inviteMember() async {
-    final email = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const _InviteMemberSheet(),
-    );
-
-    if (email == null || email.trim().isEmpty) return;
-
-    setState(() => _isMutating = true);
-    try {
-      await ref
-          .read(spaceControllerProvider.notifier)
-          .inviteMember(widget.space.id, email.trim());
-      await _refresh();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Invitación enviada'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } catch (error) {
-      _showError(error);
-    } finally {
-      if (mounted) {
-        setState(() => _isMutating = false);
-      }
-    }
   }
 
   Future<void> _toggleRole(SpaceMember member) async {
@@ -1079,15 +1006,24 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
                   children: [
-                    _SectionTitle(
-                      title: 'Miembros',
-                      trailing: isAdmin
-                          ? TextButton(
-                              onPressed: _isMutating ? null : _inviteMember,
-                              child: const Text('Invitar'),
-                            )
-                          : null,
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.e0,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: const Text(
+                        'Los miembros nuevos se agregan al crear un presupuesto compartido. Aquí puedes revisar accesos e invitaciones pendientes.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.35,
+                          color: AppColors.e8,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
+                    _SectionTitle(title: 'Miembros'),
                     ...detail.miembros.map((member) {
                       final isCurrentUser = member.usuarioId == currentUserId;
                       return Container(
@@ -1245,29 +1181,18 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
 
 class _SectionTitle extends StatelessWidget {
   final String title;
-  final Widget? trailing;
 
-  const _SectionTitle({required this.title, this.trailing});
+  const _SectionTitle({required this.title});
 
   @override
   Widget build(BuildContext context) {
-    final children = <Widget>[
-      Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w900,
-          color: AppColors.e8,
-        ),
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w900,
+        color: AppColors.e8,
       ),
-    ];
-    if (trailing != null) {
-      children.add(trailing!);
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: children,
     );
   }
 }
@@ -1291,211 +1216,6 @@ class _AvatarCircle extends StatelessWidget {
           color: Colors.white,
           fontWeight: FontWeight.w900,
         ),
-      ),
-    );
-  }
-}
-
-class _CreateSpaceDraft {
-  const _CreateSpaceDraft({required this.nombre, this.descripcion});
-
-  final String nombre;
-  final String? descripcion;
-}
-
-class _CreateSpaceSheet extends StatefulWidget {
-  const _CreateSpaceSheet();
-
-  @override
-  State<_CreateSpaceSheet> createState() => _CreateSpaceSheetState();
-}
-
-class _CreateSpaceSheetState extends State<_CreateSpaceSheet> {
-  final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final canCreate = _nameController.text.trim().isNotEmpty;
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        24,
-        16,
-        24,
-        24 + MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 5,
-              decoration: BoxDecoration(
-                color: AppColors.g2,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Nuevo espacio',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: AppColors.e8,
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _nameController,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              hintText: 'Ej. Hogar, Viaje, Oficina',
-              filled: true,
-              fillColor: AppColors.g0,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _descriptionController,
-            minLines: 2,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: 'Descripción opcional',
-              filled: true,
-              fillColor: AppColors.g0,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: canCreate
-                  ? () => Navigator.pop(
-                      context,
-                      _CreateSpaceDraft(
-                        nombre: _nameController.text.trim(),
-                        descripcion: _descriptionController.text.trim(),
-                      ),
-                    )
-                  : null,
-              child: const Text('Crear espacio'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InviteMemberSheet extends StatefulWidget {
-  const _InviteMemberSheet();
-
-  @override
-  State<_InviteMemberSheet> createState() => _InviteMemberSheetState();
-}
-
-class _InviteMemberSheetState extends State<_InviteMemberSheet> {
-  final _emailController = TextEditingController();
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final canSend = _emailController.text.trim().contains('@');
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        24,
-        16,
-        24,
-        24 + MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 5,
-              decoration: BoxDecoration(
-                color: AppColors.g2,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Invitar miembro',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: AppColors.e8,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Envía una invitación al email de la persona.',
-            style: TextStyle(fontSize: 13, color: AppColors.g4),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _emailController,
-            autofocus: true,
-            keyboardType: TextInputType.emailAddress,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              hintText: 'correo@ejemplo.com',
-              filled: true,
-              fillColor: AppColors.g0,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: canSend
-                  ? () => Navigator.pop(context, _emailController.text.trim())
-                  : null,
-              child: const Text('Enviar invitación'),
-            ),
-          ),
-        ],
       ),
     );
   }

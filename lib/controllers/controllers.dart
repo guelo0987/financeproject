@@ -1,3 +1,4 @@
+export 'alert_controller.dart';
 export 'auth_controller.dart';
 export 'budget_controller.dart';
 export 'category_controller.dart';

@@ -20,22 +20,6 @@ class SpaceRepository {
         .toList();
   }
 
-  Future<SpaceSummary> createSpace({
-    required String nombre,
-    String? descripcion,
-  }) async {
-    final response = await _api.post<Map<String, dynamic>>(
-      ApiPaths.spaces,
-      body: {
-        'nombre': nombre,
-        if (descripcion != null && descripcion.trim().isNotEmpty)
-          'descripcion': descripcion.trim(),
-      },
-      parser: asJsonMap,
-    );
-    return SpaceSummary.fromJson(response.requireData());
-  }
-
   Future<SpaceDetail> fetchSpaceDetail(int spaceId) async {
     final response = await _api.get<Map<String, dynamic>>(
       ApiPaths.spaceById(spaceId),
@@ -53,15 +37,6 @@ class SpaceRepository {
         .requireData()
         .map((item) => SpaceInvitation.fromJson(asJsonMap(item)))
         .toList();
-  }
-
-  Future<SpaceInvitation> inviteMember(int spaceId, String email) async {
-    final response = await _api.post<Map<String, dynamic>>(
-      ApiPaths.inviteToSpace(spaceId),
-      body: {'email': email},
-      parser: asJsonMap,
-    );
-    return SpaceInvitation.fromJson(response.requireData());
   }
 
   Future<void> updateMemberRole(int spaceId, int userId, String rol) {

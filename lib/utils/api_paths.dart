@@ -7,6 +7,7 @@ abstract final class ApiPaths {
   static const budgets = '/budgets';
   static const categories = '/categories';
   static const categoryParents = '/categories/parents';
+  static const alerts = '/alerts';
   static const spaces = '/spaces';
   static const transactions = '/transactions';
   static const wallets = '/wallets';
@@ -23,11 +24,15 @@ abstract final class ApiPaths {
   static String budgetMemberById(int budgetId, int userId) =>
       '${budgetMembers(budgetId)}/$userId';
 
+  static const alertsUnreadCount = '$alerts/unread-count';
+
+  static String markAlertRead(int alertId) => '$alerts/$alertId/read';
+
+  static const markAllAlertsRead = '$alerts/read-all';
+
   static String categoryById(int categoryId) => '$categories/$categoryId';
 
   static String spaceById(int spaceId) => '$spaces/$spaceId';
-
-  static String inviteToSpace(int spaceId) => '${spaceById(spaceId)}/invite';
 
   static String spaceMembers(int spaceId) => '${spaceById(spaceId)}/members';
 
@@ -56,4 +61,6 @@ abstract final class ApiPaths {
 
   static String toggleRecurring(int recurringId) =>
       '$recurringTransactions/$recurringId/toggle';
+
+  static String acceptInvitation(String token) => '/invitations/$token/accept';
 }

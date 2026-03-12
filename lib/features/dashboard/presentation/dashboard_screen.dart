@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../controllers/demo_mode_controller.dart';
+import '../../alerts/providers/alert_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../shared/widgets/menudo_chip.dart';
@@ -223,6 +224,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final wallets = ref.watch(effectiveWalletsProvider);
     final demoMode = ref.watch(demoModeProvider);
     final authState = ref.watch(authProvider);
+    final unreadAlerts = ref
+        .watch(unreadAlertsCountProvider)
+        .maybeWhen(data: (count) => count, orElse: () => 0);
     final greetingName = _firstName(authState.profile?.name);
 
     if (budgets.isEmpty) {
@@ -298,9 +302,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    _HeaderCircleButton(
-                      icon: LucideIcons.settings,
-                      onTap: () => context.push('/settings'),
+                    Row(
+                      children: [
+                        _HeaderCircleButton(
+                          icon: LucideIcons.bell,
+                          badgeCount: unreadAlerts,
+                          onTap: () => context.push('/alerts'),
+                        ),
+                        const SizedBox(width: 10),
+                        _HeaderCircleButton(
+                          icon: LucideIcons.settings,
+                          onTap: () => context.push('/settings'),
+                        ),
+                      ],
                     ),
                   ],
                 )
@@ -1014,8 +1028,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 class _HeaderCircleButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
+  final int badgeCount;
 
-  const _HeaderCircleButton({required this.icon, required this.onTap});
+  const _HeaderCircleButton({
+    required this.icon,
+    required this.onTap,
+    this.badgeCount = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1024,15 +1043,42 @@ class _HeaderCircleButton extends StatelessWidget {
         HapticFeedback.lightImpact();
         onTap();
       },
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.g2, width: 1.5),
-        ),
-        child: Icon(icon, size: 20, color: AppColors.e8),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.g2, width: 1.5),
+            ),
+            child: Icon(icon, size: 20, color: AppColors.e8),
+          ),
+          if (badgeCount > 0)
+            Positioned(
+              top: -2,
+              right: -2,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: const BoxDecoration(
+                  color: AppColors.o5,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  badgeCount > 9 ? '9+' : badgeCount.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

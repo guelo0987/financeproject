@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../controllers/demo_mode_controller.dart';
+import '../../alerts/providers/alert_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/menudo_card.dart';
@@ -21,6 +22,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final demoMode = ref.watch(demoModeProvider);
+    final unreadAlerts = ref
+        .watch(unreadAlertsCountProvider)
+        .maybeWhen(data: (count) => count, orElse: () => 0);
 
     return Scaffold(
       backgroundColor: MenudoColors.appBg,
@@ -138,8 +142,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         children: [
                           _buildListTile(
                             Icons.notifications_none,
-                            'Notificaciones',
-                            () {},
+                            'Alertas',
+                            () {
+                              context.push('/alerts');
+                            },
+                            trailing: unreadAlerts > 0
+                                ? MenudoChip(
+                                    unreadAlerts.toString(),
+                                    variant: MenudoChipVariant.primary,
+                                  )
+                                : null,
                           ),
                           const Divider(height: 1, color: MenudoColors.divider),
                           _buildListTile(
@@ -218,7 +230,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildListTile(IconData icon, String title, VoidCallback onTap) {
+  Widget _buildListTile(
+    IconData icon,
+    String title,
+    VoidCallback onTap, {
+    Widget? trailing,
+  }) {
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -235,6 +252,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
             ),
+            if (trailing != null) ...[trailing, const SizedBox(width: 12)],
             const Icon(
               Icons.chevron_right,
               color: MenudoColors.textMuted,

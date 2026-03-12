@@ -15,6 +15,7 @@ import '../features/auth/presentation/splash_screen.dart';
 import '../features/auth/presentation/onboarding_screen.dart';
 import '../features/auth/auth_state.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../features/alerts/presentation/alerts_screen.dart';
 import '../features/categories/presentation/categories_screen.dart';
 import '../features/tools/presentation/tools_screen.dart';
 import '../features/recurring/presentation/recurring_screen.dart';
@@ -107,6 +108,10 @@ final appRouter = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/alerts',
+        builder: (context, state) => const AlertsScreen(),
       ),
       GoRoute(
         path: '/categories',

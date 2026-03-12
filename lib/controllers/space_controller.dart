@@ -16,24 +16,6 @@ class SpaceController extends AsyncNotifier<List<SpaceSummary>> {
     );
   }
 
-  Future<SpaceSummary> createSpace({
-    required String nombre,
-    String? descripcion,
-  }) async {
-    state = const AsyncValue.loading();
-    try {
-      final created = await ref
-          .read(spaceServiceProvider)
-          .createSpace(nombre: nombre, descripcion: descripcion);
-      final spaces = await ref.read(spaceServiceProvider).fetchSpaces();
-      state = AsyncValue.data(spaces);
-      return created;
-    } catch (error, stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
-      rethrow;
-    }
-  }
-
   Future<void> deleteSpace(int spaceId) async {
     state = const AsyncValue.loading();
     try {
@@ -50,12 +32,10 @@ class SpaceController extends AsyncNotifier<List<SpaceSummary>> {
     return ref.read(spaceServiceProvider).fetchSpaceDetail(spaceId);
   }
 
-  Future<void> inviteMember(int spaceId, String email) {
-    return ref.read(spaceServiceProvider).inviteMember(spaceId, email);
-  }
-
   Future<void> updateMemberRole(int spaceId, int userId, String rol) {
-    return ref.read(spaceServiceProvider).updateMemberRole(spaceId, userId, rol);
+    return ref
+        .read(spaceServiceProvider)
+        .updateMemberRole(spaceId, userId, rol);
   }
 
   Future<void> removeMember(int spaceId, int userId) {
