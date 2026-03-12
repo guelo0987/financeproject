@@ -547,7 +547,9 @@ class MenudoBudget {
   final List<BudgetCategory> otherExpenses;
   final Map<int, double> incomePlan;
   final List<BudgetIncomeSource> incomeSources;
+  final List<BudgetIncomeSource> otherIncomeSources;
   final double? totalSpentReal;
+  final double? totalIncomeActual;
 
   const MenudoBudget({
     required this.id,
@@ -563,7 +565,9 @@ class MenudoBudget {
     this.otherExpenses = const [],
     this.incomePlan = const {},
     this.incomeSources = const [],
+    this.otherIncomeSources = const [],
     this.totalSpentReal,
+    this.totalIncomeActual,
   });
 
   List<BudgetCategory> get spendingCategories => [
@@ -574,6 +578,13 @@ class MenudoBudget {
   double get totalSpent =>
       totalSpentReal ??
       spendingCategories.fold(0.0, (sum, category) => sum + category.gastado);
+
+  double get actualIncomeTotal =>
+      totalIncomeActual ??
+      [
+        ...incomeSources,
+        ...otherIncomeSources,
+      ].fold(0.0, (sum, source) => sum + source.actual);
 
   MenudoBudget copyWith({
     int? id,
@@ -590,7 +601,9 @@ class MenudoBudget {
     List<BudgetCategory>? otherExpenses,
     Map<int, double>? incomePlan,
     List<BudgetIncomeSource>? incomeSources,
+    List<BudgetIncomeSource>? otherIncomeSources,
     double? totalSpentReal,
+    double? totalIncomeActual,
   }) {
     return MenudoBudget(
       id: id ?? this.id,
@@ -606,7 +619,9 @@ class MenudoBudget {
       otherExpenses: otherExpenses ?? this.otherExpenses,
       incomePlan: incomePlan ?? this.incomePlan,
       incomeSources: incomeSources ?? this.incomeSources,
+      otherIncomeSources: otherIncomeSources ?? this.otherIncomeSources,
       totalSpentReal: totalSpentReal ?? this.totalSpentReal,
+      totalIncomeActual: totalIncomeActual ?? this.totalIncomeActual,
     );
   }
 
@@ -617,7 +632,9 @@ class MenudoBudget {
     List<BudgetCategory> otherExpenses = const [],
     Map<int, double> incomePlan = const {},
     List<BudgetIncomeSource> incomeSources = const [],
+    List<BudgetIncomeSource> otherIncomeSources = const [],
     double? totalSpentReal,
+    double? totalIncomeActual,
   }) {
     return MenudoBudget(
       id: (json['presupuesto_id'] as num).toInt(),
@@ -635,7 +652,9 @@ class MenudoBudget {
       otherExpenses: otherExpenses,
       incomePlan: incomePlan,
       incomeSources: incomeSources,
+      otherIncomeSources: otherIncomeSources,
       totalSpentReal: totalSpentReal,
+      totalIncomeActual: totalIncomeActual,
     );
   }
 

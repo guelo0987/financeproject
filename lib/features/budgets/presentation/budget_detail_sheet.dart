@@ -547,6 +547,15 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         if (parentCompare != 0) return parentCompare;
         return a.label.compareTo(b.label);
       });
+    final otherIncomeSources = [...budget.otherIncomeSources]
+      ..sort((a, b) {
+        final parentCompare = _parentLabelForIncome(
+          a,
+          categoriesById,
+        ).compareTo(_parentLabelForIncome(b, categoriesById));
+        if (parentCompare != 0) return parentCompare;
+        return a.label.compareTo(b.label);
+      });
     final expenseCategories =
         [...budget.cats.values.where((category) => category.limite > 0)]
           ..sort((a, b) {
@@ -557,10 +566,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
             if (parentCompare != 0) return parentCompare;
             return a.label.compareTo(b.label);
           });
-    final actualIncomeTotal = incomeSources.fold<double>(
-      0,
-      (sum, source) => sum + source.actual,
-    );
+    final actualIncomeTotal = budget.actualIncomeTotal;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -575,6 +581,18 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
           const _BudgetSectionTitle(title: 'Ingresos planeados vs reales'),
           const SizedBox(height: 10),
           ...incomeSources.map(
+            (source) => _IncomePlanRow(
+              source: source,
+              parentLabel: _parentLabelForIncome(source, categoriesById),
+              fmt: _fmt,
+            ),
+          ),
+          const SizedBox(height: 18),
+        ],
+        if (otherIncomeSources.isNotEmpty) ...[
+          const _BudgetSectionTitle(title: 'Ingresos sin plan configurado'),
+          const SizedBox(height: 10),
+          ...otherIncomeSources.map(
             (source) => _IncomePlanRow(
               source: source,
               parentLabel: _parentLabelForIncome(source, categoriesById),

@@ -152,6 +152,7 @@ class BudgetRepository {
     final otherExpenses = <BudgetCategory>[];
     final incomePlan = <int, double>{};
     final incomeSources = <BudgetIncomeSource>[];
+    final otherIncomeSources = <BudgetIncomeSource>[];
 
     for (final item in categories) {
       final category = asJsonMap(item);
@@ -194,6 +195,9 @@ class BudgetRepository {
     final incomeDetails = actualIncomePayload is Map<String, dynamic>
         ? asJsonList(actualIncomePayload['detalle'] ?? const [])
         : asJsonList(row['ingresos_detalle'] ?? const []);
+    final otherIncomeDetails = actualIncomePayload is Map<String, dynamic>
+        ? asJsonList(actualIncomePayload['otros_ingresos'] ?? const [])
+        : const <dynamic>[];
 
     for (final item in incomeDetails) {
       final income = asJsonMap(item);
@@ -240,6 +244,28 @@ class BudgetRepository {
       );
     }
 
+    for (final item in otherIncomeDetails) {
+      final income = asJsonMap(item);
+      otherIncomeSources.add(
+        BudgetIncomeSource.fromJson({
+          'categoria_id':
+              income['categoriaId'] ??
+              income['categoria_id'] ??
+              income['id'] ??
+              income['categoryId'],
+          'categoria_padre_id':
+              income['categoria_padre_id'] ?? income['parentCategoryId'],
+          'slug': income['slug'],
+          'nombre': income['nombre'] ?? 'Ingreso extra',
+          'tipo': income['tipo'] ?? 'ingreso',
+          'icono': income['icono'] ?? 'trendingUp',
+          'color_hex': income['color_hex'] ?? '#10B981',
+          'monto_planeado': 0,
+          'monto_actual': income['monto_actual'] ?? income['actual'] ?? 0,
+        }),
+      );
+    }
+
     return MenudoBudget.fromJson(
       {
         'presupuesto_id': row['id'] ?? row['presupuesto_id'],
@@ -255,7 +281,11 @@ class BudgetRepository {
       otherExpenses: otherExpenses,
       incomePlan: incomePlan,
       incomeSources: incomeSources,
+      otherIncomeSources: otherIncomeSources,
       totalSpentReal: (row['total_gastado_real'] as num?)?.toDouble(),
+      totalIncomeActual: actualIncomePayload is Map<String, dynamic>
+          ? (actualIncomePayload['total_actual'] as num?)?.toDouble()
+          : null,
     );
   }
 }
