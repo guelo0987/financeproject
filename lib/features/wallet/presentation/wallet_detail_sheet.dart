@@ -313,6 +313,40 @@ class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
   }
 }
 
+class _HeaderMetaPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _HeaderMetaPill({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: Colors.white.withValues(alpha: 0.88)),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class WalletDetailSheet extends ConsumerWidget {
   final WalletAccount wallet;
   final void Function(Object error)? onError;
@@ -516,8 +550,8 @@ class WalletDetailSheet extends ConsumerWidget {
                             Navigator.pop(context);
                           },
                           child: Container(
-                            width: 32,
-                            height: 32,
+                            width: 44,
+                            height: 44,
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
@@ -526,7 +560,7 @@ class WalletDetailSheet extends ConsumerWidget {
                             child: const Icon(
                               LucideIcons.arrowLeft,
                               color: Colors.white,
-                              size: 16,
+                              size: 18,
                             ),
                           ),
                         ),
@@ -543,8 +577,8 @@ class WalletDetailSheet extends ConsumerWidget {
                         GestureDetector(
                           onTap: deleteWallet,
                           child: Container(
-                            width: 32,
-                            height: 32,
+                            width: 44,
+                            height: 44,
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
@@ -553,7 +587,7 @@ class WalletDetailSheet extends ConsumerWidget {
                             child: const Icon(
                               LucideIcons.trash2,
                               color: Colors.white,
-                              size: 16,
+                              size: 18,
                             ),
                           ),
                         ),
@@ -677,6 +711,33 @@ class WalletDetailSheet extends ConsumerWidget {
                           ),
                         ),
                       ).animate().fadeIn(duration: 400.ms, delay: 140.ms),
+
+                    const SizedBox(height: 14),
+
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        _HeaderMetaPill(
+                          icon: LucideIcons.badgeDollarSign,
+                          label: w.moneda,
+                        ),
+                        if (activeBudget != null)
+                          _HeaderMetaPill(
+                            icon: LucideIcons.layoutGrid,
+                            label: activeBudget.nombre,
+                          ),
+                        _HeaderMetaPill(
+                          icon: w.incluirEnPatrimonio
+                              ? LucideIcons.pieChart
+                              : LucideIcons.minusCircle,
+                          label: w.incluirEnPatrimonio
+                              ? 'Cuenta en patrimonio'
+                              : 'Fuera patrimonio',
+                        ),
+                      ],
+                    ).animate().fadeIn(duration: 400.ms, delay: 145.ms),
 
                     const SizedBox(height: 16),
 
@@ -827,7 +888,7 @@ class WalletDetailSheet extends ConsumerWidget {
 
                     // Recent transactions header
                     const Text(
-                      "Ultimas transacciones",
+                      "Últimas transacciones",
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -835,9 +896,11 @@ class WalletDetailSheet extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      "Movimientos recientes de esta cuenta",
-                      style: TextStyle(fontSize: 12, color: AppColors.g4),
+                    Text(
+                      activeBudget == null
+                          ? "Movimientos recientes de esta cuenta."
+                          : "Movimientos recientes dentro de ${activeBudget.nombre}.",
+                      style: const TextStyle(fontSize: 12, color: AppColors.g4),
                     ),
                     const SizedBox(height: 12),
 

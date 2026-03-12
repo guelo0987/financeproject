@@ -201,6 +201,75 @@ class TransactionDetailSheet extends ConsumerWidget {
                       ),
                     ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
 
+                    const SizedBox(height: 14),
+
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppColors.g2),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isTransfer
+                                ? 'Ruta del dinero'
+                                : 'Contexto del movimiento',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.g4,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          if (isTransfer) ...[
+                            _FlowLine(
+                              icon: LucideIcons.arrowUpFromLine,
+                              color: AppColors.e8,
+                              label: 'Origen',
+                              value:
+                                  presentation.sourceWallet?.nombre ??
+                                  'Cuenta origen sin asignar',
+                            ),
+                            const SizedBox(height: 10),
+                            _FlowLine(
+                              icon: LucideIcons.arrowDownToLine,
+                              color:
+                                  presentation.destinationWallet?.tipo ==
+                                      'deudas'
+                                  ? AppColors.e6
+                                  : AppColors.b5,
+                              label: 'Destino',
+                              value:
+                                  presentation.destinationWallet?.nombre ??
+                                  'Cuenta destino sin asignar',
+                            ),
+                          ] else ...[
+                            _FlowLine(
+                              icon: LucideIcons.landmark,
+                              color: AppColors.e7,
+                              label: 'Cuenta',
+                              value: accountLabel,
+                            ),
+                            const SizedBox(height: 10),
+                            _FlowLine(
+                              icon: isSharedBudget
+                                  ? LucideIcons.users
+                                  : LucideIcons.layoutGrid,
+                              color: isSharedBudget
+                                  ? AppColors.e6
+                                  : AppColors.p5,
+                              label: 'Presupuesto',
+                              value: activeBudget?.nombre ?? 'Sin presupuesto',
+                            ),
+                          ],
+                        ],
+                      ),
+                    ).animate().fadeIn(duration: 350.ms, delay: 115.ms),
+
                     if (isTransfer &&
                         (presentation.contextTitle != null ||
                             presentation.contextSubtitle != null)) ...[
@@ -242,7 +311,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                       ).animate().fadeIn(duration: 350.ms, delay: 120.ms),
                     ],
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     // Detail card
                     Container(
@@ -519,7 +588,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                               );
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 17),
                               decoration: BoxDecoration(
                                 color: AppColors.e8,
                                 borderRadius: BorderRadius.circular(16),
@@ -574,7 +643,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
+                                  vertical: 17,
                                 ),
                                 decoration: BoxDecoration(
                                   color: AppColors.r1,
@@ -668,6 +737,63 @@ class TransactionDetailSheet extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _FlowLine extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String value;
+
+  const _FlowLine({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 16, color: color),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.g4,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.e8,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

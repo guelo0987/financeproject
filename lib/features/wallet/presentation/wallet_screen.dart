@@ -272,7 +272,13 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   )
                 else if (wallets.isEmpty)
                   _buildEmptyState(context)
-                else
+                else ...[
+                  const _WalletSectionLead(
+                    title: 'Tus wallets',
+                    subtitle:
+                        'Cada tipo muestra su total y te deja entrar rápido al detalle.',
+                  ).animate().fadeIn(duration: 350.ms, delay: 150.ms),
+                  const SizedBox(height: 16),
                   ...groups.entries.map((groupEntry) {
                     final tipoKey = groupEntry.key;
                     final g = groupEntry.value;
@@ -309,6 +315,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         .fadeIn(duration: 500.ms, delay: 200.ms)
                         .slideY(begin: 0.05, end: 0, curve: Curves.easeOut);
                   }),
+                ],
               ],
             ),
           ),
@@ -332,7 +339,11 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.e8,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.e8, Color(0xFF0A7A5D)],
+        ),
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
@@ -356,6 +367,18 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           ),
           const SizedBox(height: 6),
           Text(
+            excludedCount > 0
+                ? 'Se calcula solo con las wallets incluidas en patrimonio.'
+                : 'Vista rápida de tus activos y deudas incluidas.',
+            style: TextStyle(
+              fontSize: 12,
+              height: 1.35,
+              color: Colors.white.withValues(alpha: 0.72),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
             netLabel,
             style: const TextStyle(
               fontSize: 40,
@@ -367,16 +390,20 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           const SizedBox(height: 24),
           Row(
             children: [
-              _SummaryStat(
-                label: "ACTIVOS",
-                value: activosLabel,
-                color: const Color(0xFF6EE7B7),
+              Expanded(
+                child: _SummaryStat(
+                  label: "ACTIVOS",
+                  value: activosLabel,
+                  color: const Color(0xFF6EE7B7),
+                ),
               ),
-              const SizedBox(width: 32),
-              _SummaryStat(
-                label: "DEUDAS",
-                value: deudaLabel,
-                color: const Color(0xFFFCA5A5),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SummaryStat(
+                  label: "DEUDAS",
+                  value: deudaLabel,
+                  color: const Color(0xFFFCA5A5),
+                ),
               ),
             ],
           ),
@@ -419,49 +446,55 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.only(top: 60),
-        child: Column(
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: AppColors.g1,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                LucideIcons.wallet,
-                size: 32,
-                color: AppColors.g3,
-              ),
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppColors.g2),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppColors.g1,
+              shape: BoxShape.circle,
             ),
-            const SizedBox(height: 20),
-            const Text(
-              "Tu cartera está vacía",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.e8,
-              ),
+            child: const Icon(
+              LucideIcons.wallet,
+              size: 32,
+              color: AppColors.g3,
             ),
-            const SizedBox(height: 8),
-            const Text(
-              "Agrega tus cuentas bancarias o de efectivo",
-              style: TextStyle(fontSize: 14, color: AppColors.g5),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            "Tu cartera está vacía",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.e8,
             ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: () => _openAddWallet(context),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.o5,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Crear primera cuenta'),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Agrega tus cuentas bancarias, efectivo o deudas para empezar a ver tu patrimonio real.",
+            style: TextStyle(fontSize: 14, color: AppColors.g5, height: 1.4),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: () => _openAddWallet(context),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.o5,
+              foregroundColor: Colors.white,
             ),
-          ],
-        ),
+            child: const Text('Crear primera cuenta'),
+          ),
+        ],
       ),
     ).animate().fadeIn(duration: 400.ms);
   }
@@ -479,26 +512,69 @@ class _SummaryStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.white.withValues(alpha: 0.35),
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: color,
+              letterSpacing: -0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WalletSectionLead extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _WalletSectionLead({required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: Colors.white.withValues(alpha: 0.35),
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.8,
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: AppColors.e8,
+            letterSpacing: -0.3,
           ),
         ),
         const SizedBox(height: 4),
         Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            color: color,
-            letterSpacing: -0.5,
+          subtitle,
+          style: const TextStyle(
+            fontSize: 12,
+            height: 1.35,
+            color: AppColors.g5,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -576,18 +652,31 @@ class _WalletGroupSection extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Flexible(
-                child: Text(
-                  isDeuda && totalLabel != 'Multimoneda'
-                      ? '-$totalLabel'
-                      : totalLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.end,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: isDeuda ? AppColors.r5 : AppColors.e8,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${items.length} wallet${items.length == 1 ? '' : 's'}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.g4,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      isDeuda && totalLabel != 'Multimoneda'
+                          ? '-$totalLabel'
+                          : totalLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: isDeuda ? AppColors.r5 : AppColors.e8,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -680,56 +769,27 @@ class _WalletTile extends StatelessWidget {
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Text(
-                            wallet.tipo.toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: AppColors.g4,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.5,
-                            ),
+                          _WalletPill(
+                            label: wallet.moneda,
+                            fg: AppColors.g5,
+                            bg: AppColors.g1,
                           ),
-                          if (wallet.esDefault) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.e1,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: const Text(
-                                'PRINCIPAL',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.e8,
-                                  letterSpacing: 0.4,
-                                ),
-                              ),
+                          _WalletPill(
+                            label: wallet.tipo.toUpperCase(),
+                            fg: AppColors.g5,
+                            bg: AppColors.g1,
+                          ),
+                          if (wallet.esDefault)
+                            const _WalletPill(
+                              label: 'PRINCIPAL',
+                              fg: AppColors.e8,
+                              bg: AppColors.e1,
                             ),
-                          ],
                           if (!wallet.incluirEnPatrimonio)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.g1,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: const Text(
-                                'FUERA PATR.',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.g5,
-                                  letterSpacing: 0.35,
-                                ),
-                              ),
+                            const _WalletPill(
+                              label: 'FUERA PATR.',
+                              fg: AppColors.g5,
+                              bg: AppColors.g1,
                             ),
                         ],
                       ),
@@ -759,6 +819,12 @@ class _WalletTile extends StatelessWidget {
                           color: AppColors.o5,
                         ),
                       ),
+                    const SizedBox(height: 3),
+                    Icon(
+                      LucideIcons.chevronRight,
+                      size: 14,
+                      color: AppColors.g3,
+                    ),
                   ],
                 ),
               ],
@@ -767,6 +833,34 @@ class _WalletTile extends StatelessWidget {
           if (!isLast)
             Divider(height: 1, color: AppColors.g1, indent: 78, endIndent: 20),
         ],
+      ),
+    );
+  }
+}
+
+class _WalletPill extends StatelessWidget {
+  final String label;
+  final Color fg;
+  final Color bg;
+
+  const _WalletPill({required this.label, required this.fg, required this.bg});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          color: fg,
+          letterSpacing: 0.35,
+        ),
       ),
     );
   }

@@ -26,6 +26,12 @@ class CategoriesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final grouped = ref.watch(groupedCategoriesProvider);
+    final entries = grouped.entries.toList();
+    final parentsCount = entries.length;
+    final subcategoriesCount = entries.fold<int>(
+      0,
+      (total, entry) => total + entry.value.length,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.g0,
@@ -70,21 +76,167 @@ class CategoriesScreen extends ConsumerWidget {
           child: Container(color: const Color(0xFFF3F4F6), height: 1),
         ),
       ),
-      body: ListView.builder(
+      body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-        itemCount: grouped.entries.length,
-        itemBuilder: (context, groupIdx) {
-          final entry = grouped.entries.elementAt(groupIdx);
-          final parent = entry.key;
-          final subs = entry.value;
+        children: [
+          _CategoriesOverviewCard(
+            parentsCount: parentsCount,
+            subcategoriesCount: subcategoriesCount,
+          ).animate().fadeIn(duration: 320.ms).slideY(begin: 0.04, end: 0),
+          const SizedBox(height: 18),
+          ...entries.asMap().entries.map((entry) {
+            final groupIdx = entry.key;
+            final parent = entry.value.key;
+            final subs = entry.value.value;
 
-          return _CategoryGroup(
-            parent: parent,
-            subcategories: subs,
-            animDelay: groupIdx * 80,
-            onAddSub: () => _showAddCategory(context, parent: parent),
-          );
-        },
+            return _CategoryGroup(
+              parent: parent,
+              subcategories: subs,
+              animDelay: groupIdx * 80,
+              onAddSub: () => _showAddCategory(context, parent: parent),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoriesOverviewCard extends StatelessWidget {
+  final int parentsCount;
+  final int subcategoriesCount;
+
+  const _CategoriesOverviewCard({
+    required this.parentsCount,
+    required this.subcategoriesCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.e0, Colors.white],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.e1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Organiza tus categorías con una jerarquía clara',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: AppColors.e8,
+              letterSpacing: -0.3,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Primero eliges el grupo padre y luego agregas las subcategorías que usarás en presupuestos y transacciones.',
+            style: TextStyle(
+              fontSize: 12,
+              height: 1.4,
+              color: AppColors.g5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _OverviewStat(
+                  label: 'Grupos padre',
+                  value: '$parentsCount',
+                  icon: LucideIcons.layoutGrid,
+                  color: AppColors.e6,
+                  bgColor: AppColors.e1,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _OverviewStat(
+                  label: 'Subcategorías',
+                  value: '$subcategoriesCount',
+                  icon: LucideIcons.tag,
+                  color: AppColors.o5,
+                  bgColor: AppColors.o1,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OverviewStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final Color bgColor;
+
+  const _OverviewStat({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+    required this.bgColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.g2),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.g4,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: AppColors.e8,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -342,7 +494,7 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                             ),
                           ),
                           Text(
-                            '${subs.length} subcategorías',
+                            '${subs.length} subcategorías · toca para ${_expanded ? 'plegar' : 'ver'}',
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.g4,
@@ -352,6 +504,41 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                         ],
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: widget.onAddSub,
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: parent.color.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              LucideIcons.plus,
+                              size: 14,
+                              color: parent.color,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Nueva',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: parent.color,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     AnimatedRotation(
                       turns: _expanded ? 0 : -0.25,
                       duration: const Duration(milliseconds: 200),
@@ -369,21 +556,32 @@ class _CategoryGroupState extends State<_CategoryGroup> {
             if (_expanded)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 0.85,
-                  ),
-                  itemCount: subs.length + 1,
-                  itemBuilder: (context, i) {
-                    if (i == subs.length) {
-                      return _AddSubcategoryTile(onTap: widget.onAddSub);
-                    }
-                    return _SubcategoryTile(category: subs[i]);
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    final crossAxisCount = width >= 840
+                        ? 5
+                        : width >= 520
+                        ? 4
+                        : 3;
+
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: 0.82,
+                      ),
+                      itemCount: subs.length + 1,
+                      itemBuilder: (context, i) {
+                        if (i == subs.length) {
+                          return _AddSubcategoryTile(onTap: widget.onAddSub);
+                        }
+                        return _SubcategoryTile(category: subs[i]);
+                      },
+                    );
                   },
                 ),
               ),
@@ -408,8 +606,8 @@ class _SubcategoryTile extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 64,
+            height: 64,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
@@ -423,16 +621,17 @@ class _SubcategoryTile extends StatelessWidget {
               ],
             ),
             alignment: Alignment.center,
-            child: Icon(category.icono, size: 22, color: category.color),
+            child: Icon(category.icono, size: 24, color: category.color),
           ),
           const SizedBox(height: 8),
           Text(
             category.nombre,
             textAlign: TextAlign.center,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 10,
+              fontSize: 11,
+              height: 1.2,
               fontWeight: FontWeight.w700,
               color: AppColors.e8,
             ),
@@ -454,21 +653,21 @@ class _AddSubcategoryTile extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 64,
+            height: 64,
             decoration: BoxDecoration(
               color: AppColors.g1.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: AppColors.g2, style: BorderStyle.solid),
             ),
             alignment: Alignment.center,
-            child: const Icon(LucideIcons.plus, size: 20, color: AppColors.g4),
+            child: const Icon(LucideIcons.plus, size: 22, color: AppColors.g4),
           ),
           const SizedBox(height: 8),
           const Text(
             'Nueva',
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 11,
               fontWeight: FontWeight.w700,
               color: AppColors.g4,
             ),
@@ -637,6 +836,19 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
               fontSize: 18,
               fontWeight: FontWeight.w900,
               color: AppColors.e8,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            widget.parent == null
+                ? 'Crea un grupo principal para luego asignarle subcategorías.'
+                : 'Esta subcategoría heredará el tipo y el color del grupo padre.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              height: 1.4,
+              color: AppColors.g5,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 24),

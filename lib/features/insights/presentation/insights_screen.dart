@@ -40,7 +40,17 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Lee tendencias, compara meses y detecta dónde tu dinero cambia de ritmo.',
+                      style: MenudoTextStyles.bodySmall.copyWith(
+                        color: MenudoColors.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
                     const SizedBox(height: 24),
+                    const _InsightsIntroCard(),
+                    const SizedBox(height: 18),
                     // Tabs
                     Container(
                       padding: const EdgeInsets.all(4),
@@ -84,7 +94,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
         onTap: () => setState(() => _selectedTab = index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           decoration: BoxDecoration(
             color: isSelected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
@@ -459,5 +470,54 @@ class _InsightsScreenState extends State<InsightsScreen> {
         ),
       ],
     ).animate().fadeIn().slideX(begin: 0.05);
+  }
+}
+
+class _InsightsIntroCard extends StatelessWidget {
+  const _InsightsIntroCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.e0, Colors.white],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.e1),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppColors.e1,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.insights_rounded,
+              size: 20,
+              color: AppColors.e8,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Usa estas vistas para detectar gasto desordenado, comparar flujo de caja y entender si tu presupuesto va mejorando.',
+              style: MenudoTextStyles.bodySmall.copyWith(
+                color: MenudoColors.textSecondary,
+                height: 1.4,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
