@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -16,7 +15,6 @@ import '../../budgets/presentation/budget_detail_sheet.dart';
 import '../../budgets/presentation/wizard/create_budget_wizard.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
-import '../../transactions/presentation/spending_breakdown_sheet.dart';
 import '../../transactions/providers/transaction_providers.dart';
 import '../../wallet/presentation/add_wallet_sheet.dart';
 import '../../wallet/providers/wallet_providers.dart';
@@ -231,13 +229,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final budget = ref.watch(selectedBudgetProvider) ?? budgets.first;
     final double spent = budget.totalSpent;
     final double remaining = budget.availableToSpend;
-    final double pct =
-        spent / (budget.displayIncomeBase > 0 ? budget.displayIncomeBase : 1);
+    final double pct = budget.displayIncomeBase > 0
+        ? spent / budget.displayIncomeBase
+        : 0;
 
-    final double ingresos = txnsThisPeriod
-        .where((t) => t.tipo == 'ingreso')
-        .fold(0.0, (s, t) => s + t.monto.abs());
-    final double gastos = spent;
     final recent = txnsThisPeriod
         .where((t) => t.tipo != 'transferencia')
         .take(4)
@@ -315,7 +310,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(height: 24),
 
             // ── Budget Card ────────────────────────────────────────────
-            _buildBudgetCard(context, budget, remaining, pct, periodoLabel)
+            _buildBudgetCard(context, budget, remaining, pct)
                 .animate()
                 .fadeIn(duration: 500.ms, delay: 100.ms)
                 .scale(
@@ -334,58 +329,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
             const SizedBox(height: 20),
 
-            // ── Summary Metrics ────────────────────────────────────────
-            Row(
-                  children: [
-                    Expanded(
-                      child: _SummaryCard(
-                        label: "GASTOS",
-                        amount: _fmt(gastos),
-                        icon: LucideIcons.trendingDown,
-                        color: AppColors.r5,
-                        bgColor: AppColors.r1,
-                        onTap: () => _showBreakdown(
-                          context,
-                          txnsThisPeriod,
-                          true,
-                          periodoLabel,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _SummaryCard(
-                        label: "INGRESOS",
-                        amount: _fmt(ingresos),
-                        icon: LucideIcons.trendingUp,
-                        color: AppColors.e6,
-                        bgColor: AppColors.e1,
-                        onTap: () => _showBreakdown(
-                          context,
-                          txnsThisPeriod,
-                          false,
-                          periodoLabel,
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-                .animate()
-                .fadeIn(duration: 400.ms, delay: 300.ms)
-                .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
-
-            const SizedBox(height: 20),
-
             // ── Action Grid ────────────────────────────────────────────
             const _SectionHeader(
               title: "Accesos rápidos",
-            ).animate().fadeIn(duration: 400.ms, delay: 360.ms),
+            ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
 
             const SizedBox(height: 12),
 
             _buildActionGrid(context)
                 .animate()
-                .fadeIn(duration: 400.ms, delay: 400.ms)
+                .fadeIn(duration: 400.ms, delay: 360.ms)
                 .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
 
             const SizedBox(height: 32),
@@ -413,36 +366,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ],
                 ),
               ),
-            ).animate().fadeIn(duration: 400.ms, delay: 500.ms),
+            ).animate().fadeIn(duration: 400.ms, delay: 440.ms),
 
             const SizedBox(height: 4),
 
             _buildRecentTransactions(budget, recent)
                 .animate()
-                .fadeIn(duration: 500.ms, delay: 600.ms)
+                .fadeIn(duration: 500.ms, delay: 520.ms)
                 .slideY(begin: 0.05, end: 0, curve: Curves.easeOut),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showBreakdown(
-    BuildContext context,
-    List<MenudoTransaction> txns,
-    bool isGastos,
-    String label,
-  ) {
-    HapticFeedback.lightImpact();
-    showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => SpendingBreakdownSheet(
-        transactions: txns,
-        isGastos: isGastos,
-        periodoLabel: label,
       ),
     );
   }
@@ -452,25 +385,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     MenudoBudget budget,
     double remaining,
     double pct,
-    String periodoLabel,
   ) {
     final highlightCategories = [...budget.spendingCategories]
       ..sort((a, b) => b.gastado.compareTo(a.gastado));
     final isShared = budget.miembros.length > 1 || budget.espacioId != null;
+    BudgetCategory? topCategory;
+    for (final category in highlightCategories) {
+      if (category.gastado > 0) {
+        topCategory = category;
+        break;
+      }
+    }
+    final progress = pct.clamp(0.0, 1.0);
+    final incomePlanLabel = budget.ingresos > 0
+        ? 'Plan ${_fmt(budget.ingresos)}'
+        : 'Sin plan';
 
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.e8, Color(0xFF0A7A5D)],
-        ),
-        borderRadius: BorderRadius.circular(28),
+        color: AppColors.e8,
+        borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: AppColors.e8.withValues(alpha: 0.35),
-            blurRadius: 32,
-            offset: const Offset(0, 16),
+            color: AppColors.e8.withValues(alpha: 0.16),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -478,7 +417,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -489,13 +428,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Text(
                         budget.nombre,
                         style: const TextStyle(
-                          fontSize: 22,
+                          fontSize: 18,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
                           letterSpacing: -0.4,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -509,7 +448,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           if (isShared)
                             MenudoChip.custom(
                               label: 'COMPARTIDO',
-                              color: const Color(0xFFB7F7D7),
+                              color: AppColors.e1,
                               bgColor: Colors.white.withValues(alpha: 0.12),
                               isSmall: true,
                             ),
@@ -525,7 +464,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
 
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 8),
+            padding: const EdgeInsets.fromLTRB(22, 0, 22, 22),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -545,58 +484,83 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Text(
                       _fmt(remaining),
                       style: const TextStyle(
-                        fontSize: 36,
+                        fontSize: 40,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
                         letterSpacing: -1.5,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Text(
-                        "/ plan ${_fmt(budget.ingresos)}",
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Colors.white.withValues(alpha: 0.3),
-                          fontWeight: FontWeight.w600,
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _BudgetMetaPill(
+                      label: incomePlanLabel,
+                      backgroundColor: Colors.white.withValues(alpha: 0.1),
+                    ),
+                    if (budget.actualIncomeTotal > 0)
+                      _BudgetMetaPill(
+                        label: 'Ingresos ${_fmt(budget.actualIncomeTotal)}',
+                        backgroundColor: Colors.white.withValues(alpha: 0.1),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                _buildMainProgressBar(progress),
+                if (topCategory != null) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: AppColors.o5,
+                          shape: BoxShape.circle,
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Mayor gasto: ${topCategory.label} · ${_fmt(topCategory.gastado)}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Gastado ${_fmt(budget.totalSpent)}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.76),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${(progress * 100).round()}% del periodo',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.52),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  "Ingresos recibidos ${_fmt(budget.actualIncomeTotal)}",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white.withValues(alpha: 0.68),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildMainProgressBar(pct, periodoLabel),
-              ],
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (highlightCategories.isNotEmpty)
-                  Text(
-                    'Top gastos',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ...highlightCategories
-                    .take(3)
-                    .map((cat) => _buildCategoryRow(cat)),
               ],
             ),
           ),
@@ -618,7 +582,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(14),
@@ -628,7 +592,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           "Detalles",
           style: TextStyle(
             color: Colors.white,
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -639,7 +603,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget _buildActionGrid(BuildContext context) {
     final actions = [
       (
-        icon: LucideIcons.pieChart,
+        icon: LucideIcons.layoutGrid,
         label: 'Categorías',
         color: AppColors.e6,
         bgColor: AppColors.e1,
@@ -695,119 +659,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildMainProgressBar(double pct, String periodoLabel) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          height: 8,
+  Widget _buildMainProgressBar(double pct) {
+    return Container(
+      height: 7,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: LayoutBuilder(
+        builder: (_, constraints) => AnimatedContainer(
+          duration: const Duration(milliseconds: 1000),
+          curve: Curves.easeOutQuart,
+          width: constraints.maxWidth * pct,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
+            gradient: LinearGradient(
+              colors: pct > 0.9
+                  ? [AppColors.o5, const Color(0xFFF59E0B)]
+                  : [const Color(0xFF6EE7B7), const Color(0xFF34D399)],
+            ),
             borderRadius: BorderRadius.circular(4),
           ),
-          child: LayoutBuilder(
-            builder: (_, constraints) => AnimatedContainer(
-              duration: const Duration(milliseconds: 1000),
-              curve: Curves.easeOutQuart,
-              width: constraints.maxWidth * min(pct, 1.0),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: pct > 0.9
-                      ? [AppColors.r5, AppColors.r5.withValues(alpha: 0.7)]
-                      : [const Color(0xFF6EE7B7), const Color(0xFF34D399)],
-                ),
-                borderRadius: BorderRadius.circular(4),
-                boxShadow: [
-                  if (pct < 0.9)
-                    BoxShadow(
-                      color: const Color(0xFF6EE7B7).withValues(alpha: 0.4),
-                      blurRadius: 8,
-                    ),
-                ],
-              ),
-            ),
-          ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          "${(pct * 100).round()}% usado",
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.white.withValues(alpha: 0.4),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryRow(BudgetCategory cat) {
-    final double p = min(cat.gastado / (cat.limite > 0 ? cat.limite : 1), 1.0);
-    return Padding(
-      padding: const EdgeInsets.only(top: 14),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: cat.color.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Icon(cat.icono, size: 14, color: cat.color),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    cat.label,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    _fmt(cat.gastado),
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
-                    "${(p * 100).round()}%",
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white.withValues(alpha: 0.55),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              value: p,
-              backgroundColor: Colors.white.withValues(alpha: 0.05),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                p > 0.95 ? AppColors.r5 : cat.color,
-              ),
-              minHeight: 3,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -825,14 +697,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
       },
       child: Container(
-        height: 60,
+        height: 58,
         decoration: BoxDecoration(
           color: AppColors.o5,
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: AppColors.o5.withValues(alpha: 0.3),
-              blurRadius: 20,
+              color: AppColors.o5.withValues(alpha: 0.2),
+              blurRadius: 14,
               offset: const Offset(0, 8),
             ),
           ],
@@ -843,12 +715,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Icon(LucideIcons.plusCircle, color: Colors.white, size: 22),
             SizedBox(width: 10),
             Text(
-              "NUEVA TRANSACCIÓN",
+              "Nueva transacción",
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 15,
                 fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
+                letterSpacing: -0.1,
               ),
             ),
           ],
@@ -861,6 +733,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     MenudoBudget budget,
     List<MenudoTransaction> recent,
   ) {
+    if (recent.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.g2),
+        ),
+        child: const Text(
+          'Todavía no hay movimientos en este periodo.',
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.g5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -874,7 +765,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           final color = cat?.color ?? AppColors.g4;
           return _TransactionTile(
             transaction: t,
-            categoryName: cat?.label ?? t.catKey,
+            subtitle: _buildRecentSubtitle(t, cat?.label ?? t.catKey),
             color: color,
             isLast: i == recent.length - 1,
             onTap: (context) {
@@ -891,6 +782,40 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         }),
       ),
     );
+  }
+
+  String _buildRecentSubtitle(
+    MenudoTransaction transaction,
+    String categoryName,
+  ) {
+    final normalizedCategory = categoryName.trim();
+    final normalizedDesc = transaction.desc.trim();
+    final date = _compactDate(transaction.dateString);
+    if (normalizedCategory.isEmpty) return date;
+    if (normalizedCategory.toLowerCase() == normalizedDesc.toLowerCase()) {
+      return date;
+    }
+    return '$normalizedCategory · $date';
+  }
+
+  String _compactDate(String value) {
+    final parts = value.split('-');
+    if (parts.length != 3) return value;
+    const months = {
+      '01': 'ene',
+      '02': 'feb',
+      '03': 'mar',
+      '04': 'abr',
+      '05': 'may',
+      '06': 'jun',
+      '07': 'jul',
+      '08': 'ago',
+      '09': 'sep',
+      '10': 'oct',
+      '11': 'nov',
+      '12': 'dic',
+    };
+    return '${int.tryParse(parts[2]) ?? parts[2]} ${months[parts[1]] ?? parts[1]}';
   }
 }
 
@@ -953,76 +878,6 @@ class _HeaderCircleButton extends StatelessWidget {
   }
 }
 
-class _SummaryCard extends StatelessWidget {
-  final String label, amount;
-  final IconData icon;
-  final Color color, bgColor;
-  final VoidCallback onTap;
-
-  const _SummaryCard({
-    required this.label,
-    required this.amount,
-    required this.icon,
-    required this.color,
-    required this.bgColor,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.g2),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon, size: 16, color: color),
-                ),
-                Icon(LucideIcons.chevronRight, size: 14, color: AppColors.g3),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: AppColors.g4,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              amount,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: color,
-                letterSpacing: -0.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _QuickAction extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -1045,37 +900,30 @@ class _QuickAction extends StatelessWidget {
         onTap();
       },
       child: Container(
-        constraints: const BoxConstraints(minHeight: 98),
-        padding: const EdgeInsets.all(16),
+        constraints: const BoxConstraints(minHeight: 90),
+        padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppColors.g2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 42,
-              height: 42,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
                 color: bgColor,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, size: 20, color: color),
+              child: Icon(icon, size: 18, color: color),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Text(
               label,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w800,
                 color: AppColors.e8,
               ),
@@ -1122,14 +970,14 @@ class _SectionHeader extends StatelessWidget {
 
 class _TransactionTile extends StatelessWidget {
   final MenudoTransaction transaction;
-  final String categoryName;
+  final String subtitle;
   final Color color;
   final bool isLast;
   final Function(BuildContext) onTap;
 
   const _TransactionTile({
     required this.transaction,
-    required this.categoryName,
+    required this.subtitle,
     required this.color,
     required this.isLast,
     required this.onTap,
@@ -1143,7 +991,7 @@ class _TransactionTile extends StatelessWidget {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
             child: Row(
               children: [
                 Container(
@@ -1172,7 +1020,7 @@ class _TransactionTile extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        "$categoryName · ${transaction.dateString}",
+                        subtitle,
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.g4,
@@ -1201,6 +1049,32 @@ class _TransactionTile extends StatelessWidget {
           if (!isLast)
             Divider(height: 1, color: AppColors.g1, indent: 74, endIndent: 16),
         ],
+      ),
+    );
+  }
+}
+
+class _BudgetMetaPill extends StatelessWidget {
+  final String label;
+  final Color backgroundColor;
+
+  const _BudgetMetaPill({required this.label, required this.backgroundColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
       ),
     );
   }

@@ -701,11 +701,10 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         _PlanSummaryHeader(
           plannedTotal: _fmt(budget.ingresos),
           actualTotal: _fmt(actualIncomeTotal),
-          savings: _fmt(budget.ahorroObjetivo),
         ),
         const SizedBox(height: 20),
         if (incomeSources.isNotEmpty) ...[
-          const _BudgetSectionTitle(title: 'Ingresos'),
+          const _BudgetSectionTitle(title: 'Ingresos planificados'),
           const SizedBox(height: 10),
           _buildPlanGrid(
             context,
@@ -722,7 +721,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
           const SizedBox(height: 18),
         ],
         if (otherIncomeSources.isNotEmpty) ...[
-          const _BudgetSectionTitle(title: 'Ingresos sin plan configurado'),
+          const _BudgetSectionTitle(title: 'Ingresos extra'),
           const SizedBox(height: 10),
           _buildPlanGrid(
             context,
@@ -738,7 +737,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
           ),
           const SizedBox(height: 18),
         ],
-        const _BudgetSectionTitle(title: 'Límites por categoría'),
+        const _BudgetSectionTitle(title: 'Categorías con límite'),
         const SizedBox(height: 10),
         _buildPlanGrid(
           context,
@@ -755,7 +754,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         ),
         if (extraExpenseCategories.isNotEmpty) ...[
           const SizedBox(height: 18),
-          const _BudgetSectionTitle(title: 'Gastos sin límite configurado'),
+          const _BudgetSectionTitle(title: 'Gastos sin tope'),
           const SizedBox(height: 10),
           _buildPlanGrid(
             context,
@@ -777,15 +776,13 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   Widget _buildPlanGrid(BuildContext context, List<Widget> children) {
     if (children.isEmpty) return const SizedBox.shrink();
 
-    final width = MediaQuery.of(context).size.width;
-    final tileWidth = max(140.0, (width - 52) / 2);
-
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: children
-          .map((child) => SizedBox(width: tileWidth, child: child))
-          .toList(),
+    return Column(
+      children: [
+        for (var i = 0; i < children.length; i++) ...[
+          children[i],
+          if (i != children.length - 1) const SizedBox(height: 12),
+        ],
+      ],
     );
   }
 
@@ -1623,59 +1620,77 @@ class _UnplannedExpenseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: AppColors.o1),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _BudgetPlanIcon(color: AppColors.o5, icon: cat.icono),
-          const SizedBox(height: 16),
-          if (parentLabel.isNotEmpty)
-            Text(
-              parentLabel.toUpperCase(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: AppColors.g4,
-                letterSpacing: 0.7,
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  cat.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.e8,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  parentLabel.isEmpty
+                      ? 'Sin límite configurado en este presupuesto'
+                      : '$parentLabel · Sin límite configurado',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.g4,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                fmt(cat.gastado),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.o5,
+                ),
               ),
-            ),
-          const SizedBox(height: 4),
-          Text(
-            cat.label.toUpperCase(),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              color: AppColors.g5,
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            fmt(cat.gastado),
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: AppColors.o5,
-              letterSpacing: -0.8,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Fuera del plan',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: AppColors.o5,
-            ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.o1,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Text(
+                  'Fuera del plan',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.o5,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1684,12 +1699,11 @@ class _UnplannedExpenseCard extends StatelessWidget {
 }
 
 class _PlanSummaryHeader extends StatelessWidget {
-  final String plannedTotal, actualTotal, savings;
+  final String plannedTotal, actualTotal;
 
   const _PlanSummaryHeader({
     required this.plannedTotal,
     required this.actualTotal,
-    required this.savings,
   });
 
   @override
@@ -1698,31 +1712,59 @@ class _PlanSummaryHeader extends StatelessWidget {
     final actualValue = _asCurrencyNumber(actualTotal);
     final difference = actualValue - plannedValue;
     final differencePositive = difference >= 0;
-    final differenceColor = differencePositive
-        ? const Color(0xFF6EE7B7)
-        : AppColors.o5;
+    final differenceColor = differencePositive ? AppColors.e6 : AppColors.o5;
+    final differenceLabel = difference == 0
+        ? 'Vas exactamente en línea con lo que planificaste.'
+        : differencePositive
+        ? 'Has recibido ${_formatDifference(difference)} más de lo previsto.'
+        : 'Te faltan ${_formatDifference(difference.abs())} para alcanzar tu plan.';
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.e8, Color(0xFF0A7A5D)],
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.g2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Plan del periodo',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: Colors.white.withValues(alpha: 0.52),
-              letterSpacing: 0.8,
-            ),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Plan del periodo',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.e8,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: differenceColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  difference == 0
+                      ? 'En línea'
+                      : differencePositive
+                      ? 'Sobre plan'
+                      : 'Por debajo',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: differenceColor,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Row(
@@ -1731,7 +1773,7 @@ class _PlanSummaryHeader extends StatelessWidget {
                 child: _PlanMiniStat(
                   label: 'Planeado',
                   value: plannedTotal,
-                  valueColor: Colors.white,
+                  valueColor: AppColors.e8,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1739,78 +1781,29 @@ class _PlanSummaryHeader extends StatelessWidget {
                 child: _PlanMiniStat(
                   label: 'Real',
                   value: actualTotal,
-                  valueColor: const Color(0xFF6EE7B7),
+                  valueColor: AppColors.e6,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _PlanMiniStat(
+                  label: 'Variación',
+                  value:
+                      '${differencePositive ? '+' : '-'}${_formatDifference(difference.abs())}',
+                  valueColor: differenceColor,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 9,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      differencePositive
-                          ? LucideIcons.badgePlus
-                          : LucideIcons.badgeMinus,
-                      size: 14,
-                      color: differenceColor,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${differencePositive ? '+' : '-'}${_formatDifference(difference.abs())} vs plan',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (savings != 'RD\$0')
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 9,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        LucideIcons.piggyBank,
-                        size: 14,
-                        color: Color(0xFF6EE7B7),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Ahorro $savings',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
+          Text(
+            differenceLabel,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.35,
+              fontWeight: FontWeight.w700,
+              color: differenceColor,
+            ),
           ),
         ],
       ),
@@ -1853,10 +1846,10 @@ class _PlanCategoryRow extends StatelessWidget {
     final statusColor = over ? AppColors.o5 : AppColors.e6;
     final balance = cat.limite - cat.gastado;
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: over ? AppColors.o5.withValues(alpha: 0.24) : AppColors.g2,
         ),
@@ -1864,61 +1857,97 @@ class _PlanCategoryRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _BudgetPlanIcon(color: cat.color, icon: cat.icono),
-          const SizedBox(height: 16),
-          if (parentLabel.isNotEmpty)
-            Text(
-              parentLabel.toUpperCase(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: AppColors.g4,
-                letterSpacing: 0.7,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _BudgetPlanIcon(color: cat.color, icon: cat.icono),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      cat.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.e8,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      parentLabel.isEmpty
+                          ? 'Límite ${fmt(cat.limite)}'
+                          : '$parentLabel · Límite ${fmt(cat.limite)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.g4,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          const SizedBox(height: 4),
-          Text(
-            cat.label.toUpperCase(),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              color: AppColors.g5,
-              letterSpacing: 0.8,
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    fmt(cat.gastado),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: statusColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    over
+                        ? 'Se pasó ${fmt(cat.gastado - cat.limite)}'
+                        : 'Quedan ${fmt(balance)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: statusColor,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: usage.clamp(0.0, 1.0),
+              minHeight: 7,
+              backgroundColor: AppColors.g1,
+              valueColor: AlwaysStoppedAnimation<Color>(statusColor),
             ),
           ),
           const SizedBox(height: 10),
-          Text(
-            fmt(cat.gastado),
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: statusColor,
-              letterSpacing: -0.8,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            over
-                ? '${fmt(cat.gastado - cat.limite)} extra'
-                : '${fmt(balance)} libre',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: statusColor,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            '$pct% del plan',
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppColors.g4,
-            ),
+          Row(
+            children: [
+              Text(
+                'Gastado ${fmt(cat.gastado)}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.g5,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '$pct% del ingreso disponible',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.g4,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1941,73 +1970,112 @@ class _IncomePlanRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final isPositive = source.difference >= 0;
     final accent = isPositive ? AppColors.e6 : AppColors.o5;
+    final plannedBase = source.planned > 0 ? source.planned : source.actual;
+    final progress = plannedBase > 0 ? (source.actual / plannedBase) : 0.0;
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: source.color.withValues(alpha: 0.16)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _BudgetPlanIcon(color: source.color, icon: source.icono),
-          const SizedBox(height: 16),
-          if (parentLabel.isNotEmpty)
-            Text(
-              parentLabel.toUpperCase(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: AppColors.g4,
-                letterSpacing: 0.7,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _BudgetPlanIcon(color: source.color, icon: source.icono),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      source.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.e8,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      parentLabel.isEmpty
+                          ? (source.planned > 0
+                                ? 'Plan ${fmt(source.planned)}'
+                                : 'Sin plan configurado')
+                          : source.planned > 0
+                          ? '$parentLabel · Plan ${fmt(source.planned)}'
+                          : '$parentLabel · Sin plan configurado',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.g4,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    fmt(source.actual),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: accent,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    source.difference == 0
+                        ? 'En línea'
+                        : isPositive
+                        ? '+${fmt(source.difference)}'
+                        : '-${fmt(source.difference.abs())}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: accent,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          if (source.planned > 0) ...[
+            const SizedBox(height: 14),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: progress.clamp(0.0, 1.0),
+                minHeight: 7,
+                backgroundColor: AppColors.g1,
+                valueColor: AlwaysStoppedAnimation<Color>(accent),
               ),
             ),
-          const SizedBox(height: 4),
+            const SizedBox(height: 10),
+          ] else
+            const SizedBox(height: 10),
           Text(
-            source.label.toUpperCase(),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              color: AppColors.g5,
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            fmt(source.actual),
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: accent,
-              letterSpacing: -0.8,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            source.difference == 0
-                ? 'En línea con el plan'
+            source.planned <= 0
+                ? 'Este ingreso no tenía monto previsto en tu presupuesto.'
+                : source.difference == 0
+                ? 'Va exactamente como lo planeado.'
                 : isPositive
-                ? '${fmt(source.difference)} sobre plan'
-                : '${fmt(source.difference.abs())} por recibir',
+                ? 'Recibiste ${fmt(source.difference)} por encima del plan.'
+                : 'Faltan ${fmt(source.difference.abs())} para llegar al objetivo.',
             style: TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: accent,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Plan ${fmt(source.planned)}',
-            style: const TextStyle(
-              fontSize: 11,
+              height: 1.35,
               fontWeight: FontWeight.w700,
-              color: AppColors.g4,
+              color: accent,
             ),
           ),
         ],
@@ -2025,15 +2093,15 @@ class _BudgetPlanIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 56,
-      height: 56,
+      width: 44,
+      height: 44,
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
         color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: color.withValues(alpha: 0.18)),
       ),
       alignment: Alignment.center,
-      child: Icon(icon, size: 24, color: color),
+      child: Icon(icon, size: 20, color: color),
     );
   }
 }
@@ -2081,19 +2149,18 @@ class _PlanMiniStat extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: AppColors.g0,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            label.toUpperCase(),
-            style: TextStyle(
+            label,
+            style: const TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
-              color: Colors.white.withValues(alpha: 0.48),
-              letterSpacing: 0.5,
+              color: AppColors.g4,
             ),
           ),
           const SizedBox(height: 4),

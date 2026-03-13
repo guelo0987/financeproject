@@ -15,6 +15,7 @@ class CategoriesScreen extends ConsumerWidget {
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => parent == null
@@ -251,6 +252,7 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
   ) async {
     final created = await showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => AddCategorySheet(parent: parent),
@@ -263,6 +265,7 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
   Future<void> _openParentCreator(BuildContext context) async {
     final created = await showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const AddCategorySheet(),
@@ -277,141 +280,150 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
     final parents = ref.watch(groupedCategoriesProvider).keys.toList()
       ..sort((a, b) => a.nombre.compareTo(b.nombre));
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        24,
-        16,
-        24,
-        24 + MediaQuery.of(context).padding.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 5,
-              decoration: BoxDecoration(
-                color: AppColors.g2,
-                borderRadius: BorderRadius.circular(3),
+    return SafeArea(
+      top: false,
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.82,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          16,
+          24,
+          24 + MediaQuery.of(context).padding.bottom,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: AppColors.g2,
+                  borderRadius: BorderRadius.circular(3),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Agregar categoría',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: AppColors.e8,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Crea primero una subcategoría dentro de un grupo padre existente. Si necesitas una jerarquía nueva, puedes crear el grupo padre aparte.',
-            style: TextStyle(fontSize: 13, color: AppColors.g4),
-          ),
-          const SizedBox(height: 18),
-          const Text(
-            'Crear subcategoría en',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: AppColors.g4,
-              letterSpacing: 0.4,
-            ),
-          ),
-          const SizedBox(height: 12),
-          if (parents.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.g0,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.g2),
+            const SizedBox(height: 20),
+            const Text(
+              'Agregar categoría',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: AppColors.e8,
               ),
-              child: const Text(
-                'No hay grupos padre todavía. Crea uno para empezar.',
-                style: TextStyle(fontSize: 13, color: AppColors.g4),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Crea primero una subcategoría dentro de un grupo padre existente. Si necesitas una jerarquía nueva, puedes crear el grupo padre aparte.',
+              style: TextStyle(fontSize: 13, color: AppColors.g4),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Crear subcategoría en',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: AppColors.g4,
+                letterSpacing: 0.4,
               ),
-            )
-          else
-            ...parents.map(
-              (parent) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: InkWell(
-                  onTap: () => _openSubcategoryCreator(context, parent),
-                  borderRadius: BorderRadius.circular(18),
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: parent.color.withValues(alpha: 0.18),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: parent.color.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(
-                            parent.icono,
-                            size: 20,
-                            color: parent.color,
-                          ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: parents.isEmpty
+                  ? SingleChildScrollView(
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.g0,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.g2),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            parent.nombre,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.e8,
+                        child: const Text(
+                          'No hay grupos padre todavía. Crea uno para empezar.',
+                          style: TextStyle(fontSize: 13, color: AppColors.g4),
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: parents.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final parent = parents[index];
+                        return InkWell(
+                          onTap: () => _openSubcategoryCreator(context, parent),
+                          borderRadius: BorderRadius.circular(18),
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: parent.color.withValues(alpha: 0.18),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: parent.color.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Icon(
+                                    parent.icono,
+                                    size: 20,
+                                    color: parent.color,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    parent.nombre,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.e8,
+                                    ),
+                                  ),
+                                ),
+                                const Icon(
+                                  LucideIcons.chevronRight,
+                                  size: 18,
+                                  color: AppColors.g4,
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                        const Icon(
-                          LucideIcons.chevronRight,
-                          size: 18,
-                          color: AppColors.g4,
-                        ),
-                      ],
+                        );
+                      },
                     ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => _openParentCreator(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.e8,
+                  side: const BorderSide(color: AppColors.g2),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
+                child: const Text('Crear grupo padre'),
               ),
             ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => _openParentCreator(context),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.e8,
-                side: const BorderSide(color: AppColors.g2),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              child: const Text('Crear grupo padre'),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -812,193 +824,228 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
-      child: Column(
-        children: [
-          Container(
-            width: 40,
-            height: 5,
-            decoration: BoxDecoration(
-              color: AppColors.g2,
-              borderRadius: BorderRadius.circular(3),
-            ),
-            margin: const EdgeInsets.only(bottom: 24),
-          ),
-          Text(
-            widget.parent == null ? "Nuevo grupo padre" : "Nueva subcategoría",
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              color: AppColors.e8,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            widget.parent == null
-                ? 'Crea un grupo principal para luego asignarle subcategorías.'
-                : 'Esta subcategoría heredará el tipo y el color del grupo padre.',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              height: 1.4,
-              color: AppColors.g5,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 24),
+    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
 
-          if (widget.parent != null)
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: widget.parent!.color.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: widget.parent!.color.withValues(alpha: 0.18),
-                ),
-              ),
-              child: Text(
-                'Se agregará dentro de ${widget.parent!.nombre}.',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: widget.parent!.color,
-                ),
-              ),
-            )
-          else
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: _color.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _color.withValues(alpha: 0.18)),
-              ),
-              child: Text(
-                widget.lockType
-                    ? 'Se creará un grupo padre de ${_typeLabel(_effectiveType).toLowerCase()}.'
-                    : 'Este grupo padre define dónde aparecerán sus subcategorías dentro del presupuesto y las transacciones.',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: _color,
-                ),
-              ),
-            ),
-
-          if (widget.parent == null) ...[
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                for (final type in _types)
-                  GestureDetector(
-                    onTap: widget.lockType ? null : () => _selectType(type),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: viewInsets),
+      child: SafeArea(
+        top: false,
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 5,
                       decoration: BoxDecoration(
-                        color: _selectedType == type
-                            ? _color.withValues(alpha: 0.12)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: _selectedType == type ? _color : AppColors.g2,
-                          width: _selectedType == type ? 1.8 : 1.2,
-                        ),
+                        color: AppColors.g2,
+                        borderRadius: BorderRadius.circular(3),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            switch (type) {
-                              'ingreso' => LucideIcons.trendingUp,
-                              'transferencia' => LucideIcons.arrowLeftRight,
-                              _ => LucideIcons.tag,
-                            },
-                            size: 16,
-                            color: _selectedType == type
-                                ? _color
-                                : AppColors.g4,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _typeLabel(type),
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: _selectedType == type
-                                  ? _color
-                                  : AppColors.g5,
-                            ),
-                          ),
-                        ],
+                      margin: const EdgeInsets.only(bottom: 24),
+                    ),
+                    Text(
+                      widget.parent == null
+                          ? "Nuevo grupo padre"
+                          : "Nueva subcategoría",
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.e8,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.parent == null
+                          ? 'Crea un grupo principal para luego asignarle subcategorías.'
+                          : 'Esta subcategoría heredará el tipo y el color del grupo padre.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        height: 1.4,
+                        color: AppColors.g5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      if (widget.parent != null)
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: widget.parent!.color.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: widget.parent!.color.withValues(
+                                alpha: 0.18,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            'Se agregará dentro de ${widget.parent!.nombre}.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: widget.parent!.color,
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: _color.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _color.withValues(alpha: 0.18),
+                            ),
+                          ),
+                          child: Text(
+                            widget.lockType
+                                ? 'Se creará un grupo padre de ${_typeLabel(_effectiveType).toLowerCase()}.'
+                                : 'Este grupo padre define dónde aparecerán sus subcategorías dentro del presupuesto y las transacciones.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: _color,
+                            ),
+                          ),
+                        ),
+                      if (widget.parent == null) ...[
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            for (final type in _types)
+                              GestureDetector(
+                                onTap: widget.lockType
+                                    ? null
+                                    : () => _selectType(type),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _selectedType == type
+                                        ? _color.withValues(alpha: 0.12)
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: _selectedType == type
+                                          ? _color
+                                          : AppColors.g2,
+                                      width: _selectedType == type ? 1.8 : 1.2,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        switch (type) {
+                                          'ingreso' => LucideIcons.trendingUp,
+                                          'transferencia' =>
+                                            LucideIcons.arrowLeftRight,
+                                          _ => LucideIcons.tag,
+                                        },
+                                        size: 16,
+                                        color: _selectedType == type
+                                            ? _color
+                                            : AppColors.g4,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _typeLabel(type),
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w800,
+                                          color: _selectedType == type
+                                              ? _color
+                                              : AppColors.g5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                        },
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: _color.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(_icon, size: 32, color: _color),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      TextField(
+                        controller: _nameCtrl,
+                        autofocus: true,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: "Nombre de la categoría",
+                          filled: true,
+                          fillColor: AppColors.g0,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-              ],
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          // Icon & Color Picker
-          GestureDetector(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              // Show icon picker
-            },
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: _color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+                ),
               ),
-              alignment: Alignment.center,
-              child: Icon(_icon, size: 32, color: _color),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          TextField(
-            controller: _nameCtrl,
-            autofocus: true,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            decoration: InputDecoration(
-              hintText: "Nombre de la categoría",
-              filled: true,
-              fillColor: AppColors.g0,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                child: MenudoButton(
+                  label: _isSaving
+                      ? "GUARDANDO..."
+                      : widget.parent == null
+                      ? "CREAR GRUPO PADRE"
+                      : "CREAR SUBCATEGORÍA",
+                  isFullWidth: true,
+                  isDisabled: _isSaving,
+                  onTap: _createCategory,
+                ),
               ),
-            ),
+            ],
           ),
-          const Spacer(),
-          MenudoButton(
-            label: _isSaving
-                ? "GUARDANDO..."
-                : widget.parent == null
-                ? "CREAR GRUPO PADRE"
-                : "CREAR SUBCATEGORÍA",
-            isFullWidth: true,
-            isDisabled: _isSaving,
-            onTap: _createCategory,
-          ),
-        ],
+        ),
       ),
     );
   }
