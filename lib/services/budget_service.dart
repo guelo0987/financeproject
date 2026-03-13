@@ -59,6 +59,10 @@ class BudgetService {
   Future<void> removeBudgetMember(int budgetId, int userId) {
     return _repository.removeBudgetMember(budgetId, userId);
   }
+
+  Future<void> inviteBudgetMember(int budgetId, String email) {
+    return _repository.inviteBudgetMember(budgetId, email);
+  }
 }
 
 final budgetServiceProvider = Provider<BudgetService>((ref) {

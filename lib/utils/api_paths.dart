@@ -22,6 +22,8 @@ abstract final class ApiPaths {
 
   static String budgetMembers(int budgetId) => '$budgets/$budgetId/members';
 
+  static String budgetInvite(int budgetId) => '$budgets/$budgetId/invite';
+
   static String budgetMemberById(int budgetId, int userId) =>
       '${budgetMembers(budgetId)}/$userId';
 

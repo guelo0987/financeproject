@@ -156,11 +156,13 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     HapticFeedback.lightImpact();
     final updatedMembers = await showModalBottomSheet<List<BudgetMember>>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _BudgetMembersSheet(
         budgetId: widget.budget.id,
         initialMembers: _members,
+        allowInviteWhenEmpty: widget.budget.espacioId == null,
       ),
     );
 
@@ -336,7 +338,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                             'Incluye ${_fmt(extraExpenseCategories.fold<double>(0, (sum, category) => sum + category.gastado))} fuera del plan.',
                       ),
                     ),
-                  if (isShared) _buildSharedBudgetSection(),
+                  _buildSharedBudgetSection(isShared: isShared),
                   _buildCategoriesSection(
                     displayBudget,
                     categoriesById,
@@ -468,9 +470,18 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         .slideY(begin: 0.1, end: 0, curve: Curves.easeOut);
   }
 
-  Widget _buildSharedBudgetSection() {
+  Widget _buildSharedBudgetSection({required bool isShared}) {
     final previewMembers = _members.take(3).toList();
     final extraMembers = _members.length - previewMembers.length;
+    final title = isShared
+        ? 'Presupuesto compartido'
+        : 'Comparte este presupuesto';
+    final subtitle = _isLoadingMembers
+        ? 'Cargando miembros...'
+        : isShared
+        ? '${_members.length} miembro${_members.length == 1 ? '' : 's'} con acceso'
+        : 'Invita hasta 3 personas por email';
+    final actionLabel = isShared ? 'Gestionar' : 'Invitar';
 
     return Container(
       margin: const EdgeInsets.only(top: 20),
@@ -505,7 +516,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Presupuesto compartido",
+                        title,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w900,
@@ -514,9 +525,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                         ),
                       ),
                       Text(
-                        _isLoadingMembers
-                            ? "Cargando miembros..."
-                            : "${_members.length} miembro${_members.length == 1 ? '' : 's'} con acceso",
+                        subtitle,
                         style: TextStyle(
                           fontSize: 11,
                           color: AppColors.g4,
@@ -528,7 +537,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                 ],
               ),
               _SmallActionButton(
-                label: "Gestionar",
+                label: actionLabel,
                 onTap: _openMembersManager,
               ),
             ],
@@ -553,9 +562,10 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
               onTap: _loadMembers,
             )
           else if (previewMembers.isEmpty)
-            const _InlineInfoCard(
-              text:
-                  'Todavía no hay colaboradores aceptados en este presupuesto.',
+            _InlineInfoCard(
+              text: isShared
+                  ? 'Todavía no hay colaboradores aceptados en este presupuesto.'
+                  : 'Solo tú tienes acceso por ahora. Puedes enviar invitaciones cuando quieras.',
             )
           else ...[
             ...previewMembers.map(
@@ -1165,10 +1175,12 @@ enum _InfoCardTone { neutral, error }
 class _BudgetMembersSheet extends ConsumerStatefulWidget {
   final int budgetId;
   final List<BudgetMember> initialMembers;
+  final bool allowInviteWhenEmpty;
 
   const _BudgetMembersSheet({
     required this.budgetId,
     required this.initialMembers,
+    this.allowInviteWhenEmpty = false,
   });
 
   @override
@@ -1177,8 +1189,10 @@ class _BudgetMembersSheet extends ConsumerStatefulWidget {
 }
 
 class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
+  final TextEditingController _inviteController = TextEditingController();
   List<BudgetMember> _members = const [];
   bool _isLoading = false;
+  bool _isInviting = false;
   String? _error;
   int? _removingUserId;
 
@@ -1269,7 +1283,55 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
         return member.isOwner || member.role == 'admin';
       }
     }
-    return false;
+    return widget.allowInviteWhenEmpty && _members.isEmpty;
+  }
+
+  @override
+  void dispose() {
+    _inviteController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _inviteMember() async {
+    final email = _inviteController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Escribe un correo antes de enviar la invitación.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isInviting = true);
+    try {
+      await ref
+          .read(budgetControllerProvider.notifier)
+          .inviteBudgetMember(widget.budgetId, email);
+      if (!mounted) return;
+      _inviteController.clear();
+      await _loadMembers();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Invitación enviada a $email.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isInviting = false);
+      }
+    }
   }
 
   @override
@@ -1336,6 +1398,110 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                   children: [
+                    if (_canManageMembers) ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: AppColors.g2),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Invitar por correo',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.e8,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Envía acceso a este presupuesto sin volver al wizard.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.g4,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _inviteController,
+                                    keyboardType: TextInputType.emailAddress,
+                                    textInputAction: TextInputAction.send,
+                                    onSubmitted: _isInviting
+                                        ? null
+                                        : (_) => _inviteMember(),
+                                    decoration: InputDecoration(
+                                      hintText: 'correo@ejemplo.com',
+                                      filled: true,
+                                      fillColor: AppColors.g1,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 14,
+                                          ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                        borderSide: const BorderSide(
+                                          color: AppColors.e6,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                SizedBox(
+                                  height: 52,
+                                  child: FilledButton(
+                                    onPressed: _isInviting
+                                        ? null
+                                        : _inviteMember,
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: AppColors.e6,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                    ),
+                                    child: _isInviting
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Icon(
+                                            LucideIcons.send,
+                                            size: 18,
+                                          ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     if (_isLoading && _members.isEmpty)
                       const Padding(
                         padding: EdgeInsets.only(top: 60),
@@ -1354,11 +1520,12 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                         ),
                       )
                     else if (_members.isEmpty)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(top: 12),
                         child: _InlineInfoCard(
-                          text:
-                              'Este presupuesto todavía no tiene miembros adicionales.',
+                          text: _canManageMembers
+                              ? 'Todavía no hay miembros aceptados. Las invitaciones nuevas aparecerán aquí cuando la persona se una.'
+                              : 'Este presupuesto todavía no tiene miembros adicionales.',
                         ),
                       )
                     else
@@ -1463,9 +1630,10 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                         );
                       }),
                     const SizedBox(height: 8),
-                    const _InlineInfoCard(
-                      text:
-                          'Los colaboradores nuevos se envían al crear el presupuesto. Desde aquí puedes revisar o remover miembros existentes.',
+                    _InlineInfoCard(
+                      text: _canManageMembers
+                          ? 'Puedes invitar nuevos colaboradores o quitar acceso a los miembros actuales.'
+                          : 'Aquí puedes revisar quién tiene acceso a este presupuesto.',
                     ),
                   ],
                 ),

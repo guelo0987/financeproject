@@ -161,6 +161,14 @@ class BudgetController extends AsyncNotifier<List<MenudoBudget>> {
     await refresh();
   }
 
+  Future<void> inviteBudgetMember(int budgetId, String email) async {
+    final userId = _uid();
+    if (userId == 0) return;
+
+    await ref.read(budgetServiceProvider).inviteBudgetMember(budgetId, email);
+    await refresh();
+  }
+
   void selectBudgetLocally(int budgetId) {
     final budgets = state.valueOrNull ?? const <MenudoBudget>[];
     if (budgets.isEmpty) return;

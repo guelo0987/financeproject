@@ -10,15 +10,32 @@ class AlertRepository {
   final ApiService _api;
 
   Future<List<AppAlert>> fetchAlerts({bool unreadOnly = false}) async {
-    final response = await _api.get<List<dynamic>>(
-      ApiPaths.alerts,
-      queryParameters: unreadOnly ? {'no_leidas': 'true'} : null,
-      parser: asJsonList,
-    );
-    return response
-        .requireData()
-        .map((item) => AppAlert.fromJson(asJsonMap(item)))
-        .toList();
+    var page = 1;
+    const limit = 100;
+    final alerts = <AppAlert>[];
+
+    while (true) {
+      final response = await _api.get<List<dynamic>>(
+        ApiPaths.alerts,
+        queryParameters: {
+          if (unreadOnly) 'no_leidas': 'true',
+          'page': '$page',
+          'limit': '$limit',
+        },
+        parser: asJsonList,
+      );
+
+      alerts.addAll(
+        response
+            .requireData()
+            .map((item) => AppAlert.fromJson(asJsonMap(item))),
+      );
+
+      if (!_hasMore(response.meta)) break;
+      page += 1;
+    }
+
+    return alerts;
   }
 
   Future<int> fetchUnreadCount() async {
@@ -57,6 +74,17 @@ class AlertRepository {
       authenticated: false,
       body: {'email': email},
     );
+  }
+
+  bool _hasMore(Map<String, dynamic>? meta) {
+    if (meta == null) return false;
+    final raw = meta['hasMore'] ?? meta['has_more'] ?? false;
+    return switch (raw) {
+      bool value => value,
+      num value => value != 0,
+      String value => value.toLowerCase() == 'true',
+      _ => false,
+    };
   }
 }
 

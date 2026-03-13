@@ -119,6 +119,13 @@ class BudgetRepository {
     return _api.delete<void>(ApiPaths.budgetMemberById(budgetId, userId));
   }
 
+  Future<void> inviteBudgetMember(int budgetId, String email) {
+    return _api.post<void>(
+      ApiPaths.budgetInvite(budgetId),
+      body: {'email': email.trim()},
+    );
+  }
+
   Map<String, dynamic> _budgetBody(
     MenudoBudget budget,
     Map<String, int> catSlugToId,

@@ -8,14 +8,26 @@ class RecurringRepository {
   RecurringRepository(this._api);
 
   Future<List<RecurringTransaction>> fetchRecurring(int userId) async {
-    final response = await _api.get<List<dynamic>>(
-      ApiPaths.recurringTransactions,
-      parser: asJsonList,
-    );
-    return response
-        .requireData()
-        .map((row) => _recurringFromApi(asJsonMap(row)))
-        .toList();
+    var page = 1;
+    const limit = 100;
+    final recurringItems = <RecurringTransaction>[];
+
+    while (true) {
+      final response = await _api.get<List<dynamic>>(
+        ApiPaths.recurringTransactions,
+        queryParameters: {'page': '$page', 'limit': '$limit'},
+        parser: asJsonList,
+      );
+
+      recurringItems.addAll(
+        response.requireData().map((row) => _recurringFromApi(asJsonMap(row))),
+      );
+
+      if (!_hasMore(response.meta)) break;
+      page += 1;
+    }
+
+    return recurringItems;
   }
 
   Future<RecurringTransaction> createRecurring(RecurringTransaction rec) async {
@@ -100,6 +112,17 @@ class RecurringRepository {
       'activo': row['activo'],
       'nota': row['nota'],
     }, catKey: row['catKey'] as String? ?? '');
+  }
+
+  bool _hasMore(Map<String, dynamic>? meta) {
+    if (meta == null) return false;
+    final raw = meta['hasMore'] ?? meta['has_more'] ?? false;
+    return switch (raw) {
+      bool value => value,
+      num value => value != 0,
+      String value => value.toLowerCase() == 'true',
+      _ => false,
+    };
   }
 }
 
