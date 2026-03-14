@@ -137,6 +137,17 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
 
   String _currencyPrefix() => _currency == 'USD' ? 'US\$' : 'RD\$';
 
+  String _formattedAmountDisplay() {
+    if (_amount.isEmpty) return '0';
+    final parts = _amount.split('.');
+    final whole = parts.first.replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (match) => '${match[1]},',
+    );
+    if (parts.length == 1) return whole;
+    return '$whole.${parts.sublist(1).join()}';
+  }
+
   void _save() {
     if (_nameController.text.trim().isEmpty) return;
     HapticFeedback.mediumImpact();
@@ -311,15 +322,30 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
                                 ),
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                _amount.isEmpty ? '0' : _amount,
-                                style: TextStyle(
-                                  fontSize: 44,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -1.5,
-                                  color: _typeIndex == 2
-                                      ? AppColors.r5
-                                      : AppColors.e8,
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 160),
+                                transitionBuilder: (child, animation) =>
+                                    FadeTransition(
+                                      opacity: animation,
+                                      child: SlideTransition(
+                                        position: Tween<Offset>(
+                                          begin: const Offset(0, 0.08),
+                                          end: Offset.zero,
+                                        ).animate(animation),
+                                        child: child,
+                                      ),
+                                    ),
+                                child: Text(
+                                  _formattedAmountDisplay(),
+                                  key: ValueKey('$_typeIndex:$_amount'),
+                                  style: TextStyle(
+                                    fontSize: 44,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -1.5,
+                                    color: _typeIndex == 2
+                                        ? AppColors.r5
+                                        : AppColors.e8,
+                                  ),
                                 ),
                               ),
                             ],

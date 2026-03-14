@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/error_presenter.dart';
 import '../../budgets/budget_providers.dart';
 import '../../categories/presentation/category_picker_sheet.dart';
 import '../../categories/providers/category_providers.dart';
@@ -36,7 +37,7 @@ class RecurringScreen extends ConsumerWidget {
   void _showError(BuildContext context, Object error) {
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(error.toString())));
+    ).showSnackBar(SnackBar(content: Text(presentError(error))));
   }
 
   Future<void> _showRecurringSheet(
@@ -412,7 +413,7 @@ class RecurringScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      'Crea una para que el backend la procese automáticamente.',
+                      'Crea una para que se registre sola en la fecha indicada.',
                       style: TextStyle(fontSize: 12, color: AppColors.g4),
                       textAlign: TextAlign.center,
                     ),
@@ -966,7 +967,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
       if (!mounted) return;
       Navigator.pop(context);
     } catch (error) {
-      _showError(error.toString());
+      _showError(presentError(error));
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);

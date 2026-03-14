@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
+import '../../../../core/utils/error_presenter.dart';
 import '../../../../shared/widgets/menudo_chip.dart';
 import '../../../../shared/widgets/menudo_gauge.dart';
 import '../../auth/auth_state.dart';
@@ -28,12 +29,23 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   List<BudgetMember> _members = const [];
   bool _isLoadingMembers = false;
   String? _membersError;
+  List<BudgetHistorySnapshot> _history = const [];
+  bool _isLoadingHistory = false;
+  bool _isLoadingMoreHistory = false;
+  bool _historyLoaded = false;
+  bool _historyHasMore = false;
+  int _historyPage = 0;
+  String? _historyError;
 
   String _fmt(double val) =>
       "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
 
   bool get _shouldLoadMembers {
     return widget.budget.espacioId != null || widget.budget.miembros.isNotEmpty;
+  }
+
+  bool get _supportsHistory {
+    return widget.budget.periodo != 'unico';
   }
 
   @override
@@ -49,7 +61,11 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     if (oldWidget.budget.id != widget.budget.id ||
         oldWidget.budget.espacioId != widget.budget.espacioId) {
       _members = widget.budget.miembros;
+      _resetHistoryState();
       _loadMembers();
+      if (_tab == 'insights') {
+        _ensureHistoryLoaded();
+      }
     }
   }
 
@@ -114,7 +130,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error.toString()),
+          content: Text(presentError(error)),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -146,7 +162,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _membersError = error.toString();
+        _membersError = presentError(error);
         _isLoadingMembers = false;
       });
     }
@@ -174,6 +190,137 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       });
     } else {
       await _loadMembers();
+    }
+  }
+
+  void _resetHistoryState() {
+    _history = const [];
+    _isLoadingHistory = false;
+    _isLoadingMoreHistory = false;
+    _historyLoaded = false;
+    _historyHasMore = false;
+    _historyPage = 0;
+    _historyError = null;
+  }
+
+  void _ensureHistoryLoaded() {
+    if (!_supportsHistory || _historyLoaded || _isLoadingHistory) return;
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory({bool loadMore = false}) async {
+    if (!_supportsHistory) return;
+    if (loadMore) {
+      if (_isLoadingMoreHistory || !_historyHasMore) return;
+    } else if (_isLoadingHistory) {
+      return;
+    }
+
+    final nextPage = loadMore ? _historyPage + 1 : 1;
+
+    setState(() {
+      if (loadMore) {
+        _isLoadingMoreHistory = true;
+      } else {
+        _isLoadingHistory = true;
+        _historyError = null;
+      }
+    });
+
+    try {
+      final result = await ref
+          .read(budgetControllerProvider.notifier)
+          .fetchBudgetHistory(widget.budget.id, page: nextPage, limit: 12);
+      if (!mounted) return;
+      setState(() {
+        _history = loadMore ? [..._history, ...result.items] : result.items;
+        _historyPage = result.page;
+        _historyHasMore = result.hasMore;
+        _historyLoaded = true;
+        _historyError = null;
+        _isLoadingHistory = false;
+        _isLoadingMoreHistory = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _historyError = presentError(error);
+        _historyLoaded = true;
+        _isLoadingHistory = false;
+        _isLoadingMoreHistory = false;
+      });
+    }
+  }
+
+  void _onTabChanged(String value) {
+    HapticFeedback.selectionClick();
+    setState(() => _tab = value);
+    if (value == 'insights') {
+      _ensureHistoryLoaded();
+    }
+  }
+
+  String _fmtAmount(
+    double value, {
+    String currency = 'DOP',
+    bool signed = false,
+  }) {
+    final prefix = currency == 'USD' ? 'US\$' : 'RD\$';
+    final formatted = value.abs().toInt().toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+    final base = '$prefix$formatted';
+    if (signed) {
+      return value >= 0 ? '+$base' : '-$base';
+    }
+    return value < 0 ? '-$base' : base;
+  }
+
+  String _historyRangeLabel(BudgetHistorySnapshot snapshot) {
+    final from = snapshot.desde;
+    final to = snapshot.hasta;
+    if (from == null || to == null) return 'Período anterior';
+    return '${_historyDateLabel(from)} - ${_historyDateLabel(to)}';
+  }
+
+  String _historyDateLabel(DateTime date) {
+    const months = [
+      'ene',
+      'feb',
+      'mar',
+      'abr',
+      'may',
+      'jun',
+      'jul',
+      'ago',
+      'sep',
+      'oct',
+      'nov',
+      'dic',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  String _historyIntro(String periodo) {
+    switch (periodo) {
+      case 'semanal':
+        return 'Aquí verás cómo cerró cada semana: cuánto entró, cuánto salió y qué quedó disponible.';
+      case 'quincenal':
+        return 'Cada cierre guarda cómo terminó cada bloque de 15 días de este presupuesto.';
+      default:
+        return 'Cada cierre resume cómo terminó el período: ingresos, gastos y lo que te quedó.';
+    }
+  }
+
+  String _historyEmptyMessage(String periodo) {
+    switch (periodo) {
+      case 'semanal':
+        return 'Todavía no hay semanas cerradas para mostrar. Cuando termine la primera, aparecerá aquí.';
+      case 'quincenal':
+        return 'Todavía no hay quincenas cerradas para mostrar. Aquí aparecerán cuando se complete la primera.';
+      default:
+        return 'Todavía no hay períodos cerrados para mostrar. Cuando cierre el primero, lo verás aquí.';
     }
   }
 
@@ -307,13 +454,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                 const SizedBox(height: 24),
 
                 // Tabs
-                _TabSwitcher(
-                  activeTab: _tab,
-                  onChanged: (val) {
-                    HapticFeedback.selectionClick();
-                    setState(() => _tab = val);
-                  },
-                ),
+                _TabSwitcher(activeTab: _tab, onChanged: _onTabChanged),
               ],
             ),
           ),
@@ -352,7 +493,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                     categoriesById,
                     extraExpenseCategories,
                   ),
-                if (_tab == "insights") _buildInsightsTab(),
+                if (_tab == "insights") _buildInsightsTab(displayBudget),
               ],
             ),
           ),
@@ -814,49 +955,78 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     return categoriesById[parentId]?.nombre ?? '';
   }
 
-  Widget _buildInsightsTab() {
-    final insights = [
-      {
-        "icon": LucideIcons.trendingUp,
-        "color": AppColors.e6,
-        "title": "¡Excelente ritmo!",
-        "body":
-            "Basado en tus gastos actuales, terminarás el mes con un ahorro proyectado de RD\$12,400.",
-      },
-      {
-        "icon": LucideIcons.alertTriangle,
-        "color": AppColors.o5,
-        "title": "Alerta: Comida",
-        "body":
-            "Has gastado el 85% de tu límite en 'Comida' y solo ha pasado el 40% del periodo.",
-      },
-      {
-        "icon": LucideIcons.zap,
-        "color": AppColors.o5,
-        "title": "Gasto inusual",
-        "body":
-            "Detectamos una suscripción de RD\$1,200 que no estaba en tu planificación original.",
-      },
-    ];
-
+  Widget _buildInsightsTab(MenudoBudget budget) {
     return Column(
-      children: insights
-          .asMap()
-          .entries
-          .map(
-            (entry) =>
-                _InsightCard(
-                      icon: entry.value["icon"] as IconData,
-                      color: entry.value["color"] as Color,
-                      title: entry.value["title"] as String,
-                      body: entry.value["body"] as String,
-                    )
-                    .animate()
-                    .fadeIn(delay: (entry.key * 100).ms)
-                    .slideY(begin: 0.1, end: 0),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InlineInfoCard(text: _historyIntro(budget.periodo)),
+        const SizedBox(height: 18),
+        const _BudgetSectionTitle(title: 'Cierres anteriores'),
+        const SizedBox(height: 12),
+        if (!_supportsHistory)
+          const _InlineInfoCard(
+            text:
+                'Este presupuesto es puntual, así que no genera cierres automáticos.',
           )
-          .toList(),
-    );
+        else if (_isLoadingHistory && _history.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 28),
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2.4),
+              ),
+            ),
+          )
+        else if (_historyError != null && _history.isEmpty)
+          _InlineInfoCard(
+            text: _historyError!,
+            tone: _InfoCardTone.error,
+            actionLabel: 'Reintentar',
+            onTap: _loadHistory,
+          )
+        else if (_history.isEmpty)
+          _InlineInfoCard(text: _historyEmptyMessage(budget.periodo))
+        else ...[
+          ..._history.asMap().entries.map(
+            (entry) => Padding(
+              padding: EdgeInsets.only(
+                bottom: entry.key == _history.length - 1 ? 0 : 14,
+              ),
+              child: _HistorySnapshotCard(
+                snapshot: entry.value,
+                rangeLabel: _historyRangeLabel(entry.value),
+                fmt: _fmtAmount,
+              ),
+            ),
+          ),
+          if (_historyHasMore) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: _isLoadingMoreHistory
+                    ? null
+                    : () => _loadHistory(loadMore: true),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.e8,
+                  side: const BorderSide(color: AppColors.g2),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                child: Text(
+                  _isLoadingMoreHistory ? 'Cargando...' : 'Cargar más cierres',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ],
+    ).animate().fadeIn(duration: 350.ms);
   }
 }
 
@@ -1221,7 +1391,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = error.toString();
+        _error = presentError(error);
         _isLoading = false;
       });
     }
@@ -1262,7 +1432,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      ).showSnackBar(SnackBar(content: Text(presentError(error))));
     } finally {
       if (mounted) {
         setState(() => _removingUserId = null);
@@ -1323,7 +1493,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error.toString()),
+          content: Text(presentError(error)),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -2346,68 +2516,352 @@ class _PlanMiniStat extends StatelessWidget {
   }
 }
 
-class _InsightCard extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String title, body;
-
-  const _InsightCard({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.body,
+class _HistorySnapshotCard extends StatelessWidget {
+  const _HistorySnapshotCard({
+    required this.snapshot,
+    required this.rangeLabel,
+    required this.fmt,
   });
+
+  final BudgetHistorySnapshot snapshot;
+  final String rangeLabel;
+  final String Function(double value, {String currency, bool signed}) fmt;
+
+  @override
+  Widget build(BuildContext context) {
+    final topCategory = snapshot.categoriaMasAlta;
+    final usesPlannedIncome = snapshot.ingresosPresupuestados > 0;
+    final headlineValue = usesPlannedIncome
+        ? snapshot.sobroPresupuesto
+        : snapshot.balance;
+    final headlineColor = headlineValue >= 0 ? AppColors.e6 : AppColors.r5;
+    final headline = usesPlannedIncome
+        ? (headlineValue > 0
+              ? 'Te quedaron ${fmt(headlineValue)} del plan'
+              : headlineValue < 0
+              ? 'Te pasaste por ${fmt(headlineValue.abs())}'
+              : 'Cerraste justo con tu plan')
+        : (headlineValue >= 0
+              ? 'Cerraste con ${fmt(headlineValue)} disponibles'
+              : 'Cerraste con ${fmt(headlineValue.abs())} en rojo');
+    final subtitle =
+        '${_periodLabel(snapshot.periodo)} · ${snapshot.totalTransacciones} movimiento${snapshot.totalTransacciones == 1 ? '' : 's'}';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppColors.g2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.e1,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  _periodLabel(snapshot.periodo).toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.e6,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                rangeLabel,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.g4,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            headline,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: headlineColor,
+              letterSpacing: -0.4,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.g5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _HistoryValue(
+                  label: 'Ingresó',
+                  value: fmt(snapshot.ingresosReales),
+                  color: AppColors.e6,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _HistoryValue(
+                  label: 'Gastó',
+                  value: fmt(snapshot.totalGastos),
+                  color: AppColors.o5,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _HistoryValue(
+                  label: 'Balance',
+                  value: fmt(snapshot.balance),
+                  color: snapshot.balance >= 0 ? AppColors.e8 : AppColors.r5,
+                ),
+              ),
+            ],
+          ),
+          if (topCategory != null ||
+              snapshot.totalOtrosGastos > 0 ||
+              snapshot.totalOtrosIngresos > 0) ...[
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (topCategory != null && topCategory.label.trim().isNotEmpty)
+                  _HistoryTag(
+                    icon: topCategory.icono,
+                    label: 'Más gasto: ${topCategory.label}',
+                  ),
+                if (snapshot.totalOtrosGastos > 0)
+                  _HistoryTag(
+                    icon: LucideIcons.alertCircle,
+                    label: 'Fuera del plan ${fmt(snapshot.totalOtrosGastos)}',
+                    color: AppColors.o5,
+                  ),
+                if (snapshot.totalOtrosIngresos > 0)
+                  _HistoryTag(
+                    icon: LucideIcons.sparkles,
+                    label: 'Ingresos extra ${fmt(snapshot.totalOtrosIngresos)}',
+                    color: AppColors.e6,
+                  ),
+              ],
+            ),
+          ],
+          if (snapshot.transacciones.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Divider(height: 1, color: AppColors.g2),
+            const SizedBox(height: 14),
+            const Text(
+              'Últimos movimientos de ese cierre',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: AppColors.g5,
+              ),
+            ),
+            const SizedBox(height: 10),
+            ...snapshot.transacciones
+                .take(3)
+                .toList()
+                .asMap()
+                .entries
+                .map(
+                  (entry) => Padding(
+                    padding: EdgeInsets.only(bottom: entry.key == 2 ? 0 : 10),
+                    child: _HistoryTransactionRow(
+                      transaction: entry.value,
+                      fmt: fmt,
+                    ),
+                  ),
+                ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  static String _periodLabel(String periodo) {
+    switch (periodo) {
+      case 'semanal':
+        return 'Cierre semanal';
+      case 'quincenal':
+        return 'Cierre quincenal';
+      case 'mensual':
+        return 'Cierre mensual';
+      default:
+        return 'Cierre';
+    }
+  }
+}
+
+class _HistoryValue extends StatelessWidget {
+  const _HistoryValue({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color.withValues(alpha: 0.12)),
+        color: AppColors.g0,
+        borderRadius: BorderRadius.circular(18),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: AppColors.g4,
             ),
-            child: Icon(icon, size: 20, color: color),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.e8,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  body,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.g5,
-                    height: 1.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: color,
+              letterSpacing: -0.3,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _HistoryTag extends StatelessWidget {
+  const _HistoryTag({
+    required this.icon,
+    required this.label,
+    this.color = AppColors.e8,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryTransactionRow extends StatelessWidget {
+  const _HistoryTransactionRow({required this.transaction, required this.fmt});
+
+  final BudgetHistoryTransaction transaction;
+  final String Function(double value, {String currency, bool signed}) fmt;
+
+  @override
+  Widget build(BuildContext context) {
+    final amount = transaction.signedAmount;
+    final amountColor = amount >= 0 ? AppColors.e6 : AppColors.o5;
+
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: amountColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.center,
+          child: Icon(transaction.categoriaIcono, size: 16, color: amountColor),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                transaction.descripcion,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.e8,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                [
+                  if ((transaction.categoriaNombre ?? '').isNotEmpty)
+                    transaction.categoriaNombre!,
+                  if ((transaction.usuarioNombre ?? '').isNotEmpty)
+                    transaction.usuarioNombre!,
+                ].join(' · '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.g4,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          fmt(amount, currency: transaction.moneda, signed: true),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+            color: amountColor,
+          ),
+        ),
+      ],
     );
   }
 }

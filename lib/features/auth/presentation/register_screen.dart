@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/error_presenter.dart';
 import '../../../shared/widgets/menudo_text_field.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../auth_state.dart';
@@ -33,7 +34,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _handleBack() {
@@ -67,11 +70,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             email: _emailController.text.trim(),
             password: _passwordController.text,
             currency: _isDop ? 'DOP' : 'USD',
-      );
+          );
       if (!mounted) return;
       context.go('/');
     } catch (error) {
-      _showError(error.toString());
+      _showError(presentError(error));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

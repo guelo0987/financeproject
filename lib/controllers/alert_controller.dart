@@ -53,7 +53,7 @@ class AlertController extends AsyncNotifier<List<AppAlert>> {
   Future<void> acceptInvitation(AppAlert alert, String email) async {
     final token = alert.extra.token?.trim();
     if (token == null || token.isEmpty) {
-      throw StateError('La alerta no contiene un token de invitación válido.');
+      throw StateError('Esta invitación ya no está disponible.');
     }
 
     await ref

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../controllers/demo_mode_controller.dart';
+import '../../../core/utils/error_presenter.dart';
 import '../../alerts/providers/alert_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
@@ -43,7 +44,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(error.toString()),
+        content: Text(presentError(error)),
         behavior: SnackBarBehavior.floating,
       ),
     );

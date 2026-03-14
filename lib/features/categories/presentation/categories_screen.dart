@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
+import '../../../core/utils/error_presenter.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../providers/category_providers.dart';
 
@@ -814,7 +815,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (error) {
-      _showError(error.toString());
+      _showError(presentError(error));
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);

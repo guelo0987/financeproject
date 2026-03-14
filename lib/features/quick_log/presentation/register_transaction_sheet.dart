@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/data/models.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/error_presenter.dart';
 import '../../../../shared/widgets/menudo_button.dart';
 import '../../budgets/budget_providers.dart';
 import '../../categories/providers/category_providers.dart';
@@ -237,7 +238,7 @@ class _RegisterTransactionSheetState
       if (!mounted) return;
       Navigator.pop(context);
     } catch (error) {
-      _showError(error.toString());
+      _showError(presentError(error));
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -265,6 +266,17 @@ class _RegisterTransactionSheetState
     final fallback = wallets.isNotEmpty ? wallets.first : null;
     final wallet = _findWallet(id, wallets);
     return wallet?.nombre ?? fallback?.nombre ?? "Seleccionar";
+  }
+
+  String _formattedAmountDisplay() {
+    if (_amount.isEmpty) return '0';
+    final parts = _amount.split('.');
+    final whole = parts.first.replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (match) => '${match[1]},',
+    );
+    if (parts.length == 1) return whole;
+    return '$whole.${parts.sublist(1).join()}';
   }
 
   Widget _buildTransferContextCard(List<WalletAccount> wallets) {
@@ -494,18 +506,28 @@ class _RegisterTransactionSheetState
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          _amount.isEmpty
-                              ? "0"
-                              : _amount.replaceAllMapped(
-                                  RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                                  (match) => '${match[1]},',
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 160),
+                          transitionBuilder: (child, animation) =>
+                              FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0, 0.08),
+                                    end: Offset.zero,
+                                  ).animate(animation),
+                                  child: child,
                                 ),
-                          style: TextStyle(
-                            fontSize: 52,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -2,
-                            color: _accentColor,
+                              ),
+                          child: Text(
+                            _formattedAmountDisplay(),
+                            key: ValueKey('${_selectedTypeIndex}_$_amount'),
+                            style: TextStyle(
+                              fontSize: 52,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -2,
+                              color: _accentColor,
+                            ),
                           ),
                         ),
                       ],

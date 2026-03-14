@@ -442,6 +442,236 @@ class BudgetIncomeSource {
   }
 }
 
+class BudgetHistoryTransaction {
+  final int id;
+  final String tipo;
+  final double monto;
+  final String moneda;
+  final String descripcion;
+  final DateTime? fecha;
+  final String? categoriaNombre;
+  final IconData categoriaIcono;
+  final String? usuarioNombre;
+
+  const BudgetHistoryTransaction({
+    required this.id,
+    required this.tipo,
+    required this.monto,
+    required this.moneda,
+    required this.descripcion,
+    required this.fecha,
+    required this.categoriaIcono,
+    this.categoriaNombre,
+    this.usuarioNombre,
+  });
+
+  double get signedAmount {
+    switch (tipo) {
+      case 'gasto':
+        return -monto;
+      case 'ingreso':
+        return monto;
+      default:
+        return monto;
+    }
+  }
+
+  factory BudgetHistoryTransaction.fromJson(Map<String, dynamic> json) {
+    final categoriaPayload = json['categoria'];
+    final usuarioPayload = json['usuario'];
+    final categoria = categoriaPayload is Map
+        ? Map<String, dynamic>.from(categoriaPayload)
+        : const <String, dynamic>{};
+    final usuario = usuarioPayload is Map
+        ? Map<String, dynamic>.from(usuarioPayload)
+        : const <String, dynamic>{};
+
+    int? parseInt(Object? value) {
+      return switch (value) {
+        int data => data,
+        num data => data.toInt(),
+        String data => int.tryParse(data),
+        _ => null,
+      };
+    }
+
+    return BudgetHistoryTransaction(
+      id: parseInt(json['id'] ?? json['transaccion_id']) ?? 0,
+      tipo: json['tipo']?.toString() ?? 'gasto',
+      monto: (json['monto'] as num? ?? 0).toDouble(),
+      moneda: json['moneda']?.toString() ?? 'DOP',
+      descripcion: json['descripcion']?.toString() ?? '',
+      fecha: DateTime.tryParse(json['fecha']?.toString() ?? ''),
+      categoriaNombre: categoria['nombre']?.toString(),
+      categoriaIcono: iconFromKey(categoria['icono']?.toString() ?? 'circle'),
+      usuarioNombre: usuario['nombre']?.toString(),
+    );
+  }
+}
+
+class BudgetHistorySnapshot {
+  final int id;
+  final int budgetId;
+  final String periodo;
+  final DateTime? desde;
+  final DateTime? hasta;
+  final double ingresosPresupuestados;
+  final double ahorroObjetivo;
+  final double ingresosReales;
+  final double totalGastos;
+  final double balance;
+  final double sobroPresupuesto;
+  final int totalTransacciones;
+  final List<BudgetCategory> categoriasGastos;
+  final List<BudgetCategory> otrosGastos;
+  final List<BudgetIncomeSource> ingresosDetalle;
+  final List<BudgetIncomeSource> otrosIngresos;
+  final List<BudgetHistoryTransaction> transacciones;
+  final DateTime? creadoEn;
+
+  const BudgetHistorySnapshot({
+    required this.id,
+    required this.budgetId,
+    required this.periodo,
+    required this.desde,
+    required this.hasta,
+    required this.ingresosPresupuestados,
+    required this.ahorroObjetivo,
+    required this.ingresosReales,
+    required this.totalGastos,
+    required this.balance,
+    required this.sobroPresupuesto,
+    required this.totalTransacciones,
+    this.categoriasGastos = const [],
+    this.otrosGastos = const [],
+    this.ingresosDetalle = const [],
+    this.otrosIngresos = const [],
+    this.transacciones = const [],
+    this.creadoEn,
+  });
+
+  double get totalOtrosGastos =>
+      otrosGastos.fold(0.0, (sum, category) => sum + category.gastado);
+
+  double get totalOtrosIngresos =>
+      otrosIngresos.fold(0.0, (sum, source) => sum + source.actual);
+
+  BudgetCategory? get categoriaMasAlta {
+    final categories = [...categoriasGastos, ...otrosGastos]
+      ..sort((a, b) => b.gastado.compareTo(a.gastado));
+    return categories.isEmpty ? null : categories.first;
+  }
+
+  factory BudgetHistorySnapshot.fromJson(Map<String, dynamic> json) {
+    List<T> parseList<T>(Object? raw, T Function(Map<String, dynamic>) parser) {
+      if (raw is! List) return <T>[];
+      return raw
+          .whereType<Map>()
+          .map((item) => parser(Map<String, dynamic>.from(item)))
+          .toList();
+    }
+
+    Map<String, dynamic> normalizeBudgetCategory(Map<String, dynamic> json) {
+      return {
+        'categoria_id': json['categoriaId'] ?? json['categoria_id'],
+        'categoria_padre_id':
+            json['categoria_padre_id'] ?? json['parentCategoryId'],
+        'slug': json['slug'],
+        'nombre': json['nombre'],
+        'tipo': json['tipo'],
+        'icono': json['icono'],
+        'color_hex': json['color_hex'],
+        'limite': json['limite'] ?? 0,
+        'gastado': json['gastado'] ?? 0,
+      };
+    }
+
+    Map<String, dynamic> normalizeIncomeSource(
+      Map<String, dynamic> json, {
+      double planned = 0,
+    }) {
+      return {
+        'categoria_id': json['categoriaId'] ?? json['categoria_id'],
+        'categoria_padre_id':
+            json['categoria_padre_id'] ?? json['parentCategoryId'],
+        'slug': json['slug'],
+        'nombre': json['nombre'],
+        'tipo': json['tipo'],
+        'icono': json['icono'],
+        'color_hex': json['color_hex'],
+        'monto_planeado': json['monto_planeado'] ?? planned,
+        'monto_actual': json['monto_actual'] ?? 0,
+      };
+    }
+
+    int? parseInt(Object? value) {
+      return switch (value) {
+        int data => data,
+        num data => data.toInt(),
+        String data => int.tryParse(data),
+        _ => null,
+      };
+    }
+
+    return BudgetHistorySnapshot(
+      id: parseInt(json['historial_id']) ?? 0,
+      budgetId: parseInt(json['presupuesto_id']) ?? 0,
+      periodo: json['periodo']?.toString() ?? 'mensual',
+      desde: DateTime.tryParse(json['desde']?.toString() ?? ''),
+      hasta: DateTime.tryParse(json['hasta']?.toString() ?? ''),
+      ingresosPresupuestados: (json['ingresos_presupuestados'] as num? ?? 0)
+          .toDouble(),
+      ahorroObjetivo: (json['ahorro_objetivo'] as num? ?? 0).toDouble(),
+      ingresosReales: (json['ingresos_reales'] as num? ?? 0).toDouble(),
+      totalGastos: (json['total_gastos'] as num? ?? 0).toDouble(),
+      balance: (json['balance'] as num? ?? 0).toDouble(),
+      sobroPresupuesto: (json['sobro_presupuesto'] as num? ?? 0).toDouble(),
+      totalTransacciones: parseInt(json['total_transacciones']) ?? 0,
+      categoriasGastos: parseList(
+        json['categorias_gastos'],
+        (item) => BudgetCategory.fromJson(normalizeBudgetCategory(item)),
+      ),
+      otrosGastos: parseList(
+        json['otros_gastos'],
+        (item) => BudgetCategory.fromJson(normalizeBudgetCategory(item)),
+      ),
+      ingresosDetalle: parseList(
+        json['ingresos_detalle'],
+        (item) => BudgetIncomeSource.fromJson(normalizeIncomeSource(item)),
+      ),
+      otrosIngresos: parseList(
+        json['otros_ingresos'],
+        (item) => BudgetIncomeSource.fromJson(
+          normalizeIncomeSource(item, planned: 0),
+        ),
+      ),
+      transacciones: parseList(
+        json['transacciones'],
+        BudgetHistoryTransaction.fromJson,
+      ),
+      creadoEn: DateTime.tryParse(json['creado_en']?.toString() ?? ''),
+    );
+  }
+}
+
+class BudgetHistoryPage {
+  final List<BudgetHistorySnapshot> items;
+  final int page;
+  final int limit;
+  final int total;
+  final int totalPages;
+  final bool hasMore;
+
+  const BudgetHistoryPage({
+    required this.items,
+    required this.page,
+    required this.limit,
+    required this.total,
+    required this.totalPages,
+    required this.hasMore,
+  });
+}
+
 class BudgetMember {
   final int? userId;
   final String n; // Name

@@ -142,7 +142,7 @@ class ApiService {
       rethrow;
     } catch (error) {
       throw ApiException(
-        'No se pudo conectar al API en ${AppEnv.apiBaseUrl}. Verifica la URL en .env y que el backend esté encendido.',
+        'No pudimos conectarnos en este momento. Revisa tu conexión e inténtalo otra vez.',
       );
     }
 
@@ -154,7 +154,7 @@ class ApiService {
         await _clearAuthSession();
       }
       throw ApiException(
-        message ?? 'Request failed',
+        message ?? 'No pudimos completar la solicitud en este momento.',
         statusCode: response.statusCode,
       );
     }
@@ -227,7 +227,7 @@ class ApiService {
             .delete(uri, headers: headers, body: encodedBody)
             .timeout(AppEnv.timeout);
       default:
-        throw ApiException('Unsupported HTTP method: $method');
+        throw ApiException('No se pudo completar la solicitud.');
     }
   }
 

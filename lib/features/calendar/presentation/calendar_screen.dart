@@ -518,7 +518,20 @@ class _DayTransactionsList extends StatelessWidget {
         ),
         child: Column(
           children: [
-            const Text("😌", style: TextStyle(fontSize: 32)),
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppColors.e0,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                LucideIcons.calendarSearch,
+                size: 24,
+                color: AppColors.e8,
+              ),
+            ),
             const SizedBox(height: 12),
             const Text(
               "Sin movimientos este día",

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
+import '../../../../core/utils/error_presenter.dart';
 import '../../../../shared/widgets/menudo_chip.dart';
 import '../budget_providers.dart';
 import 'budget_detail_sheet.dart';
@@ -57,7 +58,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(error.toString()),
+        content: Text(presentError(error)),
         behavior: SnackBarBehavior.floating,
       ),
     );

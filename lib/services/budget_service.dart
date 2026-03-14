@@ -20,6 +20,14 @@ class BudgetService {
     return _repository.fetchSpentPerCategory(budgetId);
   }
 
+  Future<BudgetHistoryPage> fetchBudgetHistory(
+    int budgetId, {
+    int page = 1,
+    int limit = 12,
+  }) {
+    return _repository.fetchBudgetHistory(budgetId, page: page, limit: limit);
+  }
+
   Future<MenudoBudget> createBudget(
     int userId,
     MenudoBudget budget,

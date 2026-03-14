@@ -147,6 +147,16 @@ class BudgetController extends AsyncNotifier<List<MenudoBudget>> {
     return ref.read(budgetServiceProvider).fetchSpentPerCategory(budgetId);
   }
 
+  Future<BudgetHistoryPage> fetchBudgetHistory(
+    int budgetId, {
+    int page = 1,
+    int limit = 12,
+  }) {
+    return ref
+        .read(budgetServiceProvider)
+        .fetchBudgetHistory(budgetId, page: page, limit: limit);
+  }
+
   Future<List<BudgetMember>> fetchBudgetMembers(int budgetId) {
     return ref.read(budgetServiceProvider).fetchBudgetMembers(budgetId);
   }

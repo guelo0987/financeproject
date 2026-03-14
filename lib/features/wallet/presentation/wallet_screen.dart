@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
+import '../../../../core/utils/error_presenter.dart';
 import '../../auth/auth_state.dart';
 import '../providers/wallet_providers.dart';
 import 'wallet_detail_sheet.dart';
@@ -72,7 +73,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
-          content: Text(error.toString()),
+          content: Text(presentError(error)),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -82,7 +83,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   void _showWalletError(BuildContext context, Object error) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(error.toString()),
+        content: Text(presentError(error)),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -98,7 +99,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       body: walletAsync.when(
         loading: () => _buildContent(context, wallets, isLoading: true),
         error: (e, _) =>
-            _buildContent(context, wallets, errorMessage: e.toString()),
+            _buildContent(context, wallets, errorMessage: presentError(e)),
         data: (wallets) => _buildContent(context, wallets),
       ),
     );

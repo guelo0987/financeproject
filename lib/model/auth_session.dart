@@ -37,12 +37,12 @@ class AuthSession {
     final userId = switch (rawUserId) {
       int value => value,
       String value => int.parse(value),
-      _ => throw FormatException('Missing user id in auth response'),
+      _ => throw const FormatException('No pudimos iniciar tu sesión.'),
     };
 
     final token = rawToken?.toString();
     if (token == null || token.isEmpty) {
-      throw const FormatException('Missing token in auth response');
+      throw const FormatException('No pudimos iniciar tu sesión.');
     }
 
     return AuthSession(

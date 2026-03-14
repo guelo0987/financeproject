@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/error_presenter.dart';
 import '../../../../model/models.dart';
 import '../../auth/auth_state.dart';
 import '../../budgets/budget_providers.dart' as budget_providers;
@@ -31,7 +32,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(error.toString()),
+        content: Text(presentError(error)),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -54,7 +55,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
     final email = ref.read(authProvider).profile?.email.trim() ?? '';
     if (email.isEmpty) {
       _showError(
-        'No se pudo obtener tu email actual. Cierra sesión y vuelve a entrar.',
+        'No pudimos identificar tu cuenta. Vuelve a entrar e inténtalo otra vez.',
       );
       return;
     }
@@ -127,7 +128,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
   Future<void> _openBudget(AppAlert alert) async {
     final budgetId = alert.extra.budgetId;
     if (budgetId == null) {
-      _showError('Esta alerta no incluye un presupuesto para abrir.');
+      _showError('Esta alerta no se puede abrir todavía.');
       return;
     }
 
@@ -219,7 +220,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                       child: _StateCard(
                         icon: LucideIcons.alertCircle,
                         title: 'No se pudieron cargar las alertas',
-                        body: error.toString(),
+                        body: presentError(error),
                         actionLabel: 'Reintentar',
                         onTap: _refresh,
                       ),
@@ -534,8 +535,6 @@ class _AlertCard extends StatelessWidget {
                   _InfoPill(label: alert.extra.budgetName!),
                 if (alert.extra.invitedBy?.isNotEmpty == true)
                   _InfoPill(label: 'Invita ${alert.extra.invitedBy!}'),
-                if (alert.extra.budgetId != null)
-                  _InfoPill(label: 'Presupuesto #${alert.extra.budgetId}'),
               ],
             ),
           ],

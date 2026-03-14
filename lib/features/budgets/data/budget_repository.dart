@@ -58,6 +58,42 @@ class BudgetRepository {
     return result;
   }
 
+  Future<BudgetHistoryPage> fetchBudgetHistory(
+    int budgetId, {
+    int page = 1,
+    int limit = 12,
+  }) async {
+    final response = await _api.get<List<dynamic>>(
+      ApiPaths.budgetHistory(budgetId),
+      queryParameters: {'page': '$page', 'limit': '$limit'},
+      parser: asJsonList,
+    );
+
+    int parseMetaInt(Map<String, dynamic>? meta, String key, int fallback) {
+      final value = meta?[key];
+      return switch (value) {
+        int data => data,
+        num data => data.toInt(),
+        String data => int.tryParse(data) ?? fallback,
+        _ => fallback,
+      };
+    }
+
+    final meta = response.meta;
+    final items = response.requireData().map((row) {
+      return BudgetHistorySnapshot.fromJson(asJsonMap(row));
+    }).toList();
+
+    return BudgetHistoryPage(
+      items: items,
+      page: parseMetaInt(meta, 'page', page),
+      limit: parseMetaInt(meta, 'limit', limit),
+      total: parseMetaInt(meta, 'total', items.length),
+      totalPages: parseMetaInt(meta, 'totalPages', 1),
+      hasMore: (meta?['hasMore'] as bool?) ?? false,
+    );
+  }
+
   Future<MenudoBudget> createBudget(
     int userId,
     MenudoBudget budget,
@@ -84,9 +120,7 @@ class BudgetRepository {
     Map<int, double> incomeDetails,
   ) async {
     if (budget.id <= 0) {
-      throw StateError(
-        'A budget requires a valid id before it can be updated.',
-      );
+      throw StateError('No pudimos guardar los cambios de este presupuesto.');
     }
 
     final response = await _api.put<Map<String, dynamic>>(

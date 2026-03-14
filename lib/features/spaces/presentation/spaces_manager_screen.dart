@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/error_presenter.dart';
 import '../../../model/models.dart';
 import '../../auth/auth_state.dart';
 import '../../budgets/budget_providers.dart';
@@ -125,7 +126,7 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
                         ),
                       ),
                       child: Text(
-                        spacesAsync.error.toString(),
+                        presentError(spacesAsync.error!),
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -821,7 +822,7 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(error.toString()),
+        content: Text(presentError(error)),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -990,7 +991,7 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        snapshot.error.toString(),
+                        presentError(snapshot.error!),
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,

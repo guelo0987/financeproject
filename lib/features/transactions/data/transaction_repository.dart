@@ -47,9 +47,7 @@ class TransactionRepository {
 
   Future<MenudoTransaction> updateTransaction(MenudoTransaction txn) async {
     if (txn.id <= 0) {
-      throw StateError(
-        'A transaction requires a valid id before it can be updated.',
-      );
+      throw StateError('No pudimos actualizar este movimiento.');
     }
 
     final response = await _api.put<Map<String, dynamic>>(
@@ -66,19 +64,13 @@ class TransactionRepository {
 
   Map<String, dynamic> _transactionBody(MenudoTransaction txn) {
     if (txn.budgetId == null) {
-      throw StateError(
-        'A transaction requires a budgetId before it can be sent to the API.',
-      );
+      throw StateError('Elige un presupuesto antes de continuar.');
     }
     if (txn.fromAccountId == null) {
-      throw StateError(
-        'A transaction requires a walletId before it can be sent to the API.',
-      );
+      throw StateError('Elige una cuenta antes de continuar.');
     }
     if (txn.catKey.isEmpty) {
-      throw StateError(
-        'A transaction requires a catKey before it can be sent to the API.',
-      );
+      throw StateError('Elige una categoría antes de continuar.');
     }
 
     return {

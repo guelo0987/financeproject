@@ -1,11 +1,13 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/data/models.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/error_presenter.dart';
 import '../../../../shared/widgets/menudo_button.dart';
 import '../../../../shared/widgets/menudo_chip.dart';
 import '../../../auth/auth_state.dart';
@@ -24,6 +26,7 @@ class CreateBudgetWizard extends ConsumerStatefulWidget {
 }
 
 class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
+  final ScrollController _scrollController = ScrollController();
   int _step = 0;
 
   // Form Data
@@ -60,10 +63,13 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
 
   String _formatEditableAmount(double value) {
     if (value == 0) return '';
-    final raw = value.truncateToDouble() == value
-        ? value.toInt().toString()
-        : value.toStringAsFixed(2);
-    return raw.replaceFirst(RegExp(r'([.]0+)?$'), '');
+    return value.round().toString();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _seedInitialBudget() {
@@ -237,7 +243,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
     if (missingIncomeCategories.isNotEmpty ||
         missingExpenseCategories.isNotEmpty) {
       _showError(
-        'Faltan categorías en el backend para este presupuesto. Revisa los datos antes de guardar.',
+        'Hay categorías que ya no están disponibles. Revisa tus selecciones antes de guardar.',
       );
       return;
     }
@@ -288,7 +294,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (error) {
-      _showError(error.toString());
+      _showError(presentError(error));
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -306,8 +312,127 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
   String fmt(double val) =>
       "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
 
+  void _setPeriod(String value) {
+    setState(() {
+      _periodo = value;
+      switch (value) {
+        case 'mensual':
+          _diaInicio = _diaInicio.clamp(1, 28);
+          break;
+        case 'quincenal':
+          _diaInicio = _diaInicio >= 15 ? 15 : 1;
+          break;
+        case 'semanal':
+        case 'unico':
+          _diaInicio = 1;
+          break;
+      }
+    });
+  }
+
+  String _periodSummaryLabel() {
+    return switch (_periodo) {
+      'semanal' => 'Semanal',
+      'quincenal' => 'Quincenal',
+      'unico' => 'Único',
+      _ => 'Mensual',
+    };
+  }
+
+  String _periodStartSummary() {
+    return switch (_periodo) {
+      'semanal' => 'Últimos 7 días',
+      'unico' => 'Desde creación',
+      'quincenal' => _diaInicio == 15 ? 'Desde día 15' : 'Desde día 1',
+      _ => 'Día $_diaInicio',
+    };
+  }
+
+  Widget _buildPeriodStartSelector() {
+    if (_periodo == 'semanal') {
+      return _BudgetHintCard(
+        icon: LucideIcons.calendarDays,
+        title: 'Rango automático',
+        body: 'Este presupuesto se revisa tomando siempre los últimos 7 días.',
+      );
+    }
+
+    if (_periodo == 'unico') {
+      return _BudgetHintCard(
+        icon: LucideIcons.flag,
+        title: 'Rango único',
+        body:
+            'Este presupuesto se mide desde el día en que lo creas. No necesita un día de inicio.',
+      );
+    }
+
+    final options = _periodo == 'quincenal'
+        ? const [1, 15]
+        : List<int>.generate(28, (index) => index + 1);
+    final title = _periodo == 'quincenal'
+        ? 'Inicio de la quincena'
+        : 'Día de inicio';
+    final subtitle = _periodo == 'quincenal'
+        ? 'Cada período abarca 15 días desde el día que elijas.'
+        : 'Selecciona el día del mes en que arranca el período.';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.g5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: const TextStyle(fontSize: 12, color: AppColors.g4),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: options.map((day) {
+            final selected = _diaInicio == day;
+            return GestureDetector(
+              onTap: () => setState(() => _diaInicio = day),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: _periodo == 'quincenal' ? 88 : 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.e8 : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: selected ? AppColors.e8 : AppColors.g2,
+                    width: 2,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  _periodo == 'quincenal' ? 'Día $day' : '$day',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: selected ? Colors.white : AppColors.g5,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final keyboardBottom = MediaQuery.of(context).viewInsets.bottom;
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.95,
       decoration: const BoxDecoration(
@@ -392,9 +517,17 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           const SizedBox(height: 24),
 
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _buildCurrentStep(),
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(bottom: keyboardBottom > 0 ? 20 : 0),
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _buildCurrentStep(),
+              ),
             ),
           ),
 
@@ -540,7 +673,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   ]
                   .map(
                     (p) => GestureDetector(
-                      onTap: () => setState(() => _periodo = p["v"]!),
+                      onTap: () => _setPeriod(p["v"]!),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         decoration: BoxDecoration(
@@ -573,48 +706,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
         ),
 
         const SizedBox(height: 16),
-        const Text(
-          "Día de inicio",
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: AppColors.g5,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [1, 5, 10, 15, 20, 25, 30]
-              .map(
-                (d) => GestureDetector(
-                  onTap: () => setState(() => _diaInicio = d),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: _diaInicio == d ? AppColors.e8 : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _diaInicio == d ? AppColors.e8 : AppColors.g2,
-                        width: 2,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      d.toString(),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: _diaInicio == d ? Colors.white : AppColors.g5,
-                      ),
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
+        _buildPeriodStartSelector(),
       ],
     );
   }
@@ -647,13 +739,27 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
             ),
           ),
           const SizedBox(height: 6),
-          Text(
-            fmt(amount),
-            style: TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.w900,
-              color: textColor,
-              letterSpacing: -1.2,
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.08),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            ),
+            child: Text(
+              fmt(amount),
+              key: ValueKey(amount.round()),
+              style: TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.w900,
+                color: textColor,
+                letterSpacing: -1.2,
+              ),
             ),
           ),
           const SizedBox(height: 4),
@@ -819,55 +925,34 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                     const SizedBox(width: 12),
                     SizedBox(
                       width: 118,
-                      child: TextField(
+                      child: _BudgetAmountField(
+                        value: currentValue,
                         onChanged: (value) {
                           setState(() => values[category.id] = value);
                         },
-                        controller: TextEditingController.fromValue(
-                          TextEditingValue(
-                            text: currentValue,
-                            selection: TextSelection.collapsed(
-                              offset: currentValue.length,
-                            ),
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        textStyle: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
                           color: AppColors.e8,
                         ),
-                        decoration: InputDecoration(
-                          prefixText: 'RD\$ ',
-                          prefixStyle: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.g4,
-                          ),
-                          hintText: '0',
-                          filled: true,
-                          fillColor: AppColors.g0,
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: category.color.withValues(alpha: 0.18),
-                              width: 1.8,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: category.color,
-                              width: 2,
-                            ),
-                          ),
+                        prefixText: 'RD\$ ',
+                        prefixStyle: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.g4,
                         ),
+                        hintText: '0',
+                        fillColor: AppColors.g0,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        borderRadius: 12,
+                        enabledBorderColor: category.color.withValues(
+                          alpha: 0.18,
+                        ),
+                        focusedBorderColor: category.color,
                       ),
                     ),
                   ],
@@ -920,7 +1005,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               border: Border.all(color: AppColors.g2, width: 1.5),
             ),
             child: const Text(
-              'No hay categorías de ingreso disponibles todavía. Crea o sincroniza al menos un grupo de ingresos desde el backend.',
+              'Todavía no tienes categorías de ingresos listas. Crea una y vuelve aquí.',
               style: TextStyle(fontSize: 13, color: AppColors.g4),
             ),
           )
@@ -998,7 +1083,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               border: Border.all(color: AppColors.g2, width: 1.5),
             ),
             child: const Text(
-              'No hay grupos de gastos disponibles desde el backend. Verifica la jerarquía de categorías.',
+              'Todavía no tienes categorías de gastos listas. Agrega una para continuar.',
               style: TextStyle(fontSize: 13, color: AppColors.g4),
             ),
           )
@@ -1072,30 +1157,21 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   ),
                   const SizedBox(width: 6),
                   IntrinsicWidth(
-                    child: TextField(
-                      onChanged: (v) => setState(() => _savingsTarget = v),
-                      controller: TextEditingController.fromValue(
-                        TextEditingValue(
-                          text: _savingsTarget,
-                          selection: TextSelection.collapsed(
-                            offset: _savingsTarget.length,
-                          ),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
+                    child: _BudgetAmountField(
+                      value: _savingsTarget,
+                      onChanged: (value) =>
+                          setState(() => _savingsTarget = value),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      textStyle: const TextStyle(
                         fontSize: 40,
                         fontWeight: FontWeight.w800,
                         color: AppColors.a5,
                       ),
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: "0",
-                        hintStyle: TextStyle(color: AppColors.a5),
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
+                      hintText: '0',
+                      fillColor: Colors.transparent,
+                      borderRadius: 0,
+                      borderless: true,
+                      contentPadding: EdgeInsets.zero,
                     ),
                   ),
                 ],
@@ -1297,7 +1373,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               border: Border.all(color: AppColors.g2),
             ),
             child: const Text(
-              "Los miembros actuales se gestionan desde el detalle del presupuesto. En esta edición puedes actualizar nombre, ingresos y límites, pero este backend no agrega invitados nuevos vía update.",
+              "Los colaboradores se gestionan desde el detalle del presupuesto. Aquí puedes ajustar nombre, ingresos y límites.",
               style: TextStyle(
                 fontSize: 13,
                 height: 1.35,
@@ -1440,13 +1516,10 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                       color: AppColors.r1,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
-                      "✕",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.r5,
-                      ),
+                    child: const Icon(
+                      LucideIcons.x,
+                      size: 14,
+                      color: AppColors.r5,
                     ),
                   ),
                 ),
@@ -1607,14 +1680,14 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               Row(
                 children: [
                   MenudoChip.custom(
-                    label: _periodo,
+                    label: _periodSummaryLabel(),
                     color: Colors.white.withValues(alpha: 0.8),
                     bgColor: Colors.white.withValues(alpha: 0.15),
                     isSmall: true,
                   ),
                   const SizedBox(width: 8),
                   MenudoChip.custom(
-                    label: "Día $_diaInicio",
+                    label: _periodStartSummary(),
                     color: Colors.white.withValues(alpha: 0.8),
                     bgColor: Colors.white.withValues(alpha: 0.15),
                     isSmall: true,
@@ -1826,4 +1899,222 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
       ],
     );
   }
+}
+
+class _BudgetHintCard extends StatelessWidget {
+  const _BudgetHintCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.e0,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.e1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.e1,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 18, color: AppColors.e8),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.e8,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  body,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 1.35,
+                    color: AppColors.g5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BudgetAmountField extends StatefulWidget {
+  const _BudgetAmountField({
+    required this.value,
+    required this.onChanged,
+    required this.textStyle,
+    required this.hintText,
+    required this.fillColor,
+    required this.contentPadding,
+    this.prefixText,
+    this.prefixStyle,
+    this.textAlign = TextAlign.start,
+    this.borderRadius = 12,
+    this.enabledBorderColor = AppColors.g2,
+    this.focusedBorderColor = AppColors.e8,
+    this.borderless = false,
+  });
+
+  final String value;
+  final ValueChanged<String> onChanged;
+  final TextStyle textStyle;
+  final String hintText;
+  final Color fillColor;
+  final EdgeInsetsGeometry contentPadding;
+  final String? prefixText;
+  final TextStyle? prefixStyle;
+  final TextAlign textAlign;
+  final double borderRadius;
+  final Color enabledBorderColor;
+  final Color focusedBorderColor;
+  final bool borderless;
+
+  @override
+  State<_BudgetAmountField> createState() => _BudgetAmountFieldState();
+}
+
+class _BudgetAmountFieldState extends State<_BudgetAmountField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: _formatBudgetNumber(widget.value),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _BudgetAmountField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value == widget.value) return;
+
+    final formatted = _formatBudgetNumber(widget.value);
+    if (_controller.text == formatted) return;
+
+    _controller.value = TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleChanged(String value) {
+    final raw = _sanitizeBudgetNumber(value);
+    final formatted = _formatBudgetNumber(raw);
+
+    if (_controller.text != formatted) {
+      _controller.value = TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+    }
+
+    widget.onChanged(raw);
+  }
+
+  Future<void> _ensureVisible() async {
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    if (!mounted) return;
+    await Scrollable.ensureVisible(
+      context,
+      duration: const Duration(milliseconds: 220),
+      alignment: 0.2,
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final border = widget.borderless
+        ? InputBorder.none
+        : OutlineInputBorder(
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            borderSide: BorderSide(
+              color: widget.enabledBorderColor,
+              width: 1.8,
+            ),
+          );
+    final focusedBorder = widget.borderless
+        ? InputBorder.none
+        : OutlineInputBorder(
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            borderSide: BorderSide(color: widget.focusedBorderColor, width: 2),
+          );
+
+    return TextField(
+      controller: _controller,
+      onChanged: _handleChanged,
+      onTap: _ensureVisible,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,]'))],
+      textAlign: widget.textAlign,
+      style: widget.textStyle,
+      decoration: InputDecoration(
+        prefixText: widget.prefixText,
+        prefixStyle: widget.prefixStyle,
+        hintText: widget.hintText,
+        filled: true,
+        fillColor: widget.fillColor,
+        isDense: true,
+        contentPadding: widget.contentPadding,
+        border: border,
+        enabledBorder: border,
+        focusedBorder: focusedBorder,
+      ),
+    );
+  }
+}
+
+String _sanitizeBudgetNumber(String value) {
+  final digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
+  if (digitsOnly.isEmpty) return '';
+  final trimmed = digitsOnly.length > 9
+      ? digitsOnly.substring(0, 9)
+      : digitsOnly;
+  final normalized = trimmed.replaceFirst(RegExp(r'^0+(?=\d)'), '');
+  return normalized;
+}
+
+String _formatBudgetNumber(String value) {
+  final raw = _sanitizeBudgetNumber(value);
+  if (raw.isEmpty) return '';
+  return raw.replaceAllMapped(
+    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+    (match) => '${match[1]},',
+  );
 }

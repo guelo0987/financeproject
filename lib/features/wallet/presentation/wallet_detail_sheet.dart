@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
+import '../../../core/utils/error_presenter.dart';
 import '../../budgets/budget_providers.dart';
 import '../../categories/providers/category_providers.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
@@ -103,7 +104,7 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(error.toString()),
+                              content: Text(presentError(error)),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
@@ -257,7 +258,7 @@ class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(error.toString()),
+                              content: Text(presentError(error)),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
@@ -386,7 +387,7 @@ class WalletDetailSheet extends ConsumerWidget {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(error.toString()),
+        content: Text(presentError(error)),
         behavior: SnackBarBehavior.floating,
       ),
     );

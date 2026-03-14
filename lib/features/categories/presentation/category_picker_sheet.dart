@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/error_presenter.dart';
 import '../providers/category_providers.dart';
 import 'categories_screen.dart';
 
@@ -605,7 +606,7 @@ class _CategoryPickerCreateSheet extends ConsumerWidget {
             error: (error, _) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
-                error.toString(),
+                presentError(error),
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
