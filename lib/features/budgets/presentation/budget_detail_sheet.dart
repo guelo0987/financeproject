@@ -137,6 +137,60 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     }
   }
 
+  Future<void> _openBudgetActions() async {
+    HapticFeedback.lightImpact();
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.g0,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.g3,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _BudgetActionOption(
+                  icon: LucideIcons.pencil,
+                  label: 'Editar presupuesto',
+                  onTap: () => Navigator.pop(sheetContext, 'edit'),
+                ),
+                const SizedBox(height: 10),
+                _BudgetActionOption(
+                  icon: LucideIcons.trash2,
+                  label: 'Eliminar presupuesto',
+                  color: AppColors.r5,
+                  onTap: () => Navigator.pop(sheetContext, 'delete'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+    if (action == 'edit') {
+      await _openBudgetEditor();
+    } else if (action == 'delete') {
+      await _deleteBudget();
+    }
+  }
+
   Future<void> _loadMembers() async {
     if (!_shouldLoadMembers) {
       if (mounted) {
@@ -302,17 +356,6 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
-  String _historyIntro(String periodo) {
-    switch (periodo) {
-      case 'semanal':
-        return 'Aquí verás cómo cerró cada semana: cuánto entró, cuánto salió y qué quedó disponible.';
-      case 'quincenal':
-        return 'Cada cierre guarda cómo terminó cada bloque de 15 días de este presupuesto.';
-      default:
-        return 'Cada cierre resume cómo terminó el período: ingresos, gastos y lo que te quedó.';
-    }
-  }
-
   String _historyEmptyMessage(String periodo) {
     switch (periodo) {
       case 'semanal':
@@ -384,8 +427,8 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _HeaderAction(
-                      icon: LucideIcons.pencil,
-                      onTap: _openBudgetEditor,
+                      icon: LucideIcons.moreHorizontal,
+                      onTap: _openBudgetActions,
                     ),
                     Expanded(
                       child: Column(
@@ -464,21 +507,12 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
               children: [
-                _buildEditBudgetButton(),
                 if (_tab == "resumen") ...[
                   _buildSummaryMetrics(
                     spent,
                     left,
                     displayBudget.actualIncomeTotal,
                   ),
-                  if (extraExpenseCategories.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: _InlineInfoCard(
-                        text:
-                            'Incluye ${_fmt(extraExpenseCategories.fold<double>(0, (sum, category) => sum + category.gastado))} fuera del plan.',
-                      ),
-                    ),
                   _buildSharedBudgetSection(isShared: isShared),
                   _buildCategoriesSection(
                     displayBudget,
@@ -500,76 +534,6 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         ],
       ),
     );
-  }
-
-  Widget _buildEditBudgetButton() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: GestureDetector(
-        onTap: _openBudgetEditor,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.g2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.e1,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  LucideIcons.slidersHorizontal,
-                  size: 18,
-                  color: AppColors.e6,
-                ),
-              ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Editar presupuesto',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.e8,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              _SmallActionButton(
-                label: 'Editar',
-                icon: LucideIcons.pencil,
-                onTap: _openBudgetEditor,
-              ),
-              const SizedBox(width: 8),
-              _SmallActionButton(
-                label: 'Eliminar',
-                icon: LucideIcons.trash2,
-                onTap: _deleteBudget,
-              ),
-            ],
-          ),
-        ),
-      ),
-    ).animate().fadeIn(duration: 300.ms);
   }
 
   Widget _buildSummaryMetrics(double spent, double left, double incomeActual) {
@@ -844,16 +808,9 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
             if (parentCompare != 0) return parentCompare;
             return a.label.compareTo(b.label);
           });
-    final actualIncomeTotal = budget.actualIncomeTotal;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _PlanSummaryHeader(
-          plannedTotal: _fmt(budget.ingresos),
-          actualTotal: _fmt(actualIncomeTotal),
-        ),
-        const SizedBox(height: 20),
         if (incomeSources.isNotEmpty) ...[
           const _BudgetSectionTitle(title: 'Ingresos planificados'),
           const SizedBox(height: 10),
@@ -959,10 +916,6 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _InlineInfoCard(text: _historyIntro(budget.periodo)),
-        const SizedBox(height: 18),
-        const _BudgetSectionTitle(title: 'Cierres anteriores'),
-        const SizedBox(height: 12),
         if (!_supportsHistory)
           const _InlineInfoCard(
             text:
@@ -1063,6 +1016,49 @@ class _HeaderAction extends StatelessWidget {
   }
 }
 
+class _BudgetActionOption extends StatelessWidget {
+  const _BudgetActionOption({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color = AppColors.e8,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.g2),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _TabSwitcher extends StatelessWidget {
   final String activeTab;
   final Function(String) onChanged;
@@ -1073,10 +1069,10 @@ class _TabSwitcher extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Row(
@@ -1125,21 +1121,20 @@ class _TabItem extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(vertical: 13),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             color: isActive ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(13),
           ),
           alignment: Alignment.center,
           child: Text(
-            label.toUpperCase(),
+            label,
             style: TextStyle(
               color: isActive
                   ? AppColors.e8
                   : Colors.white.withValues(alpha: 0.65),
               fontWeight: isActive ? FontWeight.w900 : FontWeight.w700,
-              fontSize: 11,
-              letterSpacing: 0.9,
+              fontSize: 12,
             ),
           ),
         ),
@@ -1986,8 +1981,8 @@ class _UnplannedExpenseCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   parentLabel.isEmpty
-                      ? 'Sin límite configurado en este presupuesto'
-                      : '$parentLabel · Sin límite configurado',
+                      ? 'Sin tope definido'
+                      : '$parentLabel · Sin tope definido',
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.g4,
@@ -2020,7 +2015,7 @@ class _UnplannedExpenseCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: const Text(
-                  'Fuera del plan',
+                  'Sin tope',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -2033,132 +2028,6 @@ class _UnplannedExpenseCard extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _PlanSummaryHeader extends StatelessWidget {
-  final String plannedTotal, actualTotal;
-
-  const _PlanSummaryHeader({
-    required this.plannedTotal,
-    required this.actualTotal,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final plannedValue = _asCurrencyNumber(plannedTotal);
-    final actualValue = _asCurrencyNumber(actualTotal);
-    final difference = actualValue - plannedValue;
-    final differencePositive = difference >= 0;
-    final differenceColor = differencePositive ? AppColors.e6 : AppColors.o5;
-    final differenceLabel = difference == 0
-        ? 'Vas exactamente en línea con lo que planificaste.'
-        : differencePositive
-        ? 'Has recibido ${_formatDifference(difference)} más de lo previsto.'
-        : 'Te faltan ${_formatDifference(difference.abs())} para alcanzar tu plan.';
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.g2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Plan del periodo',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.e8,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: differenceColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  difference == 0
-                      ? 'En línea'
-                      : differencePositive
-                      ? 'Sobre plan'
-                      : 'Por debajo',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: differenceColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _PlanMiniStat(
-                  label: 'Planeado',
-                  value: plannedTotal,
-                  valueColor: AppColors.e8,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _PlanMiniStat(
-                  label: 'Real',
-                  value: actualTotal,
-                  valueColor: AppColors.e6,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _PlanMiniStat(
-                  label: 'Variación',
-                  value:
-                      '${differencePositive ? '+' : '-'}${_formatDifference(difference.abs())}',
-                  valueColor: differenceColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            differenceLabel,
-            style: TextStyle(
-              fontSize: 13,
-              height: 1.35,
-              fontWeight: FontWeight.w700,
-              color: differenceColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  double _asCurrencyNumber(String formatted) {
-    final normalized = formatted.replaceAll('RD\$', '').replaceAll(',', '');
-    return double.tryParse(normalized) ?? 0;
-  }
-
-  String _formatDifference(double value) {
-    final raw = value.toInt().toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-    return 'RD\$$raw';
   }
 }
 
@@ -2463,51 +2332,6 @@ class _BudgetSectionTitle extends StatelessWidget {
               fontWeight: FontWeight.w900,
               color: AppColors.e8,
               letterSpacing: -0.3,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlanMiniStat extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color valueColor;
-
-  const _PlanMiniStat({
-    required this.label,
-    required this.value,
-    required this.valueColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.g0,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: AppColors.g4,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: valueColor,
             ),
           ),
         ],
@@ -2869,9 +2693,8 @@ class _HistoryTransactionRow extends StatelessWidget {
 class _SmallActionButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
-  final IconData? icon;
 
-  const _SmallActionButton({required this.label, this.onTap, this.icon});
+  const _SmallActionButton({required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -2887,10 +2710,6 @@ class _SmallActionButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (icon != null) ...[
-              Icon(icon, size: 12, color: AppColors.g5),
-              const SizedBox(width: 6),
-            ],
             Text(
               label,
               style: const TextStyle(

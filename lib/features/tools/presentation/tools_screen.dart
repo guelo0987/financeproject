@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../categories/presentation/categories_screen.dart';
 import '../../recurring/presentation/recurring_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class ToolsScreen extends StatefulWidget {
   const ToolsScreen({super.key});
@@ -443,80 +443,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
               ),
             ),
           ).animate().fadeIn(duration: 380.ms, delay: 200.ms),
-
-          const SizedBox(height: 28),
-
-          // ── Data & Export ──────────────────────────────────────────
-          const Text(
-            "Gestión de datos",
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppColors.g4,
-              letterSpacing: 0.3,
-            ),
-          ).animate().fadeIn(duration: 300.ms, delay: 250.ms),
-          const SizedBox(height: 10),
-
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
-            ),
-            child: Column(
-              children: [
-                _actionRow(
-                  icon: LucideIcons.fileDown,
-                  iconColor: AppColors.b5,
-                  bgColor: const Color(0xFFEFF6FF),
-                  label: "Exportar historial (CSV)",
-                  subtitle: "Descarga todas tus transacciones",
-                  showDivider: true,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text(
-                          'Exportando historial a CSV...',
-                          style: TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        backgroundColor: AppColors.b5,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                _actionRow(
-                  icon: LucideIcons.share2,
-                  iconColor: AppColors.p5,
-                  bgColor: const Color(0xFFF3EEFF),
-                  label: "Compartir resumen mensual",
-                  subtitle: "Genera una imagen de tu mes financiero",
-                  showDivider: false,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text(
-                          'Generando imagen del resumen...',
-                          style: TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        backgroundColor: AppColors.p5,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ).animate().fadeIn(duration: 380.ms, delay: 280.ms),
         ],
       ),
     );
@@ -649,77 +575,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
           ),
           textAlign: TextAlign.center,
         ),
-      ],
-    );
-  }
-
-  Widget _actionRow({
-    required IconData icon,
-    required Color iconColor,
-    required Color bgColor,
-    required String label,
-    required String subtitle,
-    required bool showDivider,
-    required VoidCallback onTap,
-  }) {
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(icon, size: 20, color: iconColor),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.e8,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.g4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(
-                  LucideIcons.chevronRight,
-                  size: 16,
-                  color: AppColors.g3,
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (showDivider)
-          const Divider(
-            height: 1,
-            color: Color(0xFFF3F4F6),
-            indent: 68,
-            endIndent: 16,
-          ),
       ],
     );
   }

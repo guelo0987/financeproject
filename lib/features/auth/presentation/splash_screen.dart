@@ -77,7 +77,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ).animate().fadeIn(delay: 200.ms),
             const SizedBox(height: 8),
             Text(
-              'Tu patrimonio. Todo en un lugar.',
+              'Tu dinero en orden.',
               style: MenudoTextStyles.bodyMedium.copyWith(
                 color: MenudoColors.textMuted,
               ),

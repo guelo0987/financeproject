@@ -34,6 +34,7 @@ class _CategoryPickerSheetState extends ConsumerState<CategoryPickerSheet> {
     HapticFeedback.mediumImpact();
     final created = await showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) =>
@@ -47,6 +48,7 @@ class _CategoryPickerSheetState extends ConsumerState<CategoryPickerSheet> {
   Future<void> _showAddSubcategory(MenudoCategory parent) async {
     final created = await showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => AddCategorySheet(parent: parent),
@@ -115,7 +117,7 @@ class _CategoryPickerSheetState extends ConsumerState<CategoryPickerSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  "Categoría",
+                  "Elegir categoría",
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
@@ -184,12 +186,11 @@ class _CategoryPickerSheetState extends ConsumerState<CategoryPickerSheet> {
                                           const SizedBox(width: 8),
                                           Expanded(
                                             child: Text(
-                                              parent.nombre.toUpperCase(),
+                                              parent.nombre,
                                               style: const TextStyle(
-                                                fontSize: 11,
+                                                fontSize: 13,
                                                 fontWeight: FontWeight.w800,
-                                                color: AppColors.g5,
-                                                letterSpacing: 1.0,
+                                                color: AppColors.e8,
                                               ),
                                             ),
                                           ),
@@ -233,7 +234,7 @@ class _CategoryPickerSheetState extends ConsumerState<CategoryPickerSheet> {
                                         child: Column(
                                           children: [
                                             const Text(
-                                              'Este grupo todavía no tiene subcategorías.',
+                                              'Todavía no tiene categorías.',
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w600,
@@ -252,9 +253,7 @@ class _CategoryPickerSheetState extends ConsumerState<CategoryPickerSheet> {
                                                       .withValues(alpha: 0.3),
                                                 ),
                                               ),
-                                              child: const Text(
-                                                'Crear subcategoría',
-                                              ),
+                                              child: const Text('Añadir'),
                                             ),
                                           ],
                                         ),
@@ -450,6 +449,7 @@ class _CategoryPickerCreateSheet extends ConsumerWidget {
   ) async {
     final created = await showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => AddCategorySheet(parent: parent),
@@ -462,6 +462,7 @@ class _CategoryPickerCreateSheet extends ConsumerWidget {
   Future<void> _openAddParent(BuildContext context) async {
     final created = await showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => AddCategorySheet(
@@ -505,7 +506,7 @@ class _CategoryPickerCreateSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Agregar categoría',
+            'Nueva categoría',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w900,
@@ -515,12 +516,12 @@ class _CategoryPickerCreateSheet extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             allowedType == null
-                ? 'Primero elige el grupo padre donde quieres crear la subcategoría.'
-                : 'Primero elige el grupo padre de ${allowedType == 'ingreso'
+                ? 'Elige un grupo o crea uno nuevo.'
+                : 'Elige un grupo de ${allowedType == 'ingreso'
                       ? 'ingresos'
                       : allowedType == 'transferencia'
                       ? 'transferencias'
-                      : 'gastos'} donde quieres crear la subcategoría.',
+                      : 'gastos'}.',
             style: const TextStyle(fontSize: 13, color: AppColors.g4),
           ),
           const SizedBox(height: 18),
@@ -536,7 +537,7 @@ class _CategoryPickerCreateSheet extends ConsumerWidget {
                     border: Border.all(color: AppColors.g2),
                   ),
                   child: const Text(
-                    'No hay grupos padre disponibles todavía.',
+                    'Todavía no hay grupos disponibles.',
                     style: TextStyle(fontSize: 13, color: AppColors.g4),
                   ),
                 );
@@ -628,7 +629,7 @@ class _CategoryPickerCreateSheet extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text('Crear grupo padre'),
+              child: const Text('Nuevo grupo'),
             ),
           ),
         ],

@@ -72,7 +72,7 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "Principal en transacciones",
+                      "Cuenta principal",
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -80,7 +80,7 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
                       ),
                     ),
                     Text(
-                      "Se preselecciona al registrar movimientos.",
+                      "Se usa primero al registrar movimientos.",
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.g4,
@@ -126,35 +126,15 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
                 ),
                 child: Text(
                   isDefault
-                      ? 'Principal'
+                      ? 'Activa'
                       : _isUpdating
                       ? 'Guardando...'
-                      : 'Marcar',
+                      : 'Usar',
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
             ],
           ),
-          if (isDefault)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Row(
-                children: [
-                  const Icon(LucideIcons.info, size: 14, color: AppColors.e6),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      "Se usará primero al registrar movimientos nuevos.",
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.e6,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ).animate().fadeIn(),
         ],
       ),
     );
@@ -219,7 +199,7 @@ class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "Cuenta patrimonio",
+                      "Incluir en patrimonio",
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -228,8 +208,8 @@ class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
                     ),
                     Text(
                       isIncluded
-                          ? "Se suma al patrimonio neto."
-                          : "No se suma al patrimonio neto.",
+                          ? "La tomamos en cuenta en tu total."
+                          : "La dejamos fuera de tu total.",
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.g4,
@@ -288,59 +268,6 @@ class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isIncluded ? AppColors.e0 : AppColors.g0,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Text(
-              isIncluded
-                  ? 'Se refleja en los totales de patrimonio.'
-                  : 'Útil para tarjetas de crédito y cuentas excluidas.',
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppColors.g5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeaderMetaPill extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _HeaderMetaPill({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: Colors.white.withValues(alpha: 0.88)),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
           ),
         ],
       ),
@@ -649,18 +576,6 @@ class WalletDetailSheet extends ConsumerWidget {
 
                     const SizedBox(height: 14),
 
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        _HeaderMetaPill(
-                          icon: LucideIcons.badgeDollarSign,
-                          label: w.moneda,
-                        ),
-                      ],
-                    ).animate().fadeIn(duration: 400.ms, delay: 145.ms),
-
                     const SizedBox(height: 16),
 
                     // Balance
@@ -818,12 +733,14 @@ class WalletDetailSheet extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      activeBudget == null
-                          ? "Movimientos recientes de esta cuenta."
-                          : "En ${activeBudget.nombre}.",
-                      style: const TextStyle(fontSize: 12, color: AppColors.g4),
-                    ),
+                    if (activeBudget != null)
+                      Text(
+                        activeBudget.nombre,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.g4,
+                        ),
+                      ),
                     const SizedBox(height: 12),
 
                     if (recentTxns.isEmpty)

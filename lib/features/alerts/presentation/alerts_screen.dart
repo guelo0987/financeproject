@@ -120,6 +120,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (_) => BudgetDetailSheet(budget: budget!),
     );
@@ -128,7 +129,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
   Future<void> _openBudget(AppAlert alert) async {
     final budgetId = alert.extra.budgetId;
     if (budgetId == null) {
-      _showError('Esta alerta no se puede abrir todavía.');
+      _showError('Esta alerta no se puede abrir.');
       return;
     }
 
@@ -181,27 +182,6 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                         ),
                       ),
                     ],
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: AppColors.g2),
-                    ),
-                    child: const Text(
-                      'Acepta invitaciones de presupuestos y revisa avisos recientes.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.g5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                   ),
                 ),
               ),

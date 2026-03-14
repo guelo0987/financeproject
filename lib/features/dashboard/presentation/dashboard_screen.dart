@@ -173,7 +173,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Tu cuenta todavía no tiene datos.',
+                    'Aún no hay actividad.',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
@@ -184,8 +184,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SizedBox(height: 8),
                   Text(
                     demoMode
-                        ? 'Estás viendo datos demo porque esa opción está activa.'
-                        : 'Crea tu primer presupuesto para empezar a configurar la app.',
+                        ? 'Esta cuenta aún no tiene movimientos reales.'
+                        : 'Crea tu primer presupuesto para empezar.',
                     style: const TextStyle(fontSize: 13, color: AppColors.g4),
                     textAlign: TextAlign.center,
                   ),
@@ -197,7 +197,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: () => context.push('/settings'),
-                    child: const Text('Ajustes y datos demo'),
+                    child: const Text('Ir a ajustes'),
                   ),
                 ],
               ),
@@ -387,16 +387,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     double remaining,
     double pct,
   ) {
-    final highlightCategories = [...budget.spendingCategories]
-      ..sort((a, b) => b.gastado.compareTo(a.gastado));
     final isShared = budget.miembros.length > 1 || budget.espacioId != null;
-    BudgetCategory? topCategory;
-    for (final category in highlightCategories) {
-      if (category.gastado > 0) {
-        topCategory = category;
-        break;
-      }
-    }
     final progress = pct.clamp(0.0, 1.0);
     final incomePlanLabel = budget.ingresos > 0
         ? 'Plan ${_fmt(budget.ingresos)}'
@@ -511,34 +502,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 const SizedBox(height: 18),
                 _buildMainProgressBar(progress),
-                if (topCategory != null) ...[
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: AppColors.o5,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Mayor gasto: ${topCategory.label} · ${_fmt(topCategory.gastado)}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.white.withValues(alpha: 0.8),
-                            fontWeight: FontWeight.w700,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
                 const SizedBox(height: 10),
                 Row(
                   children: [

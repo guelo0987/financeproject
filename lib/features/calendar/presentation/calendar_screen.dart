@@ -41,6 +41,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     return months[month.clamp(0, 12)];
   }
 
+  String _transactionSubtitle(MenudoTransaction transaction) {
+    final userName = transaction.userName?.trim();
+    if (userName != null && userName.isNotEmpty) {
+      return userName;
+    }
+    return transaction.catKey.replaceAll('-', ' ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final txns = ref.watch(selectedBudgetPeriodTransactionsProvider);
@@ -98,7 +106,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               background: Container(color: Colors.white),
             ),
             actions: [
-              _MonthSelector(label: '${_monthName(now.month)} ${now.year}'),
+              _MonthPill(label: '${_monthName(now.month)} ${now.year}'),
             ],
           ),
           SliverToBoxAdapter(
@@ -142,7 +150,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
                   const SizedBox(height: 12),
 
-                  _DayTransactionsList(dayTxns: dayTxns, fmt: _fmt)
+                  _DayTransactionsList(
+                        dayTxns: dayTxns,
+                        fmt: _fmt,
+                        subtitleFormatter: _transactionSubtitle,
+                      )
                       .animate()
                       .fadeIn(duration: 500.ms, delay: 300.ms)
                       .slideY(begin: 0.05, end: 0, curve: Curves.easeOut),
@@ -158,10 +170,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 }
 
-class _MonthSelector extends StatelessWidget {
+class _MonthPill extends StatelessWidget {
   final String label;
 
-  const _MonthSelector({required this.label});
+  const _MonthPill({required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -172,21 +184,15 @@ class _MonthSelector extends StatelessWidget {
         color: AppColors.g1,
         borderRadius: BorderRadius.circular(100),
       ),
-      child: Row(
-        children: [
-          Icon(LucideIcons.chevronLeft, size: 14, color: AppColors.g4),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: AppColors.e8,
-            ),
+      child: Center(
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: AppColors.e8,
           ),
-          const SizedBox(width: 8),
-          Icon(LucideIcons.chevronRight, size: 14, color: AppColors.g4),
-        ],
+        ),
       ),
     );
   }
@@ -332,7 +338,7 @@ class _HeatmapCard extends StatelessWidget {
               final int dia = index + 1;
               final double g = gastoPorDia[dia] ?? 0;
               final double intensity = g > 0 ? min(g / maxGasto, 1.0) : 0;
-              final bool isToday = dia == 7;
+              final bool isToday = dia == DateTime.now().day;
               final bool isSelected = dia == selectedDay;
 
               return _DayCell(
@@ -503,8 +509,16 @@ class _DayHeader extends StatelessWidget {
 class _DayTransactionsList extends StatelessWidget {
   final List<MenudoTransaction> dayTxns;
   final String Function(double) fmt;
+  final String Function(MenudoTransaction) subtitleFormatter;
 
-  const _DayTransactionsList({required this.dayTxns, required this.fmt});
+  const _DayTransactionsList({
+    required this.dayTxns,
+    required this.fmt,
+    this.subtitleFormatter = _defaultSubtitle,
+  });
+
+  static String _defaultSubtitle(MenudoTransaction transaction) =>
+      transaction.catKey.replaceAll('-', ' ');
 
   @override
   Widget build(BuildContext context) {
@@ -558,12 +572,14 @@ class _DayTransactionsList extends StatelessWidget {
           return _DayTransactionTile(
             transaction: t,
             fmt: fmt,
+            subtitle: subtitleFormatter(t),
             isLast: i == dayTxns.length - 1,
             onTap: () {
               HapticFeedback.lightImpact();
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
+                useRootNavigator: true,
                 backgroundColor: Colors.transparent,
                 builder: (_) => TransactionDetailSheet(transaction: t),
               );
@@ -578,12 +594,14 @@ class _DayTransactionsList extends StatelessWidget {
 class _DayTransactionTile extends StatelessWidget {
   final MenudoTransaction transaction;
   final String Function(double) fmt;
+  final String subtitle;
   final bool isLast;
   final VoidCallback onTap;
 
   const _DayTransactionTile({
     required this.transaction,
     required this.fmt,
+    required this.subtitle,
     required this.isLast,
     required this.onTap,
   });
@@ -625,13 +643,14 @@ class _DayTransactionTile extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        transaction.catKey.toUpperCase(),
+                        subtitle,
                         style: const TextStyle(
-                          fontSize: 10,
+                          fontSize: 11,
                           color: AppColors.g4,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
+                          fontWeight: FontWeight.w700,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),

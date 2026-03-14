@@ -116,17 +116,6 @@ class _TransactionHistoryScreenState
               ),
               background: Container(color: Colors.white),
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(
-                  LucideIcons.search,
-                  color: AppColors.e8,
-                  size: 20,
-                ),
-                onPressed: () {},
-              ),
-              const SizedBox(width: 8),
-            ],
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -161,7 +150,7 @@ class _TransactionHistoryScreenState
               ),
             ),
           ),
-          if (grouped.isEmpty || activeBudget == null)
+          if (grouped.isEmpty)
             SliverFillRemaining(child: _buildEmptyState())
           else
             SliverPadding(
@@ -174,8 +163,9 @@ class _TransactionHistoryScreenState
                       .where((t) => t.tipo == 'gasto')
                       .fold(0.0, (s, t) => s + t.monto.abs());
                   final isSharedBudget =
-                      activeBudget.miembros.length > 1 ||
-                      activeBudget.espacioId != null;
+                      activeBudget != null &&
+                      (activeBudget.miembros.length > 1 ||
+                          activeBudget.espacioId != null);
 
                   return _DayGroupSection(
                         dateKey: dateKey,
@@ -213,7 +203,7 @@ class _TransactionHistoryScreenState
           ),
           const SizedBox(height: 16),
           const Text(
-            "Sin transacciones",
+            "Aún no hay movimientos",
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
@@ -222,7 +212,7 @@ class _TransactionHistoryScreenState
           ),
           const SizedBox(height: 4),
           const Text(
-            "No hay movimientos en esta categoría",
+            "Cuando guardes uno, lo verás aquí.",
             style: TextStyle(fontSize: 14, color: AppColors.g5),
           ),
         ],
@@ -385,7 +375,7 @@ class _DayGroupSection extends StatelessWidget {
   final String dateKey;
   final double dayTotal;
   final List<MenudoTransaction> dayTxns;
-  final MenudoBudget activeBudget;
+  final MenudoBudget? activeBudget;
   final List<WalletAccount> wallets;
   final bool isSharedBudget;
   final String Function(double) fmt;
@@ -449,7 +439,7 @@ class _DayGroupSection extends StatelessWidget {
             child: Column(
               children: List.generate(dayTxns.length, (i) {
                 final t = dayTxns[i];
-                final ci = activeBudget.cats[t.catKey];
+                final ci = activeBudget?.cats[t.catKey];
                 final presentation = buildTransactionPresentation(t, wallets);
 
                 return _HistoryTile(

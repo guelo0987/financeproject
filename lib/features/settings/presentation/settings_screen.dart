@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../controllers/demo_mode_controller.dart';
 import '../../alerts/providers/alert_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -21,7 +20,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
-    final demoMode = ref.watch(demoModeProvider);
     final unreadAlerts = ref
         .watch(unreadAlertsCountProvider)
         .maybeWhen(data: (count) => count, orElse: () => 0);
@@ -36,10 +34,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                 child: Column(
                   children: [
-                    Text('Perfil', style: MenudoTextStyles.h1),
+                    Text('Ajustes', style: MenudoTextStyles.h1),
                     const SizedBox(height: 32),
 
-                    // Avatar & Info
                     Center(
                       child: Column(
                         children: [
@@ -66,7 +63,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ).animate().scale(duration: 400.ms),
                           const SizedBox(height: 16),
                           Text(
-                            'Tu cuenta',
+                            'Todo en orden',
                             style: MenudoTextStyles.h2,
                           ).animate().fadeIn(delay: 100.ms),
                           const SizedBox(height: 8),
@@ -89,27 +86,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionHeader('Cuenta'),
-                    MenudoCard(
-                      padding: EdgeInsets.zero,
-                      child: Column(
-                        children: [
-                          _buildListTile(
-                            Icons.person_outline,
-                            'Tus datos',
-                            () {},
-                          ),
-                          const Divider(height: 1, color: MenudoColors.divider),
-                          _buildListTile(Icons.security, 'Seguridad', () {}),
-                          const Divider(height: 1, color: MenudoColors.divider),
-                          _buildListTile(Icons.devices, 'Dispositivos', () {}),
-                        ],
-                      ),
-                    ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.05),
-
-                    const SizedBox(height: 24),
-
-                    _buildSectionHeader('Automatización'),
+                    _buildSectionHeader('Herramientas'),
                     MenudoCard(
                       padding: EdgeInsets.zero,
                       child: Column(
@@ -135,7 +112,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                     const SizedBox(height: 24),
 
-                    _buildSectionHeader('Configuración'),
+                    _buildSectionHeader('Cuenta'),
                     MenudoCard(
                       padding: EdgeInsets.zero,
                       child: Column(
@@ -152,45 +129,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     variant: MenudoChipVariant.primary,
                                   )
                                 : null,
-                          ),
-                          const Divider(height: 1, color: MenudoColors.divider),
-                          _buildListTile(
-                            Icons.dark_mode_outlined,
-                            'Tema (Claro/Oscuro)',
-                            () {},
-                          ),
-                          const Divider(height: 1, color: MenudoColors.divider),
-                          _buildListTile(
-                            Icons.help_outline,
-                            'Centro de Ayuda',
-                            () {},
-                          ),
-                          const Divider(height: 1, color: MenudoColors.divider),
-                          SwitchListTile.adaptive(
-                            value: demoMode,
-                            onChanged: (value) => ref
-                                .read(demoModeProvider.notifier)
-                                .setEnabled(value),
-                            title: const Text(
-                              'Mostrar datos demo',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            subtitle: const Text(
-                              'Usa datos mock solo cuando tu cuenta esté vacía.',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                            secondary: const Icon(
-                              Icons.science_outlined,
-                              color: MenudoColors.textSecondary,
-                            ),
-                            activeThumbColor: MenudoColors.primary,
-                            activeTrackColor: MenudoColors.primaryLight,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                            ),
                           ),
                         ],
                       ),

@@ -109,9 +109,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               const SizedBox(height: 8),
 
               Text(
-                '5 días gratis, luego \$5 USD/mes',
+                'Empieza con tu cuenta personal.',
                 style: MenudoTextStyles.bodyMedium.copyWith(
-                  color: MenudoColors.success,
+                  color: MenudoColors.textMuted,
                 ),
               ).animate().fadeIn(delay: 200.ms),
 
@@ -193,39 +193,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ],
               ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
 
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  const Expanded(child: Divider(color: MenudoColors.divider)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'o continúa con',
-                      style: MenudoTextStyles.bodySmall.copyWith(
-                        color: MenudoColors.textMuted,
-                      ),
-                    ),
-                  ),
-                  const Expanded(child: Divider(color: MenudoColors.divider)),
-                ],
-              ),
-              const SizedBox(height: 24),
-              OutlinedButton.icon(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: const BorderSide(color: MenudoColors.border),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                icon: const Icon(Icons.apple, size: 24),
-                label: const Text(
-                  'Continuar con Apple',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
               const SizedBox(height: 40),
             ],
           ),

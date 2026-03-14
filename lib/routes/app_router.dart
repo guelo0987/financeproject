@@ -4,11 +4,7 @@ import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/calendar/presentation/calendar_screen.dart';
 import '../features/budgets/presentation/budgets_screen.dart';
 import '../features/wallet/presentation/wallet_screen.dart';
-import '../features/quick_log/presentation/quick_log_screen.dart';
-import '../features/invest/presentation/invest_screen.dart';
 import '../features/history/presentation/transaction_history_screen.dart';
-import '../features/ia/presentation/ai_advisor_screen.dart';
-import '../features/spaces/presentation/spaces_manager_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/auth/presentation/splash_screen.dart';
@@ -88,22 +84,6 @@ final appRouter = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/history',
         builder: (context, state) => const TransactionHistoryScreen(),
-      ),
-      GoRoute(
-        path: '/invest',
-        builder: (context, state) => const InvestScreen(),
-      ),
-      GoRoute(
-        path: '/quick-log',
-        builder: (context, state) => const QuickLogScreen(),
-      ),
-      GoRoute(
-        path: '/ai-advisor',
-        builder: (context, state) => const AiAdvisorScreen(),
-      ),
-      GoRoute(
-        path: '/spaces-manager',
-        builder: (context, state) => const SpacesManagerScreen(),
       ),
       GoRoute(
         path: '/settings',

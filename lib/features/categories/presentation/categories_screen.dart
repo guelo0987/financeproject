@@ -115,6 +115,9 @@ class _CategoriesOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final summary =
+        '$parentsCount grupo${parentsCount == 1 ? '' : 's'} · $subcategoriesCount categoría${subcategoriesCount == 1 ? '' : 's'}';
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -130,7 +133,7 @@ class _CategoriesOverviewCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Organiza tus categorías con una jerarquía clara',
+            'Tus categorías',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w900,
@@ -139,13 +142,12 @@ class _CategoriesOverviewCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Primero eliges el grupo padre y luego agregas las subcategorías que usarás en presupuestos y transacciones.',
+          Text(
+            summary,
             style: TextStyle(
-              fontSize: 12,
-              height: 1.4,
+              fontSize: 13,
               color: AppColors.g5,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 16),
@@ -310,7 +312,7 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             const Text(
-              'Agregar categoría',
+              'Nueva categoría',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
@@ -319,18 +321,8 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Crea primero una subcategoría dentro de un grupo padre existente. Si necesitas una jerarquía nueva, puedes crear el grupo padre aparte.',
+              'Elige un grupo para crearla o crea uno nuevo.',
               style: TextStyle(fontSize: 13, color: AppColors.g4),
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Crear subcategoría en',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: AppColors.g4,
-                letterSpacing: 0.4,
-              ),
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -345,7 +337,7 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
                           border: Border.all(color: AppColors.g2),
                         ),
                         child: const Text(
-                          'No hay grupos padre todavía. Crea uno para empezar.',
+                          'Todavía no hay grupos. Crea uno para empezar.',
                           style: TextStyle(fontSize: 13, color: AppColors.g4),
                         ),
                       ),
@@ -420,7 +412,7 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text('Crear grupo padre'),
+                child: const Text('Nuevo grupo'),
               ),
             ),
           ],
@@ -507,7 +499,7 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                             ),
                           ),
                           Text(
-                            '${subs.length} subcategorías · toca para ${_expanded ? 'plegar' : 'ver'}',
+                            '${subs.length} categoría${subs.length == 1 ? '' : 's'}',
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.g4,
@@ -855,26 +847,11 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                       margin: const EdgeInsets.only(bottom: 24),
                     ),
                     Text(
-                      widget.parent == null
-                          ? "Nuevo grupo padre"
-                          : "Nueva subcategoría",
+                      widget.parent == null ? "Nuevo grupo" : "Nueva categoría",
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
                         color: AppColors.e8,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.parent == null
-                          ? 'Crea un grupo principal para luego asignarle subcategorías.'
-                          : 'Esta subcategoría heredará el tipo y el color del grupo padre.',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        height: 1.4,
-                        color: AppColors.g5,
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -887,21 +864,10 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                   child: Column(
                     children: [
                       if (widget.parent != null)
-                        Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.only(bottom: 16),
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: widget.parent!.color.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: widget.parent!.color.withValues(
-                                alpha: 0.18,
-                              ),
-                            ),
-                          ),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
                           child: Text(
-                            'Se agregará dentro de ${widget.parent!.nombre}.',
+                            'Dentro de ${widget.parent!.nombre}',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -910,21 +876,10 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                           ),
                         )
                       else
-                        Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.only(bottom: 16),
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: _color.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: _color.withValues(alpha: 0.18),
-                            ),
-                          ),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
                           child: Text(
-                            widget.lockType
-                                ? 'Se creará un grupo padre de ${_typeLabel(_effectiveType).toLowerCase()}.'
-                                : 'Este grupo padre define dónde aparecerán sus subcategorías dentro del presupuesto y las transacciones.',
+                            'Tipo: ${_typeLabel(_effectiveType)}',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -1018,7 +973,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                           fontWeight: FontWeight.w700,
                         ),
                         decoration: InputDecoration(
-                          hintText: "Nombre de la categoría",
+                          hintText: "Nombre",
                           filled: true,
                           fillColor: AppColors.g0,
                           border: OutlineInputBorder(
@@ -1037,8 +992,8 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                   label: _isSaving
                       ? "GUARDANDO..."
                       : widget.parent == null
-                      ? "CREAR GRUPO PADRE"
-                      : "CREAR SUBCATEGORÍA",
+                      ? "CREAR GRUPO"
+                      : "CREAR CATEGORÍA",
                   isFullWidth: true,
                   isDisabled: _isSaving,
                   onTap: _createCategory,

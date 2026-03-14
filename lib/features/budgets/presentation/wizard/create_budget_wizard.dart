@@ -352,17 +352,16 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
     if (_periodo == 'semanal') {
       return _BudgetHintCard(
         icon: LucideIcons.calendarDays,
-        title: 'Rango automático',
-        body: 'Este presupuesto se revisa tomando siempre los últimos 7 días.',
+        title: 'Semana móvil',
+        body: 'Siempre toma los últimos 7 días.',
       );
     }
 
     if (_periodo == 'unico') {
       return _BudgetHintCard(
         icon: LucideIcons.flag,
-        title: 'Rango único',
-        body:
-            'Este presupuesto se mide desde el día en que lo creas. No necesita un día de inicio.',
+        title: 'Una sola vez',
+        body: 'Empieza al crearlo. No necesita un día de inicio.',
       );
     }
 
@@ -373,8 +372,8 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
         ? 'Inicio de la quincena'
         : 'Día de inicio';
     final subtitle = _periodo == 'quincenal'
-        ? 'Cada período abarca 15 días desde el día que elijas.'
-        : 'Selecciona el día del mes en que arranca el período.';
+        ? 'Elige cuándo empieza cada bloque.'
+        : 'Elige cuándo empieza cada mes.';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -597,7 +596,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
         Text(
           _isEditing
               ? "Ajusta nombre y período si lo necesitas."
-              : "¿Cómo se llamará y qué período tendrá?",
+              : "Ponle un nombre y elige el período.",
           style: const TextStyle(fontSize: 14, color: AppColors.g4),
         ),
         const SizedBox(height: 24),
@@ -827,7 +826,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                     ),
                     Text(
                       sortedCategories.isEmpty
-                          ? 'Sin subcategorías todavía'
+                          ? 'Sin categorías'
                           : '${sortedCategories.length} opciones',
                       style: const TextStyle(fontSize: 12, color: AppColors.g4),
                     ),
@@ -866,7 +865,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: const Text(
-                'Agrega una subcategoría dentro de este grupo para poder asignarle un monto.',
+                'Agrega una categoría aquí para asignarle un monto.',
                 style: TextStyle(fontSize: 13, color: AppColors.g4),
               ),
             ),
@@ -982,7 +981,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
         ),
         const SizedBox(height: 4),
         const Text(
-          "Asigna tus ingresos por categoría y subcategoría.",
+          "Define de dónde entra el dinero.",
           style: TextStyle(fontSize: 14, color: AppColors.g4),
         ),
         const SizedBox(height: 20),
@@ -1005,7 +1004,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               border: Border.all(color: AppColors.g2, width: 1.5),
             ),
             child: const Text(
-              'Todavía no tienes categorías de ingresos listas. Crea una y vuelve aquí.',
+              'Aún no tienes categorías de ingresos.',
               style: TextStyle(fontSize: 13, color: AppColors.g4),
             ),
           )
@@ -1040,7 +1039,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
         ),
         const SizedBox(height: 4),
         const Text(
-          "Primero ves el grupo padre y debajo eliges sus subcategorías.",
+          "Elige cuánto quieres asignar a cada categoría.",
           style: TextStyle(fontSize: 14, color: AppColors.g4),
         ),
         const SizedBox(height: 16),
@@ -1083,7 +1082,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               border: Border.all(color: AppColors.g2, width: 1.5),
             ),
             child: const Text(
-              'Todavía no tienes categorías de gastos listas. Agrega una para continuar.',
+              'Aún no tienes categorías de gastos.',
               style: TextStyle(fontSize: 13, color: AppColors.g4),
             ),
           )
@@ -1271,7 +1270,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        "Sin asignar",
+                        "Disponible",
                         style: TextStyle(fontSize: 13, color: AppColors.g4),
                       ),
                       Text(
@@ -1358,8 +1357,8 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           iconBackgroundColor: AppColors.e1,
           title: "Miembros",
           subtitle: _canInviteMembers
-              ? "Agrega hasta 3 correos. Se enviarán al crear el presupuesto."
-              : "La colaboración nueva se define al crear el presupuesto.",
+              ? "Agrega hasta 3 correos."
+              : "Aquí solo puedes verla.",
         ),
         const SizedBox(height: 20),
 
@@ -1373,7 +1372,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               border: Border.all(color: AppColors.g2),
             ),
             child: const Text(
-              "Los colaboradores se gestionan desde el detalle del presupuesto. Aquí puedes ajustar nombre, ingresos y límites.",
+              "Los nuevos accesos se agregan después.",
               style: TextStyle(
                 fontSize: 13,
                 height: 1.35,
@@ -1452,8 +1451,8 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                 Expanded(
                   child: Text(
                     _miembros.isEmpty
-                        ? "Si agregas correos aquí, las invitaciones se enviarán al final cuando toques Crear presupuesto."
-                        : "Tienes ${_miembros.length} invitación${_miembros.length == 1 ? '' : 'es'} lista${_miembros.length == 1 ? '' : 's'}. Se enviarán al finalizar.",
+                        ? "Se enviarán cuando guardes el presupuesto."
+                        : "${_miembros.length} invitación${_miembros.length == 1 ? '' : 'es'} lista${_miembros.length == 1 ? '' : 's'} para enviar.",
                     style: const TextStyle(
                       fontSize: 13,
                       height: 1.35,
@@ -1645,7 +1644,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           iconColor: AppColors.o5,
           iconBackgroundColor: AppColors.o1,
           title: "Resumen",
-          subtitle: "Todo listo. Revisa antes de crear.",
+          subtitle: "Revisa lo importante antes de guardar.",
         ),
         const SizedBox(height: 20),
 
@@ -1669,7 +1668,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               ),
               const SizedBox(height: 4),
               Text(
-                _nombre.isEmpty ? "Sin nombre" : _nombre,
+                _nombre.isEmpty ? "Tu presupuesto" : _nombre,
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
@@ -1817,7 +1816,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    "Sin asignar",
+                    "Disponible",
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -1860,7 +1859,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  "Estos correos se enviarán cuando crees el presupuesto.",
+                  "Se enviarán al guardar.",
                   style: TextStyle(fontSize: 12, color: AppColors.g4),
                 ),
                 const SizedBox(height: 12),

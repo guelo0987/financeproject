@@ -193,7 +193,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "GASTADO EN ${label.toUpperCase()}",
+                                "Total en ${label.toLowerCase()}",
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: Colors.white.withValues(alpha: 0.5),
@@ -243,7 +243,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            "${(pct * 100).round()}% del limite",
+                            "${(pct * 100).round()}% del límite",
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -251,7 +251,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            "Limite: ${fmt(limite)}",
+                            "Límite: ${fmt(limite)}",
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -305,7 +305,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          "Sin limite en presupuesto",
+                          "Sin límite en este presupuesto",
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -336,7 +336,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                 ),
               ),
               Text(
-                "${txns.length} registros",
+                "${txns.length} movimientos",
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.g4,
@@ -383,7 +383,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    "No hay gastos registrados en esta categoria",
+                    "Todavía no hay movimientos en esta categoría.",
                     style: TextStyle(fontSize: 13, color: AppColors.g4),
                     textAlign: TextAlign.center,
                   ),

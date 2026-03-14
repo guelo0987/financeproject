@@ -15,6 +15,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   void _nextPage() {
     if (_currentPage < 2) {
       _pageController.nextPage(
@@ -39,18 +45,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPageChanged: (idx) => setState(() => _currentPage = idx),
                 children: [
                   _buildPage(
-                    title: 'Todo tu dinero,\nen un solo lugar.',
-                    subtitle: 'Cuentas, crypto, inversiones y más.',
+                    title: 'Tu dinero,\nen un solo lugar.',
+                    subtitle: 'Cuentas, tarjetas y presupuesto diario.',
                     icon: Icons.account_balance_wallet_rounded,
                   ),
                   _buildPage(
-                    title: 'Entiende en qué\ngastas tu dinero.',
-                    subtitle: 'Análisis inteligente con IA incluida.',
+                    title: 'Entiende en qué\nse te va el dinero.',
+                    subtitle: 'Mira tus ingresos, gastos y movimientos.',
                     icon: Icons.pie_chart_rounded,
                   ),
                   _buildPage(
-                    title: 'Planifica con\ntu familia o pareja.',
-                    subtitle: 'Presupuestos compartidos en tiempo real.',
+                    title: 'Comparte un\npresupuesto si lo necesitas.',
+                    subtitle: 'Invita a otra persona y organicen sus gastos.',
                     icon: Icons.people_alt_rounded,
                   ),
                 ],
@@ -79,7 +85,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   const SizedBox(height: 24),
                   MenudoPrimaryButton(
-                    label: _currentPage < 2 ? 'Siguiente' : 'Comenzar gratis',
+                    label: _currentPage < 2 ? 'Siguiente' : 'Continuar',
                     onTap: _nextPage,
                   ),
                   const SizedBox(height: 12),
@@ -89,7 +95,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       style: TextButton.styleFrom(
                         foregroundColor: MenudoColors.textSecondary,
                       ),
-                      child: const Text('Ya tengo cuenta — Iniciar sesión'),
+                      child: const Text('Ya tengo cuenta'),
                     )
                   else
                     const SizedBox(height: 48), // Spacer to prevent jumps

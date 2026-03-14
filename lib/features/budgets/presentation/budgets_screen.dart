@@ -143,14 +143,6 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Dashboard callout
-                  _buildDashboardCallout(budgets, selectedIdx)
-                      .animate()
-                      .fadeIn(duration: 400.ms)
-                      .slideY(begin: -0.1, end: 0, curve: Curves.easeOutBack),
-
-                  const SizedBox(height: 20),
-
                   // Filters
                   _buildFilters().animate().fadeIn(
                     duration: 400.ms,
@@ -175,74 +167,14 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                           .animate()
                           .fadeIn(
                             duration: 500.ms,
-                            delay: (200 + entry.key * 100).ms,
+                            delay: (120 + entry.key * 90).ms,
                           )
                           .slideY(begin: 0.05, end: 0, curve: Curves.easeOut);
                     }),
 
-                  const SizedBox(height: 20),
-
-                  _buildCreateNewButton().animate().fadeIn(
-                    duration: 500.ms,
-                    delay: 400.ms,
-                  ),
-
                   const SizedBox(height: 120),
                 ],
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDashboardCallout(List<MenudoBudget> budgets, int selectedIdx) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.e1.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.e8.withValues(alpha: 0.1)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              LucideIcons.layoutDashboard,
-              size: 16,
-              color: AppColors.e8,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "VISUALIZACIÓN ACTIVA",
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.e8,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  budgets.isNotEmpty ? budgets[selectedIdx].nombre : 'Ninguno',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.e8,
-                  ),
-                ),
-              ],
             ),
           ),
         ],
@@ -317,50 +249,6 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
             Text(
               "No se encontraron presupuestos en la categoría '$_filtro'",
               style: const TextStyle(fontSize: 14, color: AppColors.g5),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCreateNewButton() {
-    return GestureDetector(
-      onTap: _showCreate,
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: AppColors.o5.withValues(alpha: 0.3),
-            width: 1.5,
-            style: BorderStyle.solid,
-          ),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.o1,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                LucideIcons.plus,
-                size: 24,
-                color: AppColors.o5,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              "NUEVO PRESUPUESTO",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-                color: AppColors.e8,
-                letterSpacing: 0.5,
-              ),
             ),
           ],
         ),

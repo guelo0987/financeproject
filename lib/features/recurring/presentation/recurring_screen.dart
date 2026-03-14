@@ -21,14 +21,27 @@ class RecurringScreen extends ConsumerWidget {
   String fmt(double val) =>
       "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}";
 
+  String _weekdayLabel(int dia) {
+    const names = <int, String>{
+      1: 'lunes',
+      2: 'martes',
+      3: 'miercoles',
+      4: 'jueves',
+      5: 'viernes',
+      6: 'sabado',
+      7: 'domingo',
+    };
+    return names[dia] ?? 'dia $dia';
+  }
+
   String _frecuenciaLabel(String frecuencia, int dia) {
     switch (frecuencia) {
       case 'mensual':
-        return 'Mensual · día $dia';
+        return 'Cada mes · dia $dia';
       case 'quincenal':
-        return 'Quincenal · días 1 y 15';
+        return 'Cada 15 dias';
       case 'semanal':
-        return 'Semanal · día $dia';
+        return 'Cada ${_weekdayLabel(dia)}';
       default:
         return frecuencia;
     }
@@ -271,12 +284,11 @@ class RecurringScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'PRESUPUESTO ACTIVO',
+                            'En presupuesto',
                             style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
                               color: AppColors.g4,
-                              letterSpacing: 0.5,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -315,7 +327,7 @@ class RecurringScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "ENTRADAS/MES",
+                              "ENTRAN",
                               style: TextStyle(
                                 fontSize: 10,
                                 color: Colors.white.withValues(alpha: 0.5),
@@ -353,7 +365,7 @@ class RecurringScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              "SALIDAS/MES",
+                              "SALEN",
                               style: TextStyle(
                                 fontSize: 10,
                                 color: AppColors.g4,
@@ -413,7 +425,7 @@ class RecurringScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      'Crea una para que se registre sola en la fecha indicada.',
+                      'Puedes crear una cuando quieras.',
                       style: TextStyle(fontSize: 12, color: AppColors.g4),
                       textAlign: TextAlign.center,
                     ),
@@ -430,11 +442,6 @@ class RecurringScreen extends ConsumerWidget {
                   fontWeight: FontWeight.w800,
                   color: AppColors.e8,
                 ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                "Se aplican automáticamente",
-                style: TextStyle(fontSize: 12, color: AppColors.g4),
               ),
               const SizedBox(height: 12),
               _RecurringList(
@@ -457,11 +464,6 @@ class RecurringScreen extends ConsumerWidget {
                   color: AppColors.e8,
                 ),
               ),
-              const SizedBox(height: 4),
-              const Text(
-                "Descuentos automáticos del presupuesto",
-                style: TextStyle(fontSize: 12, color: AppColors.g4),
-              ),
               const SizedBox(height: 12),
               _RecurringList(
                 items: gastos.toList(),
@@ -476,17 +478,12 @@ class RecurringScreen extends ConsumerWidget {
             if (transferencias.isNotEmpty) ...[
               const SizedBox(height: 20),
               const Text(
-                "Transferencias recurrentes",
+                "Movimientos entre cuentas",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: AppColors.e8,
                 ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                "Se muestran, pero esta UI todavía no las edita.",
-                style: TextStyle(fontSize: 12, color: AppColors.g4),
               ),
               const SizedBox(height: 12),
               _RecurringList(
@@ -508,11 +505,6 @@ class RecurringScreen extends ConsumerWidget {
                   fontWeight: FontWeight.w800,
                   color: AppColors.e8,
                 ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                "No se aplican al presupuesto",
-                style: TextStyle(fontSize: 12, color: AppColors.g4),
               ),
               const SizedBox(height: 12),
               _RecurringList(
@@ -824,6 +816,43 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
     });
   }
 
+  String _weekdayLabel(int dia) {
+    const names = <int, String>{
+      1: 'Lunes',
+      2: 'Martes',
+      3: 'Miercoles',
+      4: 'Jueves',
+      5: 'Viernes',
+      6: 'Sabado',
+      7: 'Domingo',
+    };
+    return names[dia] ?? 'Dia $dia';
+  }
+
+  String _formattedAmountDisplay() {
+    if (_amount.isEmpty) return '0';
+    final parts = _amount.split('.');
+    final whole = parts.first.replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (match) => '${match[1]},',
+    );
+    if (parts.length == 1) return whole;
+    return '$whole.${parts.sublist(1).join()}';
+  }
+
+  String _frequencySummary() {
+    switch (_frecuencia) {
+      case 'mensual':
+        return 'Se registra cada mes.';
+      case 'quincenal':
+        return 'Se registra dos veces al mes.';
+      case 'semanal':
+        return 'Se registra cada ${_weekdayLabel(_dia).toLowerCase()}.';
+      default:
+        return '';
+    }
+  }
+
   String _walletName(int? id, List<WalletAccount> wallets) {
     if (id == null) return "Seleccionar";
     for (final wallet in wallets) {
@@ -844,6 +873,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
     final selected = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (_) => CategoryPickerSheet(
         initialCatKey: _catKey,
@@ -860,6 +890,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
     final selected = await showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _SimplePickerSheet(
         title: 'Cuenta',
@@ -885,6 +916,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
     final selected = await showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _SimplePickerSheet(
         title: 'Presupuesto',
@@ -913,7 +945,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
     if (amountValue == null || amountValue == 0) return;
 
     if (_catKey == null || _catKey!.isEmpty) {
-      _showError('Selecciona una categoria antes de continuar.');
+      _showError('Selecciona una categoría antes de continuar.');
       return;
     }
     if (_accountId == null) {
@@ -925,7 +957,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
       return;
     }
     if (_descController.text.trim().isEmpty) {
-      _showError('La descripcion es requerida.');
+      _showError('Escribe un nombre antes de continuar.');
       return;
     }
 
@@ -1078,18 +1110,28 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text(
-                              _amount.isEmpty
-                                  ? "0"
-                                  : _amount.replaceAllMapped(
-                                      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                                      (match) => '${match[1]},',
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 160),
+                              transitionBuilder: (child, animation) =>
+                                  FadeTransition(
+                                    opacity: animation,
+                                    child: SlideTransition(
+                                      position: Tween<Offset>(
+                                        begin: const Offset(0, 0.08),
+                                        end: Offset.zero,
+                                      ).animate(animation),
+                                      child: child,
                                     ),
-                              style: TextStyle(
-                                fontSize: 52,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -2,
-                                color: accentColor,
+                                  ),
+                              child: Text(
+                                _formattedAmountDisplay(),
+                                key: ValueKey('${_typeIndex}_$_amount'),
+                                style: TextStyle(
+                                  fontSize: 52,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -2,
+                                  color: accentColor,
+                                ),
                               ),
                             ),
                           ],
@@ -1146,7 +1188,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                         color: AppColors.e8,
                       ),
                       decoration: InputDecoration(
-                        hintText: "Descripción (ej. Sueldo, Netflix)",
+                        hintText: "Nombre",
                         hintStyle: const TextStyle(
                           color: AppColors.g4,
                           fontWeight: FontWeight.w600,
@@ -1202,46 +1244,65 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                           ),
                           const SizedBox(height: 12),
                           Row(
-                            children: ['mensual', 'quincenal', 'semanal'].map((
-                              frecuencia,
-                            ) {
-                              final isSelected = _frecuencia == frecuencia;
-                              return Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    HapticFeedback.selectionClick();
-                                    setState(() => _frecuencia = frecuencia);
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    margin: const EdgeInsets.only(right: 6),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? AppColors.e8
-                                          : AppColors.g1,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      frecuencia[0].toUpperCase() +
-                                          frecuencia.substring(1),
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: isSelected
-                                            ? FontWeight.w800
-                                            : FontWeight.w600,
-                                        color: isSelected
-                                            ? Colors.white
-                                            : AppColors.g5,
+                            children:
+                                const [
+                                  ('mensual', 'Mes'),
+                                  ('quincenal', '15 dias'),
+                                  ('semanal', 'Semana'),
+                                ].map((item) {
+                                  final frecuencia = item.$1;
+                                  final label = item.$2;
+                                  final isSelected = _frecuencia == frecuencia;
+                                  return Expanded(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        HapticFeedback.selectionClick();
+                                        setState(
+                                          () => _frecuencia = frecuencia,
+                                        );
+                                      },
+                                      child: AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 200,
+                                        ),
+                                        margin: const EdgeInsets.only(right: 6),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 10,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? AppColors.e8
+                                              : AppColors.g1,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          label,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: isSelected
+                                                ? FontWeight.w800
+                                                : FontWeight.w600,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : AppColors.g5,
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
+                                  );
+                                }).toList(),
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            _frequencySummary(),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.g4,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           if (_frecuencia != 'quincenal') ...[
                             const SizedBox(height: 16),
@@ -1249,8 +1310,8 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                               children: [
                                 Text(
                                   _frecuencia == 'mensual'
-                                      ? "Día del mes:"
-                                      : "Día de semana:",
+                                      ? "Día:"
+                                      : "Se repite:",
                                   style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
@@ -1288,7 +1349,9 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                                     horizontal: 20,
                                   ),
                                   child: Text(
-                                    "$_dia",
+                                    _frecuencia == 'mensual'
+                                        ? '$_dia'
+                                        : _weekdayLabel(_dia),
                                     style: const TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w900,
@@ -1379,10 +1442,10 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                     alignment: Alignment.center,
                     child: Text(
                       _isSaving
-                          ? "GUARDANDO..."
+                          ? "Guardando..."
                           : _isEditing
-                          ? "ACTUALIZAR AUTOMÁTICA"
-                          : "GUARDAR AUTOMÁTICA",
+                          ? "Actualizar automática"
+                          : "Guardar automática",
                       style: TextStyle(
                         color: amountValue > 0 && !_isSaving
                             ? Colors.white

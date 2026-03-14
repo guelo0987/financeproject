@@ -109,7 +109,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 32),
 
                 Text(
-                  'Bienvenido a Menudo',
+                  'Entrar',
                   style: MenudoTextStyles.h1,
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 300.ms),
@@ -117,7 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 8),
 
                 Text(
-                  'Inicia sesión para gestionar tu patrimonio',
+                  'Usa tu correo para continuar.',
                   style: MenudoTextStyles.bodyMedium.copyWith(
                     color: MenudoColors.textMuted,
                   ),
@@ -155,17 +155,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             _obscurePassword = !_obscurePassword;
                           });
                         },
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {},
-                        style: TextButton.styleFrom(
-                          foregroundColor: MenudoColors.primary,
-                        ),
-                        child: const Text('¿Olvidaste tu contraseña?'),
                       ),
                     ),
                     const SizedBox(height: 24),

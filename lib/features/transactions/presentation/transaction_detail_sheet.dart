@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
+import '../../../core/utils/error_presenter.dart';
+import '../../../controllers/transaction_controller.dart';
 import '../../auth/auth_state.dart';
 import '../../budgets/budget_providers.dart';
 import '../../categories/providers/category_providers.dart';
@@ -22,8 +24,10 @@ class TransactionDetailSheet extends ConsumerWidget {
     this.contextWalletId,
   });
 
-  String fmt(double val) =>
-      "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
+  String fmt(double val, {String currency = 'DOP'}) {
+    final prefix = currency == 'USD' ? 'US\$' : 'RD\$';
+    return "$prefix${val.toInt().toString().replaceAllMapped(RegExp(r'(\\d{1,3})(?=(\\d{3})+(?!\\d))'), (Match m) => '${m[1]},')}";
+  }
 
   MenudoBudget? _findBudget(
     List<MenudoBudget> budgets,
@@ -112,6 +116,59 @@ class TransactionDetailSheet extends ConsumerWidget {
     final String formattedDate =
         "${int.parse(parts[2])} de ${months[monthIdx]} de ${parts[0]}";
 
+    Future<void> deleteTransaction() async {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Eliminar movimiento'),
+          content: const Text(
+            'Esta acción eliminará el movimiento de tu historial.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.r5,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true || !context.mounted) return;
+
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+
+      try {
+        await ref
+            .read(transactionControllerProvider.notifier)
+            .deleteTransaction(t.id);
+        if (!context.mounted) return;
+        navigator.pop();
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Movimiento eliminado'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } catch (error) {
+        if (!context.mounted) return;
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(presentError(error)),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
       minChildSize: 0.4,
@@ -177,8 +234,8 @@ class TransactionDetailSheet extends ConsumerWidget {
                     Center(
                           child: Text(
                             amountPrefix.isEmpty
-                                ? fmt(t.monto.abs())
-                                : "$amountPrefix${fmt(t.monto.abs())}",
+                                ? fmt(t.monto.abs(), currency: t.moneda)
+                                : "$amountPrefix${fmt(t.monto.abs(), currency: t.moneda)}",
                             style: TextStyle(
                               fontSize: 40,
                               fontWeight: FontWeight.w800,
@@ -206,8 +263,6 @@ class TransactionDetailSheet extends ConsumerWidget {
                       ),
                     ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
 
-                    const SizedBox(height: 14),
-
                     const SizedBox(height: 18),
 
                     // Detail card
@@ -227,7 +282,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                               _buildDetailRow(
                                 icon: catIcon,
                                 iconColor: catColor,
-                                label: 'Categoria',
+                                label: 'Categoría',
                                 value: catLabel,
                               ),
                               const Divider(
@@ -443,22 +498,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                             child: GestureDetector(
                               onTap: () {
                                 HapticFeedback.mediumImpact();
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Transaccion eliminada',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    backgroundColor: AppColors.r5,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                );
+                                deleteTransaction();
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(

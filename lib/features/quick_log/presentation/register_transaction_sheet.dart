@@ -162,9 +162,7 @@ class _RegisterTransactionSheetState
 
     final budget = ref.read(selectedBudgetProvider);
     if (budget == null) {
-      _showError(
-        'Selecciona un presupuesto antes de registrar la transaccion.',
-      );
+      _showError('Selecciona un presupuesto antes de guardar el movimiento.');
       return;
     }
 
@@ -178,13 +176,13 @@ class _RegisterTransactionSheetState
         : categoriesBySlug[_catKey!];
 
     if (_catKey == null || _catKey!.isEmpty) {
-      _showError('Selecciona una categoria antes de continuar.');
+      _showError('Selecciona una categoría antes de continuar.');
       return;
     }
 
     if (_fromAccountId == null ||
         !wallets.any((wallet) => wallet.id == _fromAccountId)) {
-      _showError('Selecciona una cuenta valida.');
+      _showError('Selecciona una cuenta válida.');
       return;
     }
 
@@ -279,97 +277,11 @@ class _RegisterTransactionSheetState
     return '$whole.${parts.sublist(1).join()}';
   }
 
-  Widget _buildTransferContextCard(List<WalletAccount> wallets) {
-    final fromWallet = _findWallet(_fromAccountId, wallets);
-    final toWallet = _findWallet(_toAccountId, wallets);
-
-    IconData icon = LucideIcons.arrowLeftRight;
-    Color accent = AppColors.b5;
-    String title = 'Transferencia entre wallets';
-    String subtitle =
-        'Mueve dinero entre cuentas, tarjetas y deudas según tu flujo real.';
-
-    if (fromWallet != null && toWallet != null) {
-      if (fromWallet.tipo == 'deudas' && toWallet.tipo != 'deudas') {
-        icon = LucideIcons.arrowDownToLine;
-        accent = AppColors.r5;
-        title = 'Tomando dinero prestado';
-        subtitle =
-            'El monto entra en ${toWallet.nombre} y aumenta lo que debes en ${fromWallet.nombre}.';
-      } else if (toWallet.tipo == 'deudas' && fromWallet.tipo != 'deudas') {
-        icon = LucideIcons.badgeDollarSign;
-        accent = AppColors.e6;
-        title = 'Abonando a una deuda';
-        subtitle =
-            'El monto sale de ${fromWallet.nombre} y reduce lo que debes en ${toWallet.nombre}.';
-      } else if (toWallet.tipo == 'deudas' && fromWallet.tipo == 'deudas') {
-        icon = LucideIcons.scale;
-        accent = AppColors.p5;
-        title = 'Movimiento entre deudas';
-        subtitle =
-            'Esta transferencia cambia dónde queda registrada la obligación.';
-      } else {
-        title = 'Movimiento entre wallets';
-        subtitle =
-            'El dinero sale de ${fromWallet.nombre} y entra en ${toWallet.nombre}.';
-      }
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: accent.withValues(alpha: 0.18), width: 1.4),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            alignment: Alignment.center,
-            child: Icon(icon, size: 18, color: accent),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: accent,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.g5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _pickCategory() async {
     final selected = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (_) => CategoryPickerSheet(
         initialCatKey: _catKey,
@@ -390,6 +302,7 @@ class _RegisterTransactionSheetState
     showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _AccountPickerSheet(
         accounts: wallets,
@@ -478,7 +391,7 @@ class _RegisterTransactionSheetState
                     onTap: _setTypeIndex,
                   ),
                   _TypeSegment(
-                    label: 'Transfer.',
+                    label: 'Mover',
                     index: 2,
                     current: _selectedTypeIndex,
                     onTap: _setTypeIndex,
@@ -541,7 +454,6 @@ class _RegisterTransactionSheetState
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
-                if (isTransfer) _buildTransferContextCard(wallets),
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -574,7 +486,7 @@ class _RegisterTransactionSheetState
                         label: "Presupuesto",
                         value:
                             ref.watch(selectedBudgetProvider)?.nombre ??
-                            "Sin presupuesto",
+                            "Elige uno",
                       ),
                       _DetailRow(
                         icon: LucideIcons.tag,
@@ -596,7 +508,7 @@ class _RegisterTransactionSheetState
                         icon: LucideIcons.fileText,
                         color: AppColors.p5,
                         label: "Nota",
-                        value: _nota ?? "Opcional",
+                        value: _nota ?? "Agregar",
                         onTap: _showNoteDialog,
                       ),
                       _DetailRow(
@@ -624,8 +536,8 @@ class _RegisterTransactionSheetState
             ),
             child: MenudoButton(
               label: _isSaving
-                  ? (_isEditing ? "ACTUALIZANDO..." : "REGISTRANDO...")
-                  : (_isEditing ? "ACTUALIZAR" : "REGISTRAR"),
+                  ? "Guardando..."
+                  : (_isEditing ? "Guardar cambios" : "Guardar"),
               isFullWidth: true,
               isDisabled: amountValue == 0 || _isSaving,
               onTap: () => _saveTransaction(),
@@ -644,7 +556,7 @@ class _RegisterTransactionSheetState
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: const Text(
-          "Nota de transacción",
+          "Nota",
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w900,
@@ -656,7 +568,7 @@ class _RegisterTransactionSheetState
           autofocus: true,
           maxLines: 2,
           decoration: InputDecoration(
-            hintText: "Escribe algo aquí...",
+            hintText: "Escribe una nota",
             filled: true,
             fillColor: AppColors.g0,
             border: OutlineInputBorder(

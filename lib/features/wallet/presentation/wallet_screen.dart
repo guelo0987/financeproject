@@ -131,19 +131,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       "cuentas": _WalletGroup(
         icon: LucideIcons.landmark,
         label: "Cuentas",
-        sub: "Donde guardas tu dinero",
         color: AppColors.e6,
       ),
       "gastos": _WalletGroup(
         icon: LucideIcons.creditCard,
         label: "Gastos",
-        sub: "Tarjetas y dinero de uso diario",
         color: AppColors.b5,
       ),
       "deudas": _WalletGroup(
         icon: LucideIcons.alertCircle,
         label: "Deudas",
-        sub: "Préstamos, hipotecas y otras deudas",
         color: AppColors.r5,
       ),
     };
@@ -275,10 +272,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 else if (wallets.isEmpty)
                   _buildEmptyState(context)
                 else ...[
-                  const _WalletSectionLead(
-                    title: 'Tus wallets',
-                  ).animate().fadeIn(duration: 350.ms, delay: 150.ms),
-                  const SizedBox(height: 16),
                   ...groups.entries.map((groupEntry) {
                     final tipoKey = groupEntry.key;
                     final g = groupEntry.value;
@@ -527,25 +520,6 @@ class _SummaryStat extends StatelessWidget {
   }
 }
 
-class _WalletSectionLead extends StatelessWidget {
-  final String title;
-
-  const _WalletSectionLead({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w900,
-        color: AppColors.e8,
-        letterSpacing: -0.3,
-      ),
-    );
-  }
-}
-
 class _WalletGroupSection extends StatelessWidget {
   final _WalletGroup group;
   final List<WalletAccount> items;
@@ -566,7 +540,7 @@ class _WalletGroupSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         children: [
           Row(
@@ -598,16 +572,6 @@ class _WalletGroupSection extends StatelessWidget {
                               letterSpacing: -0.4,
                             ),
                           ),
-                          Text(
-                            group.sub,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.g4,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -616,31 +580,18 @@ class _WalletGroupSection extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Flexible(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${items.length} wallet${items.length == 1 ? '' : 's'}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.g4,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      isDeuda && totalLabel != 'Multimoneda'
-                          ? '-$totalLabel'
-                          : totalLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.end,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: isDeuda ? AppColors.r5 : AppColors.e8,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  isDeuda && totalLabel != 'Multimoneda'
+                      ? '-$totalLabel'
+                      : totalLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: isDeuda ? AppColors.r5 : AppColors.e8,
+                  ),
                 ),
               ),
             ],
@@ -734,11 +685,6 @@ class _WalletTile extends StatelessWidget {
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          _WalletPill(
-                            label: wallet.moneda,
-                            fg: AppColors.g5,
-                            bg: AppColors.g1,
-                          ),
                           if (wallet.esDefault)
                             const _WalletPill(
                               label: 'PRINCIPAL',
@@ -747,7 +693,7 @@ class _WalletTile extends StatelessWidget {
                             ),
                           if (!wallet.incluirEnPatrimonio)
                             const _WalletPill(
-                              label: 'FUERA PATR.',
+                              label: 'EXCLUIDA',
                               fg: AppColors.g5,
                               bg: AppColors.g1,
                             ),
@@ -820,13 +766,11 @@ class _WalletPill extends StatelessWidget {
 class _WalletGroup {
   final IconData icon;
   final String label;
-  final String sub;
   final Color color;
 
   const _WalletGroup({
     required this.icon,
     required this.label,
-    required this.sub,
     required this.color,
   });
 }
