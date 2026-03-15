@@ -16,7 +16,7 @@
     "_isSandboxEnabled" : true,
     "_isSandboxEnvironment" : true,
     "_storeKitErrorOnSimulatorEnabled" : false,
-    "_timeRate" : "1 Minute == 1 Month"
+    "_timeRate" : "30 Minutes == 1 Month"
   },
   "subscriptionGroups" : [
     {

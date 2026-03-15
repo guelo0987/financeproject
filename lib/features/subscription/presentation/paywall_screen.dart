@@ -44,7 +44,12 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     try {
       final service = ref.read(subscriptionServiceProvider);
       final offering = await service.getOfferings();
-      if (mounted) setState(() { _offering = offering; _loadingOffering = false; });
+      if (mounted) {
+        setState(() {
+          _offering = offering;
+          _loadingOffering = false;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _loadingOffering = false);
     }
@@ -55,8 +60,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Package? get _selectedPackage {
     if (_offering == null) return null;
     return switch (_selected) {
-      _Plan.monthly  => _offering!.monthly,
-      _Plan.annual   => _offering!.annual,
+      _Plan.monthly => _offering!.monthly,
+      _Plan.annual => _offering!.annual,
       _Plan.lifetime => _offering!.lifetime,
     };
   }
@@ -67,12 +72,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
     setState(() => _purchasing = true);
     try {
-      await Purchases.purchasePackage(pkg);
+      await Purchases.purchase(PurchaseParams.package(pkg));
       // Success is handled by subscriptionProvider listener below
     } on PurchasesError catch (e) {
       if (mounted && e.code != PurchasesErrorCode.purchaseCancelledError) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al procesar el pago. Intenta de nuevo.')),
+          const SnackBar(
+            content: Text('Error al procesar el pago. Intenta de nuevo.'),
+          ),
         );
       }
     } finally {
@@ -139,7 +146,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   if (mounted) context.go('/login');
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 9,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.white,
                     borderRadius: BorderRadius.circular(100),
@@ -148,7 +158,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.e8, size: 12),
+                      const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: AppColors.e8,
+                        size: 12,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         'Iniciar sesión',
@@ -166,8 +180,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 GestureDetector(
                   onTap: () {
                     ref.read(authProvider.notifier).clearPaywallFlag();
-                    if (context.canPop()) context.pop();
-                    else context.go('/settings');
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/settings');
+                    }
                   },
                   child: Container(
                     width: 36,
@@ -177,7 +194,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                       shape: BoxShape.circle,
                       border: Border.all(color: AppColors.g2),
                     ),
-                    child: const Icon(Icons.close_rounded, color: AppColors.e8, size: 18),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      color: AppColors.e8,
+                      size: 18,
+                    ),
                   ),
                 ),
             ],
@@ -202,7 +223,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             ),
             padding: const EdgeInsets.all(12),
             child: const MenudoLogo(size: 76),
-          ).animate().scale(delay: 100.ms, duration: 400.ms, curve: Curves.easeOutBack),
+          ).animate().scale(
+            delay: 100.ms,
+            duration: 400.ms,
+            curve: Curves.easeOutBack,
+          ),
 
           const SizedBox(height: 20),
 
@@ -252,7 +277,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.lock_outline_rounded, color: AppColors.e6, size: 14),
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  color: AppColors.e6,
+                  size: 14,
+                ),
                 const SizedBox(width: 7),
                 Text(
                   '7 días gratis — cancela cuando quieras',
@@ -274,11 +303,31 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   Widget _buildBenefits() {
     final items = [
-      (Icons.account_balance_wallet_outlined, 'Billeteras ilimitadas',  'Registra todas tus cuentas y efectivo'),
-      (Icons.pie_chart_outline_rounded,       'Presupuestos avanzados', 'Con metas, límites y seguimiento real'),
-      (Icons.repeat_rounded,                  'Pagos recurrentes',      'Automatiza tus gastos fijos'),
-      (Icons.group_outlined,                  'Espacios compartidos',   'Gestiona finanzas en pareja o familia'),
-      (Icons.bar_chart_rounded,               'Reportes detallados',    'Visualiza tus patrones de gasto'),
+      (
+        Icons.account_balance_wallet_outlined,
+        'Billeteras ilimitadas',
+        'Registra todas tus cuentas y efectivo',
+      ),
+      (
+        Icons.pie_chart_outline_rounded,
+        'Presupuestos avanzados',
+        'Con metas, límites y seguimiento real',
+      ),
+      (
+        Icons.repeat_rounded,
+        'Pagos recurrentes',
+        'Automatiza tus gastos fijos',
+      ),
+      (
+        Icons.group_outlined,
+        'Espacios compartidos',
+        'Gestiona finanzas en pareja o familia',
+      ),
+      (
+        Icons.bar_chart_rounded,
+        'Reportes detallados',
+        'Visualiza tus patrones de gasto',
+      ),
     ];
 
     return Container(
@@ -292,20 +341,24 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Todo lo que necesitas', style: MenudoTextStyles.h3)
-              .animate().fadeIn(delay: 500.ms),
+          Text(
+            'Todo lo que necesitas',
+            style: MenudoTextStyles.h3,
+          ).animate().fadeIn(delay: 500.ms),
           const SizedBox(height: 2),
           Text(
             'Una herramienta completa para tu salud financiera.',
             style: MenudoTextStyles.bodySmall.copyWith(color: AppColors.g5),
           ).animate().fadeIn(delay: 550.ms),
           const SizedBox(height: 16),
-          ...items.asMap().entries.map((e) => _BenefitRow(
-            icon: e.value.$1,
-            title: e.value.$2,
-            subtitle: e.value.$3,
-            delay: 600 + e.key * 70,
-          )),
+          ...items.asMap().entries.map(
+            (e) => _BenefitRow(
+              icon: e.value.$1,
+              title: e.value.$2,
+              subtitle: e.value.$3,
+              delay: 600 + e.key * 70,
+            ),
+          ),
         ],
       ),
     );
@@ -319,8 +372,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Elige tu plan', style: MenudoTextStyles.h3)
-              .animate().fadeIn(delay: 950.ms),
+          Text(
+            'Elige tu plan',
+            style: MenudoTextStyles.h3,
+          ).animate().fadeIn(delay: 950.ms),
           const SizedBox(height: 4),
           Text(
             'Empieza gratis. Sin compromiso.',
@@ -333,7 +388,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             title: 'Anual',
             price: _offering?.annual?.storeProduct.priceString ?? r'$53.99',
             period: r'/ año',
-            detail: 'Solo ${_offering?.annual != null ? _monthlyEquiv(_offering!.annual!.storeProduct.price / 12) : "\$4.50"}/mes',
+            detail:
+                'Solo ${_offering?.annual != null ? _monthlyEquiv(_offering!.annual!.storeProduct.price / 12) : "\$4.50"}/mes',
             badge: 'MÁS POPULAR',
             badgeColor: AppColors.o5,
             onTap: () => setState(() => _selected = _Plan.annual),
@@ -376,8 +432,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final label = _purchasing
         ? 'Procesando...'
         : isLifetime
-            ? 'Obtener acceso de por vida'
-            : 'Empezar 7 días gratis';
+        ? 'Obtener acceso de por vida'
+        : 'Empezar 7 días gratis';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
@@ -450,33 +506,43 @@ class _BenefitRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.e0,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: AppColors.e6, size: 18),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: MenudoTextStyles.bodyMedium),
-                Text(
-                  subtitle,
-                  style: MenudoTextStyles.bodySmall.copyWith(color: AppColors.g5),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.check_circle_rounded, color: AppColors.e6, size: 20),
-        ],
-      ).animate().fadeIn(delay: Duration(milliseconds: delay)).slideX(begin: -0.05),
+      child:
+          Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.e0,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: AppColors.e6, size: 18),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: MenudoTextStyles.bodyMedium),
+                        Text(
+                          subtitle,
+                          style: MenudoTextStyles.bodySmall.copyWith(
+                            color: AppColors.g5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.e6,
+                    size: 20,
+                  ),
+                ],
+              )
+              .animate()
+              .fadeIn(delay: Duration(milliseconds: delay))
+              .slideX(begin: -0.05),
     );
   }
 }
@@ -524,14 +590,14 @@ class _PlanCard extends StatelessWidget {
                     color: AppColors.e8.withValues(alpha: 0.25),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
-                  )
+                  ),
                 ]
               : [
                   BoxShadow(
                     color: AppColors.black.withValues(alpha: 0.04),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
-                  )
+                  ),
                 ],
         ),
         child: Row(
@@ -580,7 +646,10 @@ class _PlanCard extends StatelessWidget {
                       if (badge != null) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: selected
                                 ? Colors.white.withValues(alpha: 0.18)

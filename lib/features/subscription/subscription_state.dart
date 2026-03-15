@@ -1,13 +1,15 @@
 class SubscriptionState {
   final bool isLoading;
-  final bool isActive;       // Menudo Pro entitlement active
-  final String? plan;        // 'monthly' | 'annual' | 'lifetime'
-  final DateTime? expiresAt; // null for lifetime
+  final bool isActive;
+  final String? estado;     // prueba | activa | cancelada | vencida
+  final String? plan;       // monthly | annual | lifetime
+  final DateTime? expiresAt; // trial_fin or periodo_fin
   final bool willRenew;
 
   const SubscriptionState({
     this.isLoading = true,
     this.isActive = false,
+    this.estado,
     this.plan,
     this.expiresAt,
     this.willRenew = false,
@@ -16,6 +18,7 @@ class SubscriptionState {
   SubscriptionState copyWith({
     bool? isLoading,
     bool? isActive,
+    String? estado,
     String? plan,
     DateTime? expiresAt,
     bool? willRenew,
@@ -23,6 +26,7 @@ class SubscriptionState {
     return SubscriptionState(
       isLoading: isLoading ?? this.isLoading,
       isActive: isActive ?? this.isActive,
+      estado: estado ?? this.estado,
       plan: plan ?? this.plan,
       expiresAt: expiresAt ?? this.expiresAt,
       willRenew: willRenew ?? this.willRenew,

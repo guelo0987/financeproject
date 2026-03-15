@@ -3,10 +3,12 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:intl/intl.dart';
 import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 import '../../alerts/providers/alert_providers.dart';
 import '../../auth/auth_state.dart';
 import '../../subscription/subscription_provider.dart';
+import '../../subscription/subscription_state.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/menudo_card.dart';
@@ -163,23 +165,51 @@ class SettingsScreen extends ConsumerWidget {
                       child: Column(
                         children: [
                           _SettingsTile(
-                            icon: Icons.star_outline_rounded,
+                            icon: _subscriptionIcon(subscription.estado),
                             title: 'Menudo Pro',
-                            subtitle: subscription.isActive
-                                ? subscription.plan == 'lifetime'
-                                    ? 'Acceso de por vida'
-                                    : subscription.plan == 'annual'
-                                        ? 'Plan anual activo'
-                                        : 'Plan mensual activo'
-                                : 'Activar suscripción',
+                            subtitle: _subscriptionSubtitle(subscription),
                             trailing: subscription.isActive
                                 ? MenudoChip(
-                                    'PRO',
+                                    subscription.estado == 'prueba'
+                                        ? 'TRIAL'
+                                        : 'PRO',
                                     variant: MenudoChipVariant.primary,
                                   )
+                                : subscription.estado == 'vencida'
+                                ? const MenudoChip(
+                                    'VENCIDO',
+                                    variant: MenudoChipVariant.danger,
+                                  )
                                 : null,
-                            onTap: () => context.push('/paywall'),
+                            onTap: subscription.isActive
+                                ? () => RevenueCatUI.presentCustomerCenter()
+                                : () => context.push('/paywall'),
                           ),
+                          if (subscription.expiresAt != null &&
+                              subscription.isActive) ...[
+                            const Divider(
+                              height: 1,
+                              color: MenudoColors.divider,
+                            ),
+                            _SettingsTile(
+                              icon: Icons.calendar_today_rounded,
+                              title: subscription.estado == 'prueba'
+                                  ? 'Trial hasta'
+                                  : subscription.estado == 'cancelada'
+                                  ? 'Acceso hasta'
+                                  : 'Se renueva',
+                              subtitle: DateFormat(
+                                'd MMM yyyy',
+                                'es',
+                              ).format(subscription.expiresAt!),
+                              trailing: subscription.estado == 'cancelada'
+                                  ? const MenudoChip(
+                                      'NO RENUEVA',
+                                      variant: MenudoChipVariant.neutral,
+                                    )
+                                  : null,
+                            ),
+                          ],
                           const Divider(height: 1, color: MenudoColors.divider),
                           _SettingsTile(
                             icon: Icons.manage_accounts_outlined,
@@ -245,14 +275,14 @@ class _SettingsTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.onTap,
+    this.onTap,
     this.trailing,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final Widget? trailing;
 
   @override
@@ -295,13 +325,44 @@ class _SettingsTile extends StatelessWidget {
               ),
             ),
             if (trailing != null) ...[trailing!, const SizedBox(width: 10)],
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: MenudoColors.textMuted,
-            ),
+            if (onTap != null)
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: MenudoColors.textMuted,
+              ),
           ],
         ),
       ),
     );
   }
+}
+
+// ── Subscription helpers ─────────────────────────────────────────────────
+
+IconData _subscriptionIcon(String? estado) {
+  return switch (estado) {
+    'prueba' => Icons.access_time_rounded,
+    'activa' => Icons.star_rounded,
+    'cancelada' => Icons.cancel_outlined,
+    'vencida' => Icons.error_outline_rounded,
+    _ => Icons.star_outline_rounded,
+  };
+}
+
+String _subscriptionSubtitle(SubscriptionState sub) {
+  final planLabel = switch (sub.plan) {
+    'annual' => 'Plan anual',
+    'lifetime' => 'De por vida',
+    'monthly' => 'Plan mensual',
+    _ => '',
+  };
+
+  return switch (sub.estado) {
+    'prueba' => '$planLabel · Prueba gratuita',
+    'activa' =>
+      sub.plan == 'lifetime' ? 'Acceso permanente' : '$planLabel activo',
+    'cancelada' => '$planLabel · Cancelado',
+    'vencida' => 'Suscripción vencida',
+    _ => 'Activar suscripción',
+  };
 }
