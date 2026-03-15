@@ -6,5 +6,9 @@ abstract final class StorageKeys {
   static const userEmail = 'menudo_user_email';
   static const userCurrency = 'menudo_user_currency';
   static const userDefaultBudgetId = 'menudo_user_default_budget_id';
+  static const userFinancialGoal = 'menudo_user_financial_goal';
+  static const userGoalAmount = 'menudo_user_goal_amount';
+  static const userGoalDate = 'menudo_user_goal_date';
+  static const userCreatedAt = 'menudo_user_created_at';
   static const demoMode = 'menudo_demo_mode';
 }

@@ -39,6 +39,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            const Padding(padding: EdgeInsets.fromLTRB(24, 20, 24, 0)),
             Expanded(
               child: PageView(
                 controller: _pageController,
@@ -120,10 +121,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         children: [
           Icon(
             icon,
-            size: 120,
+            size: 96,
             color: MenudoColors.cardBg.withValues(alpha: 0.1),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 32),
           Text(title, style: MenudoTextStyles.h1, textAlign: TextAlign.center),
           const SizedBox(height: 16),
           Text(

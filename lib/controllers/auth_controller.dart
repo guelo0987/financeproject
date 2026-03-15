@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../model/auth_session.dart';
 import '../model/user_profile.dart';
@@ -6,6 +7,7 @@ import '../services/auth_service.dart';
 
 class AuthState {
   final bool isAuthenticated;
+  final bool needsPaywall;
   final String? userId;
   final String? token;
   final DateTime? expiration;
@@ -13,6 +15,7 @@ class AuthState {
 
   const AuthState({
     this.isAuthenticated = false,
+    this.needsPaywall = false,
     this.userId,
     this.token,
     this.expiration,
@@ -21,6 +24,7 @@ class AuthState {
 
   AuthState copyWith({
     bool? isAuthenticated,
+    bool? needsPaywall,
     String? userId,
     String? token,
     DateTime? expiration,
@@ -28,6 +32,7 @@ class AuthState {
   }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      needsPaywall: needsPaywall ?? this.needsPaywall,
       userId: userId ?? this.userId,
       token: token ?? this.token,
       expiration: expiration ?? this.expiration,
@@ -46,9 +51,23 @@ class AuthController extends StateNotifier<AuthState> {
   Future<void> _tryRestoreSession() async {
     final session = await _service.restoreSession();
     if (session == null) return;
-    _setAuthenticated(session);
-    if (session.profile == null) {
-      await _hydrateProfile();
+
+    try {
+      final profile = await _service.fetchProfile();
+      await _service.saveProfile(profile);
+      _setAuthenticated(
+        AuthSession(
+          userId: session.userId,
+          token: session.token,
+          refreshToken: session.refreshToken,
+          profile: profile,
+        ),
+      );
+      await _rcLogIn(profile.userId.toString());
+    } catch (_) {
+      await _rcLogOut();
+      await _service.clearSession();
+      state = const AuthState();
     }
   }
 
@@ -61,6 +80,7 @@ class AuthController extends StateNotifier<AuthState> {
       profile: session.profile,
     );
     _setAuthenticated(session);
+    await Future.wait([_hydrateProfile(), _rcLogIn(session.userId.toString())]);
   }
 
   Future<void> register({
@@ -82,11 +102,32 @@ class AuthController extends StateNotifier<AuthState> {
       profile: session.profile,
     );
     _setAuthenticated(session);
+    state = state.copyWith(needsPaywall: true);
+    await Future.wait([_hydrateProfile(), _rcLogIn(session.userId.toString())]);
+  }
+
+  void clearPaywallFlag() {
+    state = state.copyWith(needsPaywall: false);
   }
 
   Future<void> logout() async {
+    await _rcLogOut();
     await _service.clearSession();
     state = const AuthState();
+  }
+
+  Future<void> _rcLogIn(String userId) async {
+    try {
+      await Purchases.logIn(userId);
+    } catch (_) {
+      // RC login failure is non-fatal — app continues normally
+    }
+  }
+
+  Future<void> _rcLogOut() async {
+    try {
+      await Purchases.logOut();
+    } catch (_) {}
   }
 
   Future<void> _hydrateProfile() async {
@@ -113,6 +154,35 @@ class AuthController extends StateNotifier<AuthState> {
     );
     await _service.saveProfile(nextProfile);
     state = state.copyWith(profile: nextProfile);
+  }
+
+  Future<UserProfile> updateProfile({
+    required String name,
+    required String currency,
+    String? financialGoal,
+    double? goalAmount,
+    DateTime? goalDate,
+  }) async {
+    final profile = await _service.updateProfile(
+      name: name,
+      currency: currency,
+      financialGoal: financialGoal,
+      goalAmount: goalAmount,
+      goalDate: goalDate,
+    );
+    await _service.saveProfile(profile);
+    state = state.copyWith(userId: profile.userId.toString(), profile: profile);
+    return profile;
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) {
+    return _service.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
   }
 
   void _setAuthenticated(AuthSession session) {

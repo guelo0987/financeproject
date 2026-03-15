@@ -12,15 +12,31 @@ class TransactionRepository {
     int? budgetId,
     int limit = 100,
   }) async {
-    final response = await _api.get<List<dynamic>>(
-      ApiPaths.transactions,
-      queryParameters: {'limit': limit, 'budgetId': budgetId},
-      parser: asJsonList,
-    );
-    return response
-        .requireData()
-        .map((row) => _transactionFromApi(asJsonMap(row)))
-        .toList();
+    var page = 1;
+    final transactions = <MenudoTransaction>[];
+
+    while (true) {
+      final response = await _api.get<List<dynamic>>(
+        ApiPaths.transactions,
+        queryParameters: {
+          'page': '$page',
+          'limit': '$limit',
+          'budgetId': budgetId,
+        },
+        parser: asJsonList,
+      );
+
+      transactions.addAll(
+        response.requireData().map(
+          (row) => _transactionFromApi(asJsonMap(row)),
+        ),
+      );
+
+      if (!_hasMore(response.meta)) break;
+      page += 1;
+    }
+
+    return transactions;
   }
 
   Future<List<MenudoTransaction>> fetchTransactionsForWallet(
@@ -133,6 +149,17 @@ class TransactionRepository {
           user?['nombre'] ??
           user?['name'],
     }, catKey: row['catKey'] as String? ?? category?['slug'] as String? ?? '');
+  }
+
+  bool _hasMore(Map<String, dynamic>? meta) {
+    if (meta == null) return false;
+    final raw = meta['hasMore'] ?? meta['has_more'] ?? false;
+    return switch (raw) {
+      bool value => value,
+      num value => value != 0,
+      String value => value.toLowerCase() == 'true',
+      _ => false,
+    };
   }
 }
 

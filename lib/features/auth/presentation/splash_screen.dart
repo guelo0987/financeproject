@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/menudo_logo.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -38,32 +39,7 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox(
-                  width: 72,
-                  height: 72,
-                  child: Stack(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: MenudoColors.cardBg,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      Positioned(
-                        left: 20,
-                        top: 10,
-                        bottom: 10,
-                        right: -10,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: MenudoColors.primary,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
+            const MenudoLogo(size: 300, hero: true)
                 .animate()
                 .fadeIn(duration: 600.ms)
                 .scale(begin: const Offset(0.8, 0.8)),

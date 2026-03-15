@@ -186,11 +186,6 @@ class ApiService {
       'Content-Type': 'application/json',
     };
 
-    final apiKey = AppEnv.apiKey;
-    if (apiKey != null) {
-      headers['x-api-key'] = apiKey;
-    }
-
     if (authenticated) {
       final token = await _storage.read(key: StorageKeys.authToken);
       if (token != null && token.isNotEmpty) {
@@ -282,6 +277,10 @@ class ApiService {
     await _storage.delete(key: StorageKeys.userEmail);
     await _storage.delete(key: StorageKeys.userCurrency);
     await _storage.delete(key: StorageKeys.userDefaultBudgetId);
+    await _storage.delete(key: StorageKeys.userFinancialGoal);
+    await _storage.delete(key: StorageKeys.userGoalAmount);
+    await _storage.delete(key: StorageKeys.userGoalDate);
+    await _storage.delete(key: StorageKeys.userCreatedAt);
   }
 
   Future<bool> _refreshAuthToken() async {
@@ -295,10 +294,6 @@ class ApiService {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
     };
-    final apiKey = AppEnv.apiKey;
-    if (apiKey != null) {
-      headers['x-api-key'] = apiKey;
-    }
 
     try {
       final response = await _sendRequest(

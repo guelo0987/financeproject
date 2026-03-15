@@ -1,0 +1,65 @@
+{
+  "identifier" : "B4047AEC-3F8D-4C1A-9E2B-5D6F7A8B9C0D",
+  "nonConsumableProducts" : [
+    {
+      "displayName" : "Menudo Pro Lifetime",
+      "price" : "89.99",
+      "priceLocale" : "en_US",
+      "productID" : "lifetime",
+      "referenceName" : "Menudo Pro Lifetime",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_isSandboxEnabled" : true,
+    "_isSandboxEnvironment" : true,
+    "_storeKitErrorOnSimulatorEnabled" : false,
+    "_timeRate" : "1 Minute == 1 Month"
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "20669060",
+      "localizations" : [],
+      "name" : "Menudo Pro",
+      "subscriptions" : [
+        {
+          "displayName" : "Menudo Pro Monthly",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "introductoryOffer" : {
+            "duration" : "P7D",
+            "offerMode" : "FreeTrial"
+          },
+          "price" : "7.99",
+          "priceLocale" : "en_US",
+          "productID" : "monthly",
+          "referenceName" : "Menudo Pro Monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "subscriptionGroupID" : "20669060",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "displayName" : "Menudo Pro Annual",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "introductoryOffer" : {
+            "duration" : "P7D",
+            "offerMode" : "FreeTrial"
+          },
+          "price" : "53.99",
+          "priceLocale" : "en_US",
+          "productID" : "yearly",
+          "referenceName" : "Menudo Pro Annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "subscriptionGroupID" : "20669060",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "formatVersion" : 2
+  }
+}

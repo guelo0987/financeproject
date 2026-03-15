@@ -24,24 +24,44 @@ final effectiveTransactionsProvider = Provider<List<MenudoTransaction>>((ref) {
   return transactions ?? const [];
 });
 
-DateTimeRange? _budgetRangeFor(MenudoBudget? budget) {
+DateTimeRange? budgetRangeFor(MenudoBudget? budget, {DateTime? referenceDate}) {
   if (budget == null) return null;
 
-  final now = DateTime.now();
-  final year = now.year;
-  final month = now.month;
+  final now = referenceDate ?? DateTime.now();
+  final todayDay = now.day;
   final day = budget.diaInicio.clamp(1, 28);
   final period = budget.periodo.toLowerCase();
 
   if (period == 'mensual') {
+    var startYear = now.year;
+    var startMonth = now.month;
+    if (day > todayDay) {
+      startMonth -= 1;
+      if (startMonth < 1) {
+        startMonth = 12;
+        startYear -= 1;
+      }
+    }
+
+    final start = DateTime(startYear, startMonth, day);
     return DateTimeRange(
-      start: DateTime(year, month, day),
-      end: DateTime(year, month + 1, 0),
+      start: start,
+      end: DateTime(startYear, startMonth + 1, day - 1),
     );
   }
 
   if (period == 'quincenal') {
-    final start = DateTime(year, month, day);
+    var startYear = now.year;
+    var startMonth = now.month;
+    if (day > todayDay) {
+      startMonth -= 1;
+      if (startMonth < 1) {
+        startMonth = 12;
+        startYear -= 1;
+      }
+    }
+
+    final start = DateTime(startYear, startMonth, day);
     return DateTimeRange(
       start: start,
       end: start.add(const Duration(days: 14)),
@@ -63,7 +83,7 @@ final selectedBudgetPeriodTransactionsProvider =
       final budget = ref.watch(selectedBudgetProvider);
       final txns = ref.watch(effectiveTransactionsProvider);
 
-      final range = _budgetRangeFor(budget);
+      final range = budgetRangeFor(budget);
       if (range == null) return txns;
 
       return txns.where((t) {

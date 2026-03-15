@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'main_shell.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/calendar/presentation/calendar_screen.dart';
@@ -11,34 +12,42 @@ import '../features/auth/presentation/splash_screen.dart';
 import '../features/auth/presentation/onboarding_screen.dart';
 import '../features/auth/auth_state.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../features/settings/presentation/profile_screen.dart';
+import '../features/settings/presentation/contact_screen.dart';
 import '../features/alerts/presentation/alerts_screen.dart';
 import '../features/categories/presentation/categories_screen.dart';
+import '../features/categories/presentation/spending_categories_screen.dart';
 import '../features/tools/presentation/tools_screen.dart';
 import '../features/recurring/presentation/recurring_screen.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../features/subscription/presentation/paywall_screen.dart';
+import '../features/subscription/subscription_provider.dart';
 
 final appRouter = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
+  final subState = ref.watch(subscriptionProvider);
   final isAuth = authState.isAuthenticated;
 
   return GoRouter(
     initialLocation: '/splash',
     redirect: (context, state) {
+      final loc = state.matchedLocation;
       final isGoingToAuthOrOnboarding =
-          state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register' ||
-          state.matchedLocation == '/splash' ||
-          state.matchedLocation == '/onboarding';
+          loc == '/login' ||
+          loc == '/register' ||
+          loc == '/splash' ||
+          loc == '/onboarding';
 
-      // If not logged in and not going to auth/onboarding pages, redirect to login
-      if (!isAuth && !isGoingToAuthOrOnboarding) {
-        return '/splash';
+      // Not logged in → splash/auth
+      if (!isAuth && !isGoingToAuthOrOnboarding) return '/splash';
+
+      // Logged in, auth loaded, subscription check done:
+      // if no active subscription → force paywall
+      if (isAuth && !subState.isLoading && !subState.isActive && loc != '/paywall') {
+        return '/paywall?fromReg=true';
       }
 
-      // If logged in and going to auth pages, redirect to home
-      if (isAuth && isGoingToAuthOrOnboarding) {
-        return '/';
-      }
+      // Logged in going to auth pages → home
+      if (isAuth && isGoingToAuthOrOnboarding) return '/';
 
       return null;
     },
@@ -90,6 +99,14 @@ final appRouter = Provider<GoRouter>((ref) {
         builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: '/contact',
+        builder: (context, state) => const ContactScreen(),
+      ),
+      GoRoute(
         path: '/alerts',
         builder: (context, state) => const AlertsScreen(),
       ),
@@ -97,10 +114,21 @@ final appRouter = Provider<GoRouter>((ref) {
         path: '/categories',
         builder: (context, state) => const CategoriesScreen(),
       ),
+      GoRoute(
+        path: '/categories-spending',
+        builder: (context, state) => const SpendingCategoriesScreen(),
+      ),
       GoRoute(path: '/tools', builder: (context, state) => const ToolsScreen()),
       GoRoute(
         path: '/recurring',
         builder: (context, state) => const RecurringScreen(),
+      ),
+      GoRoute(
+        path: '/paywall',
+        builder: (context, state) {
+          final fromReg = state.uri.queryParameters['fromReg'] == 'true';
+          return PaywallScreen(fromRegistration: fromReg);
+        },
       ),
     ],
   );

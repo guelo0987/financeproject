@@ -11,9 +11,17 @@ PODS:
   - purchases_flutter (9.13.1):
     - Flutter
     - PurchasesHybridCommon (= 17.42.0)
+  - purchases_ui_flutter (9.13.1):
+    - Flutter
+    - PurchasesHybridCommonUI (= 17.42.0)
   - PurchasesHybridCommon (17.42.0):
     - RevenueCat (= 5.60.0)
+  - PurchasesHybridCommonUI (17.42.0):
+    - PurchasesHybridCommon (= 17.42.0)
+    - RevenueCatUI (= 5.60.0)
   - RevenueCat (5.60.0)
+  - RevenueCatUI (5.60.0):
+    - RevenueCat (= 5.60.0)
   - sqflite_darwin (0.0.4):
     - Flutter
     - FlutterMacOS
@@ -24,12 +32,15 @@ DEPENDENCIES:
   - haptic_feedback (from `.symlinks/plugins/haptic_feedback/ios`)
   - local_auth_darwin (from `.symlinks/plugins/local_auth_darwin/darwin`)
   - purchases_flutter (from `.symlinks/plugins/purchases_flutter/ios`)
+  - purchases_ui_flutter (from `.symlinks/plugins/purchases_ui_flutter/ios`)
   - sqflite_darwin (from `.symlinks/plugins/sqflite_darwin/darwin`)
 
 SPEC REPOS:
   trunk:
     - PurchasesHybridCommon
+    - PurchasesHybridCommonUI
     - RevenueCat
+    - RevenueCatUI
 
 EXTERNAL SOURCES:
   Flutter:
@@ -42,6 +53,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/local_auth_darwin/darwin"
   purchases_flutter:
     :path: ".symlinks/plugins/purchases_flutter/ios"
+  purchases_ui_flutter:
+    :path: ".symlinks/plugins/purchases_ui_flutter/ios"
   sqflite_darwin:
     :path: ".symlinks/plugins/sqflite_darwin/darwin"
 
@@ -51,8 +64,11 @@ SPEC CHECKSUMS:
   haptic_feedback: 1f22d7ad3abb43bb814aa42fdf548dc6d9e8245a
   local_auth_darwin: c3ee6cce0a8d56be34c8ccb66ba31f7f180aaebb
   purchases_flutter: 0c05be8e6d5afbd2dc581ce7f823015ff1b5831a
+  purchases_ui_flutter: acbcb4cbb7f1670c9c884a8f850b4f9ad388b8dc
   PurchasesHybridCommon: c0a62a03bd15e40af1c3cd111f5f4f50cac751c7
+  PurchasesHybridCommonUI: b4ed664293091eb6f38f3c6549ded679d61b0625
   RevenueCat: 88010b2d5fc8fb7405d2e11dacd65ac74c9d21d1
+  RevenueCatUI: 4947e99bffd02fee429202b70b14dd780b8884ea
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
 
 PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e

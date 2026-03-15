@@ -22,6 +22,7 @@ dependencies:
   flutter_secure_storage: ^10.0.0
   local_auth: ^3.0.1
   purchases_flutter: ^9.13.1
+  purchases_ui_flutter: ^9.13.1
   cached_network_image: ^3.4.1
   haptic_feedback: ^0.6.4+3
   lucide_icons: ^0.257.0
@@ -34,4 +35,4 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - .env
+    - assets/images/

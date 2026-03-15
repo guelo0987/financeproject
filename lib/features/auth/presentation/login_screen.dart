@@ -7,6 +7,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/error_presenter.dart';
 import '../../../shared/widgets/menudo_text_field.dart';
 import '../../../shared/widgets/menudo_button.dart';
+import '../../../shared/widgets/menudo_logo.dart';
 import '../auth_state.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -65,132 +66,97 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       backgroundColor: MenudoColors.appBg,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 40),
-                // Logo
-                Center(
-                  child: Hero(
-                    tag: 'app_logo',
-                    child: SizedBox(
-                      width: 72,
-                      height: 72,
-                      child: Stack(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: MenudoColors.cardBg,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          Positioned(
-                            left: 20,
-                            top: 10,
-                            bottom: 10,
-                            right: -10,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: MenudoColors.primary,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                          ),
-                        ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: const MenudoLogo(size: 120, hero: true),
+              ).animate().scale(delay: 200.ms, duration: 400.ms),
+
+              const SizedBox(height: 24),
+
+              Text(
+                'Entrar',
+                style: MenudoTextStyles.h1,
+                textAlign: TextAlign.center,
+              ).animate().fadeIn(delay: 300.ms),
+
+              const SizedBox(height: 8),
+
+              Text(
+                'Usa tu correo para continuar.',
+                style: MenudoTextStyles.bodyMedium.copyWith(
+                  color: MenudoColors.textMuted,
+                ),
+                textAlign: TextAlign.center,
+              ).animate().fadeIn(delay: 400.ms),
+
+              const SizedBox(height: 32),
+
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  MenudoTextField(
+                    label: 'Correo electrónico',
+                    hint: 'tu@correo.com',
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    prefixIcon: const Icon(Icons.email_outlined),
+                  ),
+                  const SizedBox(height: 16),
+                  MenudoTextField(
+                    label: 'Contraseña',
+                    hint: '••••••••',
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    trailing: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: MenudoColors.textSecondary,
                       ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
                     ),
                   ),
-                ).animate().scale(delay: 200.ms, duration: 400.ms),
-
-                const SizedBox(height: 32),
-
-                Text(
-                  'Entrar',
-                  style: MenudoTextStyles.h1,
-                  textAlign: TextAlign.center,
-                ).animate().fadeIn(delay: 300.ms),
-
-                const SizedBox(height: 8),
-
-                Text(
-                  'Usa tu correo para continuar.',
-                  style: MenudoTextStyles.bodyMedium.copyWith(
-                    color: MenudoColors.textMuted,
+                  const SizedBox(height: 24),
+                  MenudoPrimaryButton(
+                    label: _isLoading ? 'Cargando...' : 'Iniciar Sesión',
+                    onTap: _isLoading ? null : () => _handleLogin(),
+                    isDisabled: _isLoading,
                   ),
-                  textAlign: TextAlign.center,
-                ).animate().fadeIn(delay: 400.ms),
+                ],
+              ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
 
-                const SizedBox(height: 40),
+              const SizedBox(height: 24),
 
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    MenudoTextField(
-                      label: 'Correo electrónico',
-                      hint: 'tu@correo.com',
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      prefixIcon: const Icon(Icons.email_outlined),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '¿No tienes cuenta?',
+                    style: MenudoTextStyles.bodyMedium,
+                  ),
+                  TextButton(
+                    onPressed: () => context.push('/register'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: MenudoColors.primary,
                     ),
-                    const SizedBox(height: 16),
-                    MenudoTextField(
-                      label: 'Contraseña',
-                      hint: '••••••••',
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      trailing: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                          color: MenudoColors.textSecondary,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
+                    child: const Text(
+                      'Regístrate',
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 24),
-                    MenudoPrimaryButton(
-                      label: _isLoading ? 'Cargando...' : 'Iniciar Sesión',
-                      onTap: _isLoading ? null : () => _handleLogin(),
-                      isDisabled: _isLoading,
-                    ),
-                  ],
-                ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
-
-                const SizedBox(height: 30),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '¿No tienes cuenta?',
-                      style: MenudoTextStyles.bodyMedium,
-                    ),
-                    TextButton(
-                      onPressed: () => context.push('/register'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: MenudoColors.primary,
-                      ),
-                      child: const Text(
-                        'Regístrate',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ).animate().fadeIn(delay: 600.ms),
-
-                const SizedBox(height: 40),
-              ],
-            ),
+                  ),
+                ],
+              ).animate().fadeIn(delay: 600.ms),
+            ],
           ),
         ),
       ),

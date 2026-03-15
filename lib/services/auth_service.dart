@@ -57,6 +57,32 @@ class AuthService {
     return _repository.fetchProfile();
   }
 
+  Future<UserProfile> updateProfile({
+    required String name,
+    required String currency,
+    String? financialGoal,
+    double? goalAmount,
+    DateTime? goalDate,
+  }) {
+    return _repository.updateProfile(
+      name: name,
+      currency: currency,
+      financialGoal: financialGoal,
+      goalAmount: goalAmount,
+      goalDate: goalDate,
+    );
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) {
+    return _repository.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+  }
+
   Future<int?> setDefaultBudget(int? budgetId) {
     return _repository.setDefaultBudget(budgetId);
   }

@@ -581,11 +581,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         onTap: () => context.push('/recurring'),
       ),
       (
-        icon: LucideIcons.clock,
-        label: 'Historial',
-        color: AppColors.e8,
-        bgColor: AppColors.e0,
-        onTap: () => context.push('/history'),
+        icon: LucideIcons.pieChart,
+        label: 'Desglose',
+        color: AppColors.b5,
+        bgColor: const Color(0xFFDBEAFE),
+        onTap: () => context.push('/categories-spending'),
       ),
       (
         icon: LucideIcons.wrench,

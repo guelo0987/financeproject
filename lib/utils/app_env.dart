@@ -1,64 +1,61 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 
 class AppEnv {
-  static final Map<String, String> _values = <String, String>{};
-  static bool _loaded = false;
-
-  static Future<void> load({String assetPath = '.env'}) async {
-    if (_loaded) return;
-
-    try {
-      final raw = await rootBundle.loadString(assetPath);
-      for (final line in raw.split('\n')) {
-        final trimmed = line.trim();
-        if (trimmed.isEmpty || trimmed.startsWith('#')) continue;
-        final separator = trimmed.indexOf('=');
-        if (separator <= 0) continue;
-        final key = trimmed.substring(0, separator).trim();
-        final value = trimmed.substring(separator + 1).trim();
-        _values[key] = value;
-      }
-    } catch (_) {
-      // Keep defaults if the local .env asset is not available yet.
-    }
-
-    _loaded = true;
-  }
+  static const _apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://localhost:3000',
+  );
+  static const _androidBaseUrl = String.fromEnvironment(
+    'API_BASE_URL_ANDROID',
+    defaultValue: '',
+  );
+  static const _iosBaseUrl = String.fromEnvironment(
+    'API_BASE_URL_IOS',
+    defaultValue: '',
+  );
+  static const _macosBaseUrl = String.fromEnvironment(
+    'API_BASE_URL_MACOS',
+    defaultValue: '',
+  );
+  static const _windowsBaseUrl = String.fromEnvironment(
+    'API_BASE_URL_WINDOWS',
+    defaultValue: '',
+  );
+  static const _linuxBaseUrl = String.fromEnvironment(
+    'API_BASE_URL_LINUX',
+    defaultValue: '',
+  );
+  static const _timeoutSecondsRaw = String.fromEnvironment(
+    'API_TIMEOUT_SECONDS',
+    defaultValue: '20',
+  );
 
   static String get apiBaseUrl {
     final baseUrl = switch (defaultTargetPlatform) {
       TargetPlatform.android =>
-        _values['API_BASE_URL_ANDROID'] ?? _values['API_BASE_URL'],
-      TargetPlatform.iOS => _values['API_BASE_URL_IOS'] ?? _values['API_BASE_URL'],
+        _androidBaseUrl.isNotEmpty ? _androidBaseUrl : _apiBaseUrl,
+      TargetPlatform.iOS => _iosBaseUrl.isNotEmpty ? _iosBaseUrl : _apiBaseUrl,
       TargetPlatform.macOS =>
-        _values['API_BASE_URL_MACOS'] ?? _values['API_BASE_URL'],
+        _macosBaseUrl.isNotEmpty ? _macosBaseUrl : _apiBaseUrl,
       TargetPlatform.windows =>
-        _values['API_BASE_URL_WINDOWS'] ?? _values['API_BASE_URL'],
+        _windowsBaseUrl.isNotEmpty ? _windowsBaseUrl : _apiBaseUrl,
       TargetPlatform.linux =>
-        _values['API_BASE_URL_LINUX'] ?? _values['API_BASE_URL'],
-      _ => _values['API_BASE_URL'],
+        _linuxBaseUrl.isNotEmpty ? _linuxBaseUrl : _apiBaseUrl,
+      _ => _apiBaseUrl,
     };
 
-    final resolved = baseUrl ?? 'http://localhost:3000';
-    final uri = Uri.parse(resolved);
+    final uri = Uri.parse(baseUrl);
     if (defaultTargetPlatform == TargetPlatform.android &&
         (uri.host == 'localhost' || uri.host == '127.0.0.1')) {
       return uri.replace(host: '10.0.2.2').toString();
     }
 
-    return resolved;
+    return baseUrl;
   }
 
   static Duration get timeout {
-    final seconds = int.tryParse(_values['API_TIMEOUT_SECONDS'] ?? '');
+    final seconds = int.tryParse(_timeoutSecondsRaw);
     return Duration(seconds: seconds ?? 20);
-  }
-
-  static String? get apiKey {
-    final key = _values['API_KEY'];
-    if (key == null || key.isEmpty) return null;
-    return key;
   }
 
   static Uri uri(String path, {Map<String, dynamic>? queryParameters}) {

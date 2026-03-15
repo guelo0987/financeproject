@@ -18,6 +18,12 @@ class AuthRepository {
     final userName = await _storage.read(key: StorageKeys.userName);
     final userEmail = await _storage.read(key: StorageKeys.userEmail);
     final userCurrency = await _storage.read(key: StorageKeys.userCurrency);
+    final userFinancialGoal = await _storage.read(
+      key: StorageKeys.userFinancialGoal,
+    );
+    final userGoalAmount = await _storage.read(key: StorageKeys.userGoalAmount);
+    final userGoalDate = await _storage.read(key: StorageKeys.userGoalDate);
+    final userCreatedAt = await _storage.read(key: StorageKeys.userCreatedAt);
     final userDefaultBudgetId = await _storage.read(
       key: StorageKeys.userDefaultBudgetId,
     );
@@ -28,13 +34,27 @@ class AuthRepository {
       userId: userId,
       token: token,
       refreshToken: refreshToken,
-      profile: userName == null && userEmail == null && userCurrency == null
+      profile:
+          userName == null &&
+              userEmail == null &&
+              userCurrency == null &&
+              userFinancialGoal == null &&
+              userGoalAmount == null &&
+              userGoalDate == null
           ? null
           : UserProfile(
               userId: userId,
               name: userName ?? '',
               email: userEmail ?? '',
               baseCurrency: userCurrency ?? 'DOP',
+              financialGoal: userFinancialGoal,
+              goalAmount: double.tryParse(userGoalAmount ?? ''),
+              goalDate: userGoalDate == null
+                  ? null
+                  : DateTime.tryParse(userGoalDate),
+              createdAt: userCreatedAt == null
+                  ? null
+                  : DateTime.tryParse(userCreatedAt),
               defaultBudgetId: int.tryParse(userDefaultBudgetId ?? ''),
             ),
     );
@@ -60,6 +80,10 @@ class AuthRepository {
       await _storage.delete(key: StorageKeys.userEmail);
       await _storage.delete(key: StorageKeys.userCurrency);
       await _storage.delete(key: StorageKeys.userDefaultBudgetId);
+      await _storage.delete(key: StorageKeys.userFinancialGoal);
+      await _storage.delete(key: StorageKeys.userGoalAmount);
+      await _storage.delete(key: StorageKeys.userGoalDate);
+      await _storage.delete(key: StorageKeys.userCreatedAt);
       return;
     }
 
@@ -69,6 +93,38 @@ class AuthRepository {
       key: StorageKeys.userCurrency,
       value: profile.baseCurrency,
     );
+    if (profile.financialGoal != null && profile.financialGoal!.isNotEmpty) {
+      await _storage.write(
+        key: StorageKeys.userFinancialGoal,
+        value: profile.financialGoal,
+      );
+    } else {
+      await _storage.delete(key: StorageKeys.userFinancialGoal);
+    }
+    if (profile.goalAmount != null) {
+      await _storage.write(
+        key: StorageKeys.userGoalAmount,
+        value: profile.goalAmount!.toString(),
+      );
+    } else {
+      await _storage.delete(key: StorageKeys.userGoalAmount);
+    }
+    if (profile.goalDate != null) {
+      await _storage.write(
+        key: StorageKeys.userGoalDate,
+        value: profile.goalDate!.toIso8601String(),
+      );
+    } else {
+      await _storage.delete(key: StorageKeys.userGoalDate);
+    }
+    if (profile.createdAt != null) {
+      await _storage.write(
+        key: StorageKeys.userCreatedAt,
+        value: profile.createdAt!.toIso8601String(),
+      );
+    } else {
+      await _storage.delete(key: StorageKeys.userCreatedAt);
+    }
     if (profile.defaultBudgetId != null) {
       await _storage.write(
         key: StorageKeys.userDefaultBudgetId,
@@ -87,6 +143,10 @@ class AuthRepository {
     await _storage.delete(key: StorageKeys.userEmail);
     await _storage.delete(key: StorageKeys.userCurrency);
     await _storage.delete(key: StorageKeys.userDefaultBudgetId);
+    await _storage.delete(key: StorageKeys.userFinancialGoal);
+    await _storage.delete(key: StorageKeys.userGoalAmount);
+    await _storage.delete(key: StorageKeys.userGoalDate);
+    await _storage.delete(key: StorageKeys.userCreatedAt);
   }
 
   Future<AuthSession> login({
@@ -128,6 +188,37 @@ class AuthRepository {
       parser: asJsonMap,
     );
     return UserProfile.fromJson(response.requireData());
+  }
+
+  Future<UserProfile> updateProfile({
+    required String name,
+    required String currency,
+    String? financialGoal,
+    double? goalAmount,
+    DateTime? goalDate,
+  }) async {
+    final response = await _api.patch<Map<String, dynamic>>(
+      ApiPaths.authMe,
+      body: {
+        'nombre': name,
+        'moneda_base': currency,
+        'meta_financiera': financialGoal,
+        'meta_monto': goalAmount,
+        'meta_fecha': goalDate?.toIso8601String(),
+      },
+      parser: asJsonMap,
+    );
+    return UserProfile.fromJson(response.requireData());
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _api.put<void>(
+      ApiPaths.authPassword,
+      body: {'currentPassword': currentPassword, 'newPassword': newPassword},
+    );
   }
 
   Future<int?> setDefaultBudget(int? budgetId) async {

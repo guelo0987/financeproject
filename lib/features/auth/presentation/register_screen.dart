@@ -7,6 +7,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/error_presenter.dart';
 import '../../../shared/widgets/menudo_text_field.dart';
 import '../../../shared/widgets/menudo_button.dart';
+import '../../../shared/widgets/menudo_logo.dart';
 import '../auth_state.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -72,7 +73,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             currency: _isDop ? 'DOP' : 'USD',
           );
       if (!mounted) return;
-      context.go('/');
+      // Show paywall immediately after registration so payment info is collected
+      // before the free trial begins.
+      context.go('/paywall?fromReg=true');
     } catch (error) {
       _showError(presentError(error));
     } finally {
@@ -100,10 +103,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
+              const Center(child: MenudoLogo(size: 112, hero: true)),
+              const SizedBox(height: 20),
               Text(
                 'Crear cuenta',
                 style: MenudoTextStyles.h1,
+                textAlign: TextAlign.center,
               ).animate().fadeIn(delay: 100.ms),
 
               const SizedBox(height: 8),
@@ -113,6 +119,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 style: MenudoTextStyles.bodyMedium.copyWith(
                   color: MenudoColors.textMuted,
                 ),
+                textAlign: TextAlign.center,
               ).animate().fadeIn(delay: 200.ms),
 
               const SizedBox(height: 32),
