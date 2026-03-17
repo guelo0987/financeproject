@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 
 class AuthState {
   final bool isAuthenticated;
+  final bool isBootstrapping;
   final bool needsPaywall;
   final String? userId;
   final String? token;
@@ -15,6 +16,7 @@ class AuthState {
 
   const AuthState({
     this.isAuthenticated = false,
+    this.isBootstrapping = false,
     this.needsPaywall = false,
     this.userId,
     this.token,
@@ -24,6 +26,7 @@ class AuthState {
 
   AuthState copyWith({
     bool? isAuthenticated,
+    bool? isBootstrapping,
     bool? needsPaywall,
     String? userId,
     String? token,
@@ -32,6 +35,7 @@ class AuthState {
   }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      isBootstrapping: isBootstrapping ?? this.isBootstrapping,
       needsPaywall: needsPaywall ?? this.needsPaywall,
       userId: userId ?? this.userId,
       token: token ?? this.token,
@@ -42,7 +46,8 @@ class AuthState {
 }
 
 class AuthController extends StateNotifier<AuthState> {
-  AuthController(this._service) : super(const AuthState()) {
+  AuthController(this._service)
+    : super(const AuthState(isBootstrapping: true)) {
     _tryRestoreSession();
   }
 
@@ -50,7 +55,10 @@ class AuthController extends StateNotifier<AuthState> {
 
   Future<void> _tryRestoreSession() async {
     final session = await _service.restoreSession();
-    if (session == null) return;
+    if (session == null) {
+      state = const AuthState(isBootstrapping: false);
+      return;
+    }
 
     try {
       final profile = await _service.fetchProfile();
@@ -67,7 +75,7 @@ class AuthController extends StateNotifier<AuthState> {
     } catch (_) {
       await _rcLogOut();
       await _service.clearSession();
-      state = const AuthState();
+      state = const AuthState(isBootstrapping: false);
     }
   }
 
@@ -113,7 +121,7 @@ class AuthController extends StateNotifier<AuthState> {
   Future<void> logout() async {
     await _rcLogOut();
     await _service.clearSession();
-    state = const AuthState();
+    state = const AuthState(isBootstrapping: false);
   }
 
   Future<void> _rcLogIn(String userId) async {
@@ -188,6 +196,7 @@ class AuthController extends StateNotifier<AuthState> {
   void _setAuthenticated(AuthSession session) {
     state = AuthState(
       isAuthenticated: true,
+      isBootstrapping: false,
       userId: session.userId.toString(),
       token: session.token,
       expiration: DateTime.now().add(const Duration(hours: 24)),

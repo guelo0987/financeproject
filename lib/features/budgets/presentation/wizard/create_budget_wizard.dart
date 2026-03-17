@@ -165,7 +165,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
     final normalized = _emailInput.trim().toLowerCase();
     if (normalized.isEmpty) return;
     if (!_isValidEmail(normalized)) {
-      _showError('Escribe un correo válido antes de agregarlo.');
+      _showError('Ese correo no parece válido. Revísalo e inténtalo otra vez.');
       return;
     }
     if (_miembros.contains(normalized)) {
@@ -173,7 +173,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
       return;
     }
     if (_miembros.length >= 3) {
-      _showError('Solo puedes invitar hasta 3 personas.');
+      _showError('Puedes invitar hasta 3 personas en total.');
       return;
     }
 
@@ -243,7 +243,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
     if (missingIncomeCategories.isNotEmpty ||
         missingExpenseCategories.isNotEmpty) {
       _showError(
-        'Hay categorías que ya no están disponibles. Revisa tus selecciones antes de guardar.',
+        'Algunas categorías cambiaron. Revísalas antes de guardar el presupuesto.',
       );
       return;
     }
@@ -304,9 +304,9 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
   }
 
   String fmt(double val) =>
@@ -353,7 +353,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
       return _BudgetHintCard(
         icon: LucideIcons.calendarDays,
         title: 'Semana móvil',
-        body: 'Siempre toma los últimos 7 días.',
+        body: 'Siempre tomará los últimos 7 días.',
       );
     }
 
@@ -361,7 +361,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
       return _BudgetHintCard(
         icon: LucideIcons.flag,
         title: 'Una sola vez',
-        body: 'Empieza al crearlo. No necesita un día de inicio.',
+        body: 'Empieza cuando lo creas. No necesita un día de inicio.',
       );
     }
 
@@ -369,11 +369,11 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
         ? const [1, 15]
         : List<int>.generate(28, (index) => index + 1);
     final title = _periodo == 'quincenal'
-        ? 'Inicio de la quincena'
+        ? 'Inicio del ciclo'
         : 'Día de inicio';
     final subtitle = _periodo == 'quincenal'
-        ? 'Elige cuándo empieza cada bloque.'
-        : 'Elige cuándo empieza cada mes.';
+        ? 'Elige desde qué día empieza cada bloque.'
+        : 'Ese día marcará el inicio de cada ciclo.';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -543,10 +543,12 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
             ),
             child: MenudoButton(
               label: _isSaving
-                  ? (_isEditing ? "GUARDANDO..." : "CREANDO...")
+                  ? (_isEditing
+                        ? "Guardando presupuesto..."
+                        : "Creando presupuesto...")
                   : _step == _lastStepIndex
                   ? (_isEditing
-                        ? "Guardar cambios"
+                        ? "Guardar presupuesto"
                         : _miembros.isNotEmpty
                         ? "Crear e invitar"
                         : "Crear presupuesto")
@@ -595,8 +597,8 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
         const SizedBox(height: 4),
         Text(
           _isEditing
-              ? "Ajusta nombre y período si lo necesitas."
-              : "Ponle un nombre y elige el período.",
+              ? "Ajusta el nombre o el período cuando lo necesites."
+              : "Ponle un nombre y elige cómo quieres organizarlo.",
           style: const TextStyle(fontSize: 14, color: AppColors.g4),
         ),
         const SizedBox(height: 24),
@@ -826,7 +828,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                     ),
                     Text(
                       sortedCategories.isEmpty
-                          ? 'Sin categorías'
+                          ? 'Aún no agregas categorías'
                           : '${sortedCategories.length} opciones',
                       style: const TextStyle(fontSize: 12, color: AppColors.g4),
                     ),
@@ -865,7 +867,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: const Text(
-                'Agrega una categoría aquí para asignarle un monto.',
+                'Agrega una categoría aquí para poder asignarle un monto.',
                 style: TextStyle(fontSize: 13, color: AppColors.g4),
               ),
             ),
@@ -987,7 +989,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
         const SizedBox(height: 20),
         _buildPlannedAmountCard(
           label: "MONTO DE INGRESOS",
-          subtitle: "El total se calcula con las fuentes que asignes abajo.",
+          subtitle: "Se calcula con las fuentes que agregues abajo.",
           amount: ing,
           backgroundColor: AppColors.e0,
           borderColor: AppColors.e7.withValues(alpha: 0.13),
@@ -1004,7 +1006,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               border: Border.all(color: AppColors.g2, width: 1.5),
             ),
             child: const Text(
-              'Aún no tienes categorías de ingresos.',
+              'Cuando tengas categorías de ingresos, podrás repartir el monto aquí.',
               style: TextStyle(fontSize: 13, color: AppColors.g4),
             ),
           )
@@ -1082,7 +1084,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               border: Border.all(color: AppColors.g2, width: 1.5),
             ),
             child: const Text(
-              'Aún no tienes categorías de gastos.',
+              'Cuando tengas categorías de gastos, podrás repartir el plan aquí.',
               style: TextStyle(fontSize: 13, color: AppColors.g4),
             ),
           )
@@ -1133,7 +1135,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           child: Column(
             children: [
               const Text(
-                "META DE AHORRO",
+                "AHORRO DEL PERÍODO",
                 style: TextStyle(
                   fontSize: 11,
                   color: AppColors.a5,
@@ -1192,7 +1194,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Distribución",
+                  "Resumen del período",
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -1357,8 +1359,8 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           iconBackgroundColor: AppColors.e1,
           title: "Miembros",
           subtitle: _canInviteMembers
-              ? "Agrega hasta 3 correos."
-              : "Aquí solo puedes verla.",
+              ? "Agrega hasta 3 correos para compartirlo."
+              : "Aquí puedes revisar quién tendrá acceso.",
         ),
         const SizedBox(height: 20),
 
@@ -1372,7 +1374,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               border: Border.all(color: AppColors.g2),
             ),
             child: const Text(
-              "Los nuevos accesos se agregan después.",
+              "Si luego quieres sumar a alguien, podrás hacerlo desde el presupuesto.",
               style: TextStyle(
                 fontSize: 13,
                 height: 1.35,
@@ -1421,7 +1423,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                     ),
                   ),
                   Text(
-                    "Admin",
+                    "Tú",
                     style: TextStyle(fontSize: 12, color: AppColors.g4),
                   ),
                 ],
@@ -1451,8 +1453,8 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                 Expanded(
                   child: Text(
                     _miembros.isEmpty
-                        ? "Se enviarán cuando guardes el presupuesto."
-                        : "${_miembros.length} invitación${_miembros.length == 1 ? '' : 'es'} lista${_miembros.length == 1 ? '' : 's'} para enviar.",
+                        ? "Las invitaciones se enviarán cuando termines de crear el presupuesto."
+                        : "${_miembros.length} invitación${_miembros.length == 1 ? '' : 'es'} lista${_miembros.length == 1 ? '' : 's'} para salir cuando lo crees.",
                     style: const TextStyle(
                       fontSize: 13,
                       height: 1.35,
@@ -1540,7 +1542,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Invitar por correo",
+                  "Agregar correo",
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -1644,7 +1646,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           iconColor: AppColors.o5,
           iconBackgroundColor: AppColors.o1,
           title: "Resumen",
-          subtitle: "Revisa lo importante antes de guardar.",
+          subtitle: "Revisa lo importante antes de terminar.",
         ),
         const SizedBox(height: 20),
 
@@ -1659,7 +1661,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Presupuesto",
+                "Así quedará",
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,

@@ -33,6 +33,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Offering? _offering;
   bool _loadingOffering = true;
   bool _purchasing = false;
+  String? _offeringError;
 
   @override
   void initState() {
@@ -41,21 +42,142 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   }
 
   Future<void> _loadOffering() async {
+    setState(() {
+      _loadingOffering = true;
+      _offeringError = null;
+    });
+
     try {
       final service = ref.read(subscriptionServiceProvider);
       final offering = await service.getOfferings();
       if (mounted) {
         setState(() {
           _offering = offering;
+          _syncSelection(offering);
+          _offeringError = _hasPackages(offering)
+              ? null
+              : 'Los planes no están disponibles ahora mismo.';
           _loadingOffering = false;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _loadingOffering = false);
+      if (mounted) {
+        setState(() {
+          _loadingOffering = false;
+          _offeringError =
+              'No pudimos cargar los planes. Intenta de nuevo en un momento.';
+        });
+      }
     }
   }
 
   String _monthlyEquiv(double monthly) => '\$${monthly.toStringAsFixed(2)}';
+
+  String _unitLabel(PeriodUnit unit, int quantity) {
+    return switch (unit) {
+      PeriodUnit.day => quantity == 1 ? 'día' : 'días',
+      PeriodUnit.week => quantity == 1 ? 'semana' : 'semanas',
+      PeriodUnit.month => quantity == 1 ? 'mes' : 'meses',
+      PeriodUnit.year => quantity == 1 ? 'año' : 'años',
+      _ => 'periodo',
+    };
+  }
+
+  String? _introSummary(Package? package) {
+    final intro = package?.storeProduct.introductoryPrice;
+    if (intro == null) return null;
+
+    final unit = _unitLabel(intro.periodUnit, intro.periodNumberOfUnits);
+    final duration = intro.cycles == 1
+        ? '${intro.periodNumberOfUnits} $unit'
+        : '${intro.cycles * intro.periodNumberOfUnits} $unit';
+
+    if (intro.price == 0) return '$duration gratis';
+    return '${intro.priceString} por $duration';
+  }
+
+  String _selectedPlanLabel() {
+    return switch (_selected) {
+      _Plan.annual => 'plan anual',
+      _Plan.monthly => 'plan mensual',
+      _Plan.lifetime => 'acceso de por vida',
+    };
+  }
+
+  String _trustMessage() {
+    final intro = _introSummary(_selectedPackage);
+    if (intro != null) {
+      return '$intro — cancelas cuando quieras';
+    }
+    if (_selected == _Plan.lifetime) {
+      return 'Compra segura desde tu iPhone';
+    }
+    return 'El cobro sigue el plan que elijas';
+  }
+
+  String _planDetail(_Plan plan, Package package) {
+    final intro = _introSummary(package);
+
+    return switch (plan) {
+      _Plan.annual =>
+        package.storeProduct.pricePerMonthString != null
+            ? 'Solo ${package.storeProduct.pricePerMonthString}/mes'
+            : 'Solo ${_monthlyEquiv(package.storeProduct.price / 12)}/mes',
+      _Plan.monthly =>
+        intro != null ? 'Incluye $intro' : 'Plan flexible mes a mes',
+      _Plan.lifetime => 'Pago único — acceso permanente',
+    };
+  }
+
+  String _ctaLabel(bool isLifetime) {
+    if (_purchasing) return 'Procesando...';
+    if (_loadingOffering) return 'Cargando planes...';
+    if (_selectedPackage == null) return 'Planes no disponibles';
+    if (isLifetime) return 'Obtener acceso de por vida';
+
+    final intro = _introSummary(_selectedPackage);
+    if (intro != null) return 'Continuar con ${_selectedPlanLabel()}';
+    return 'Activar ${_selectedPlanLabel()}';
+  }
+
+  String? _ctaHelper(bool isLifetime) {
+    if (_loadingOffering ||
+        _offeringError != null ||
+        _selectedPackage == null) {
+      return null;
+    }
+    if (isLifetime) return null;
+
+    final intro = _introSummary(_selectedPackage);
+    if (intro != null) {
+      return 'Empiezas con $intro y luego sigue el plan seleccionado.';
+    }
+    return 'El cobro se hará con el plan que selecciones.';
+  }
+
+  bool _hasPackages(Offering? offering) =>
+      offering?.monthly != null ||
+      offering?.annual != null ||
+      offering?.lifetime != null;
+
+  Package? _packageForPlan(Offering offering, _Plan plan) {
+    return switch (plan) {
+      _Plan.monthly => offering.monthly,
+      _Plan.annual => offering.annual,
+      _Plan.lifetime => offering.lifetime,
+    };
+  }
+
+  void _syncSelection(Offering? offering) {
+    if (offering == null) return;
+    if (_packageForPlan(offering, _selected) != null) return;
+
+    _selected = offering.annual != null
+        ? _Plan.annual
+        : offering.monthly != null
+        ? _Plan.monthly
+        : _Plan.lifetime;
+  }
 
   Package? get _selectedPackage {
     if (_offering == null) return null;
@@ -68,19 +190,20 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   Future<void> _purchase() async {
     final pkg = _selectedPackage;
-    if (pkg == null) return;
+    if (pkg == null) {
+      _showSnack(
+        _offeringError ?? 'Todavia no tenemos un plan disponible para ti.',
+      );
+      return;
+    }
 
     setState(() => _purchasing = true);
     try {
       await Purchases.purchase(PurchaseParams.package(pkg));
-      // Success is handled by subscriptionProvider listener below
+      await ref.read(subscriptionProvider.notifier).refresh();
     } on PurchasesError catch (e) {
       if (mounted && e.code != PurchasesErrorCode.purchaseCancelledError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al procesar el pago. Intenta de nuevo.'),
-          ),
-        );
+        _showSnack('No pudimos procesar el pago. Intenta de nuevo.');
       }
     } finally {
       if (mounted) setState(() => _purchasing = false);
@@ -90,10 +213,29 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Future<void> _restore() async {
     setState(() => _purchasing = true);
     try {
-      await Purchases.restorePurchases();
+      final info = await Purchases.restorePurchases();
+      await ref.read(subscriptionProvider.notifier).refresh();
+      if (!mounted) return;
+      final restored = info.entitlements.active.containsKey(kEntitlementId);
+      _showSnack(
+        restored
+            ? 'Recuperamos tu acceso de Menudo Pro.'
+            : 'No encontramos compras para restaurar con esta cuenta.',
+      );
+    } on PurchasesError {
+      if (mounted) {
+        _showSnack('No pudimos restaurar tus compras. Intenta de nuevo.');
+      }
     } finally {
       if (mounted) setState(() => _purchasing = false);
     }
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -165,7 +307,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Iniciar sesión',
+                        'Cerrar sesión',
                         style: MenudoTextStyles.bodySmall.copyWith(
                           color: AppColors.e8,
                           fontWeight: FontWeight.w700,
@@ -284,7 +426,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 ),
                 const SizedBox(width: 7),
                 Text(
-                  '7 días gratis — cancela cuando quieras',
+                  _trustMessage(),
                   style: MenudoTextStyles.labelCaps.copyWith(
                     color: AppColors.e7,
                     fontSize: 10,
@@ -367,6 +509,31 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   // ── Plans ─────────────────────────────────────────────────────────────────
 
   Widget _buildPlans() {
+    if (_loadingOffering) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+        child: _StatusCard(
+          icon: Icons.sync_rounded,
+          title: 'Cargando planes',
+          message: 'Estamos preparando las opciones disponibles para ti.',
+          isLoading: true,
+        ),
+      );
+    }
+
+    if (_offeringError != null) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+        child: _StatusCard(
+          icon: Icons.wifi_tethering_error_rounded,
+          title: 'No pudimos mostrar los planes',
+          message: _offeringError!,
+          actionLabel: 'Intentar de nuevo',
+          onTap: _loadOffering,
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
       child: Column(
@@ -383,43 +550,45 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           ).animate().fadeIn(delay: 1000.ms),
           const SizedBox(height: 16),
 
-          _PlanCard(
-            selected: _selected == _Plan.annual,
-            title: 'Anual',
-            price: _offering?.annual?.storeProduct.priceString ?? r'$53.99',
-            period: r'/ año',
-            detail:
-                'Solo ${_offering?.annual != null ? _monthlyEquiv(_offering!.annual!.storeProduct.price / 12) : "\$4.50"}/mes',
-            badge: 'MÁS POPULAR',
-            badgeColor: AppColors.o5,
-            onTap: () => setState(() => _selected = _Plan.annual),
-          ).animate().fadeIn(delay: 1050.ms).slideY(begin: 0.1),
+          if (_offering?.annual != null) ...[
+            _PlanCard(
+              selected: _selected == _Plan.annual,
+              title: 'Anual',
+              price: _offering!.annual!.storeProduct.priceString,
+              period: r'/ año',
+              detail: _planDetail(_Plan.annual, _offering!.annual!),
+              badge: 'MÁS POPULAR',
+              badgeColor: AppColors.o5,
+              onTap: () => setState(() => _selected = _Plan.annual),
+            ).animate().fadeIn(delay: 1050.ms).slideY(begin: 0.1),
+            const SizedBox(height: 10),
+          ],
 
-          const SizedBox(height: 10),
+          if (_offering?.monthly != null) ...[
+            _PlanCard(
+              selected: _selected == _Plan.monthly,
+              title: 'Mensual',
+              price: _offering!.monthly!.storeProduct.priceString,
+              period: r'/ mes',
+              detail: _planDetail(_Plan.monthly, _offering!.monthly!),
+              badge: null,
+              badgeColor: null,
+              onTap: () => setState(() => _selected = _Plan.monthly),
+            ).animate().fadeIn(delay: 1100.ms).slideY(begin: 0.1),
+            const SizedBox(height: 10),
+          ],
 
-          _PlanCard(
-            selected: _selected == _Plan.monthly,
-            title: 'Mensual',
-            price: _offering?.monthly?.storeProduct.priceString ?? r'$7.99',
-            period: r'/ mes',
-            detail: 'Con período de prueba de 7 días',
-            badge: null,
-            badgeColor: null,
-            onTap: () => setState(() => _selected = _Plan.monthly),
-          ).animate().fadeIn(delay: 1100.ms).slideY(begin: 0.1),
-
-          const SizedBox(height: 10),
-
-          _PlanCard(
-            selected: _selected == _Plan.lifetime,
-            title: 'De por vida',
-            price: _offering?.lifetime?.storeProduct.priceString ?? r'$89.99',
-            period: '',
-            detail: 'Pago único — acceso permanente',
-            badge: 'SIN RENOVACIÓN',
-            badgeColor: AppColors.p5,
-            onTap: () => setState(() => _selected = _Plan.lifetime),
-          ).animate().fadeIn(delay: 1150.ms).slideY(begin: 0.1),
+          if (_offering?.lifetime != null)
+            _PlanCard(
+              selected: _selected == _Plan.lifetime,
+              title: 'De por vida',
+              price: _offering!.lifetime!.storeProduct.priceString,
+              period: '',
+              detail: _planDetail(_Plan.lifetime, _offering!.lifetime!),
+              badge: 'SIN RENOVACIÓN',
+              badgeColor: AppColors.p5,
+              onTap: () => setState(() => _selected = _Plan.lifetime),
+            ).animate().fadeIn(delay: 1150.ms).slideY(begin: 0.1),
         ],
       ),
     );
@@ -429,11 +598,13 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   Widget _buildCTA() {
     final isLifetime = _selected == _Plan.lifetime;
-    final label = _purchasing
-        ? 'Procesando...'
-        : isLifetime
-        ? 'Obtener acceso de por vida'
-        : 'Empezar 7 días gratis';
+    final canPurchase =
+        !_purchasing &&
+        !_loadingOffering &&
+        _offeringError == null &&
+        _selectedPackage != null;
+    final helper = _ctaHelper(isLifetime);
+    final label = _ctaLabel(isLifetime);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
@@ -441,13 +612,13 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         children: [
           MenudoPrimaryButton(
             label: label,
-            onTap: (_purchasing || _loadingOffering) ? null : _purchase,
-            isDisabled: _purchasing || _loadingOffering,
+            onTap: canPurchase ? _purchase : null,
+            isDisabled: !canPurchase,
           ),
-          if (!isLifetime) ...[
+          if (helper != null) ...[
             const SizedBox(height: 10),
             Text(
-              'Sin cobro durante 7 días. Cancela antes y no pagas nada.',
+              helper,
               style: MenudoTextStyles.bodySmall.copyWith(color: AppColors.g5),
               textAlign: TextAlign.center,
             ),
@@ -483,6 +654,83 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           ),
         ],
       ).animate().fadeIn(delay: 1300.ms),
+    );
+  }
+}
+
+class _StatusCard extends StatelessWidget {
+  const _StatusCard({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.isLoading = false,
+    this.actionLabel,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final bool isLoading;
+  final String? actionLabel;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.g2),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: AppColors.e0,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            alignment: Alignment.center,
+            child: isLoading
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2.2),
+                  )
+                : Icon(icon, color: AppColors.e7, size: 24),
+          ),
+          const SizedBox(height: 14),
+          Text(title, style: MenudoTextStyles.h3, textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: MenudoTextStyles.bodyMedium.copyWith(color: AppColors.g5),
+            textAlign: TextAlign.center,
+          ),
+          if (actionLabel != null && onTap != null) ...[
+            const SizedBox(height: 18),
+            OutlinedButton.icon(
+              onPressed: onTap,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: Text(actionLabel!),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.e8,
+                side: const BorderSide(color: AppColors.g2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

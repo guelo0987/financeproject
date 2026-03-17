@@ -234,7 +234,7 @@ class _CategoryPickerSheetState extends ConsumerState<CategoryPickerSheet> {
                                         child: Column(
                                           children: [
                                             const Text(
-                                              'Todavía no tiene categorías.',
+                                              'Todavía no tiene opciones aquí.',
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w600,
@@ -537,7 +537,7 @@ class _CategoryPickerCreateSheet extends ConsumerWidget {
                     border: Border.all(color: AppColors.g2),
                   ),
                   child: const Text(
-                    'Todavía no hay grupos disponibles.',
+                    'Todavía no hay grupos para elegir.',
                     style: TextStyle(fontSize: 13, color: AppColors.g4),
                   ),
                 );

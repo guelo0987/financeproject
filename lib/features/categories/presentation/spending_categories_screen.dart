@@ -1064,7 +1064,7 @@ class _EmptyBreakdownState extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            'Sin $title para mostrar',
+            'Todavía no hay $title por mostrar',
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
@@ -1074,7 +1074,7 @@ class _EmptyBreakdownState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Cuando registres $movementLabel $periodLabel, verás su categoría padre, subcategoría y movimientos aquí.',
+            'Cuando registres $movementLabel $periodLabel, aquí verás cómo se reparte entre categorías y subcategorías.',
             style: const TextStyle(
               fontSize: 13,
               color: AppColors.g5,

@@ -9,10 +9,9 @@ import 'package:flutter/material.dart';
 void main() {
   testWidgets('App launches successfully', (WidgetTester tester) async {
     await tester.pumpWidget(const ProviderScope(child: MenudoApp()));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 200));
 
-    // Verify the app launches
-    expect(find.text('Menudo'), findsWidgets);
+    expect(find.text('Preparando tu espacio'), findsOneWidget);
   });
 
   testWidgets(

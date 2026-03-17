@@ -7,6 +7,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/error_presenter.dart';
+import '../../../shared/widgets/menudo_loading_view.dart';
 import '../../budgets/budget_providers.dart';
 import '../../categories/presentation/category_picker_sheet.dart';
 import '../../categories/providers/category_providers.dart';
@@ -48,9 +49,18 @@ class RecurringScreen extends ConsumerWidget {
   }
 
   void _showError(BuildContext context, Object error) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(presentError(error))));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(presentError(error)),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
   }
 
   Future<void> _showRecurringSheet(
@@ -90,7 +100,9 @@ class RecurringScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar automática'),
-        content: Text('Se eliminará "${recurring.desc}".'),
+        content: Text(
+          'Eliminarás "${recurring.desc}" y dejará de registrarse automáticamente.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -98,7 +110,7 @@ class RecurringScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar'),
+            child: const Text('Sí, eliminar'),
           ),
         ],
       ),
@@ -108,6 +120,8 @@ class RecurringScreen extends ConsumerWidget {
 
     try {
       await ref.read(recurringNotifierProvider.notifier).remove(recurring.id);
+      if (!context.mounted) return;
+      _showMessage(context, 'La automática fue eliminada.');
     } catch (error) {
       if (!context.mounted) return;
       _showError(context, error);
@@ -122,7 +136,11 @@ class RecurringScreen extends ConsumerWidget {
     if (recurringAsync.isLoading && recurringAsync.valueOrNull == null) {
       return const Scaffold(
         backgroundColor: AppColors.g0,
-        body: Center(child: CircularProgressIndicator()),
+        body: MenudoLoadingView(
+          title: 'Cargando automáticas',
+          message: 'Estamos preparando tus cobros y pagos recurrentes.',
+          logoSize: 88,
+        ),
       );
     }
 
@@ -152,11 +170,21 @@ class RecurringScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  'No se pudieron cargar las automáticas.',
+                  'No pudimos cargar tus automáticas.',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: AppColors.e8,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Revisa tu conexión e inténtalo otra vez.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.g4,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -414,8 +442,8 @@ class RecurringScreen extends ConsumerWidget {
                     const SizedBox(height: 12),
                     Text(
                       selectedBudget == null
-                          ? 'No hay automáticas registradas.'
-                          : 'No hay automáticas para ${selectedBudget.nombre}.',
+                          ? 'Todavía no tienes automáticas'
+                          : 'No hay automáticas en ${selectedBudget.nombre}.',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -425,7 +453,7 @@ class RecurringScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      'Puedes crear una cuando quieras.',
+                      'Cuando quieras automatizar algo, lo verás aquí.',
                       style: TextStyle(fontSize: 12, color: AppColors.g4),
                       textAlign: TextAlign.center,
                     ),
@@ -796,9 +824,9 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
   }
 
   void _setTypeIndex(int index) {
@@ -843,9 +871,9 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   String _frequencySummary() {
     switch (_frecuencia) {
       case 'mensual':
-        return 'Se registra cada mes.';
+        return 'Se registrará una vez cada mes.';
       case 'quincenal':
-        return 'Se registra dos veces al mes.';
+        return 'Se registrará cada 15 días.';
       case 'semanal':
         return 'Se registra cada ${_weekdayLabel(_dia).toLowerCase()}.';
       default:
@@ -942,22 +970,30 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
     if (_isSaving) return;
 
     final amountValue = double.tryParse(_amount);
-    if (amountValue == null || amountValue == 0) return;
+    if (_amount.isEmpty) {
+      _showError('Escribe un monto para guardar esta automática.');
+      return;
+    }
+
+    if (amountValue == null || amountValue == 0) {
+      _showError('El monto debe ser mayor que cero.');
+      return;
+    }
 
     if (_catKey == null || _catKey!.isEmpty) {
-      _showError('Selecciona una categoría antes de continuar.');
+      _showError('Elige una categoría para continuar.');
       return;
     }
     if (_accountId == null) {
-      _showError('Selecciona una cuenta antes de continuar.');
+      _showError('Elige la cuenta donde se registrará.');
       return;
     }
     if (_presupuestoId == null) {
-      _showError('Selecciona un presupuesto antes de continuar.');
+      _showError('Elige un presupuesto para esta automática.');
       return;
     }
     if (_descController.text.trim().isEmpty) {
-      _showError('Escribe un nombre antes de continuar.');
+      _showError('Ponle un nombre para reconocerla más fácil.');
       return;
     }
 
@@ -1188,7 +1224,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                         color: AppColors.e8,
                       ),
                       decoration: InputDecoration(
-                        hintText: "Nombre",
+                        hintText: "Nombre de la automática",
                         hintStyle: const TextStyle(
                           color: AppColors.g4,
                           fontWeight: FontWeight.w600,
@@ -1442,10 +1478,10 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                     alignment: Alignment.center,
                     child: Text(
                       _isSaving
-                          ? "Guardando..."
+                          ? "Guardando automática..."
                           : _isEditing
-                          ? "Actualizar automática"
-                          : "Guardar automática",
+                          ? "Guardar automática"
+                          : "Crear automática",
                       style: TextStyle(
                         color: amountValue > 0 && !_isSaving
                             ? Colors.white

@@ -24,7 +24,7 @@ class AlertController extends AsyncNotifier<List<AppAlert>> {
     final uid = ref.read(authProvider).userId;
     if (uid == null) return;
 
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<AppAlert>>().copyWithPrevious(state);
     state = await AsyncValue.guard(
       () => ref.read(alertServiceProvider).fetchAlerts(unreadOnly: unreadOnly),
     );

@@ -28,6 +28,11 @@ class _MenudoButtonState extends State<MenudoButton> {
   Widget build(BuildContext context) {
     final bgColor = widget.isDisabled ? AppColors.g1 : AppColors.o5;
     final textColor = widget.isDisabled ? AppColors.g4 : AppColors.white;
+    final labelStyle = TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w800,
+      color: textColor,
+    );
 
     return GestureDetector(
       onTapDown: widget.isDisabled
@@ -60,22 +65,31 @@ class _MenudoButtonState extends State<MenudoButton> {
                   ],
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: widget.isFullWidth
+                ? MainAxisSize.max
+                : MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (widget.icon != null) ...[
                 Icon(widget.icon, color: textColor, size: 20),
                 const SizedBox(width: 8),
               ],
-              Text(
-                widget.label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: textColor,
+              if (widget.isFullWidth)
+                Flexible(
+                  child: Text(
+                    widget.label,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: labelStyle,
+                  ),
+                )
+              else
+                Text(
+                  widget.label,
+                  textAlign: TextAlign.center,
+                  style: labelStyle,
                 ),
-              ),
             ],
           ),
         ),

@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:intl/intl.dart';
-import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 import '../../alerts/providers/alert_providers.dart';
 import '../../auth/auth_state.dart';
 import '../../subscription/subscription_provider.dart';
@@ -168,7 +167,12 @@ class SettingsScreen extends ConsumerWidget {
                             icon: _subscriptionIcon(subscription.estado),
                             title: 'Menudo Pro',
                             subtitle: _subscriptionSubtitle(subscription),
-                            trailing: subscription.isActive
+                            trailing: subscription.hasVerificationIssue
+                                ? const MenudoChip(
+                                    'REVISAR',
+                                    variant: MenudoChipVariant.neutral,
+                                  )
+                                : subscription.isActive
                                 ? MenudoChip(
                                     subscription.estado == 'prueba'
                                         ? 'TRIAL'
@@ -181,11 +185,10 @@ class SettingsScreen extends ConsumerWidget {
                                     variant: MenudoChipVariant.danger,
                                   )
                                 : null,
-                            onTap: subscription.isActive
-                                ? () => RevenueCatUI.presentCustomerCenter()
-                                : () => context.push('/paywall'),
+                            onTap: () => context.push('/subscription'),
                           ),
                           if (subscription.expiresAt != null &&
+                              !subscription.hasVerificationIssue &&
                               subscription.isActive) ...[
                             const Divider(
                               height: 1,
@@ -210,13 +213,6 @@ class SettingsScreen extends ConsumerWidget {
                                   : null,
                             ),
                           ],
-                          const Divider(height: 1, color: MenudoColors.divider),
-                          _SettingsTile(
-                            icon: Icons.manage_accounts_outlined,
-                            title: 'Gestionar plan',
-                            subtitle: 'Cancelar, restaurar y facturación',
-                            onTap: () => RevenueCatUI.presentCustomerCenter(),
-                          ),
                         ],
                       ),
                     ).animate().fadeIn(delay: 240.ms).slideY(begin: 0.04),
@@ -350,6 +346,10 @@ IconData _subscriptionIcon(String? estado) {
 }
 
 String _subscriptionSubtitle(SubscriptionState sub) {
+  if (sub.hasVerificationIssue) {
+    return 'No pudimos comprobar tu acceso ahora mismo';
+  }
+
   final planLabel = switch (sub.plan) {
     'annual' => 'Plan anual',
     'lifetime' => 'De por vida',

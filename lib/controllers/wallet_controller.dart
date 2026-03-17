@@ -20,7 +20,7 @@ class WalletController extends AsyncNotifier<List<WalletAccount>> {
   Future<WalletAccount?> addWallet(WalletAccount wallet) async {
     final userId = _uid();
     if (userId == 0) return null;
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<WalletAccount>>().copyWithPrevious(state);
     try {
       final createdWallet = await ref
           .read(walletServiceProvider)
@@ -39,7 +39,7 @@ class WalletController extends AsyncNotifier<List<WalletAccount>> {
   Future<WalletAccount?> updateWallet(WalletAccount wallet) async {
     final userId = _uid();
     if (userId == 0) return null;
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<WalletAccount>>().copyWithPrevious(state);
     try {
       final updatedWallet = await ref
           .read(walletServiceProvider)
@@ -58,7 +58,7 @@ class WalletController extends AsyncNotifier<List<WalletAccount>> {
   Future<void> removeWallet(int walletId) async {
     final userId = _uid();
     if (userId == 0) return;
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<WalletAccount>>().copyWithPrevious(state);
     try {
       await ref.read(walletServiceProvider).deleteWallet(walletId);
       final wallets = await ref
@@ -74,7 +74,7 @@ class WalletController extends AsyncNotifier<List<WalletAccount>> {
   Future<void> setDefaultWallet(int walletId) async {
     final userId = _uid();
     if (userId == 0) return;
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<WalletAccount>>().copyWithPrevious(state);
     try {
       await ref.read(walletServiceProvider).setDefaultWallet(walletId);
       final wallets = await ref
@@ -90,7 +90,7 @@ class WalletController extends AsyncNotifier<List<WalletAccount>> {
   Future<void> refresh() async {
     final userId = _uid();
     if (userId == 0) return;
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<WalletAccount>>().copyWithPrevious(state);
     state = await AsyncValue.guard(
       () => ref.read(walletServiceProvider).fetchWallets(userId),
     );

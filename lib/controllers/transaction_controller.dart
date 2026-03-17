@@ -17,10 +17,9 @@ class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
     final budgetId = ref.watch(selectedBudgetIdProvider);
     if (uid == null) return const [];
 
-    return ref.read(transactionServiceProvider).fetchTransactions(
-      int.parse(uid),
-      budgetId: budgetId,
-    );
+    return ref
+        .read(transactionServiceProvider)
+        .fetchTransactions(int.parse(uid), budgetId: budgetId);
   }
 
   Future<void> refresh() async {
@@ -28,7 +27,9 @@ class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
     if (userId == 0) return;
 
     final budgetId = ref.read(selectedBudgetIdProvider);
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<MenudoTransaction>>().copyWithPrevious(
+      state,
+    );
     state = await AsyncValue.guard(
       () => ref
           .read(transactionServiceProvider)
@@ -36,12 +37,16 @@ class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
     );
   }
 
-  Future<MenudoTransaction?> addTransaction(MenudoTransaction transaction) async {
+  Future<MenudoTransaction?> addTransaction(
+    MenudoTransaction transaction,
+  ) async {
     final userId = _uid();
     if (userId == 0) return null;
 
     final budgetId = ref.read(selectedBudgetIdProvider);
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<MenudoTransaction>>().copyWithPrevious(
+      state,
+    );
     try {
       final created = await ref
           .read(transactionServiceProvider)
@@ -64,7 +69,9 @@ class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
     if (userId == 0) return null;
 
     final budgetId = ref.read(selectedBudgetIdProvider);
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<MenudoTransaction>>().copyWithPrevious(
+      state,
+    );
     try {
       final updated = await ref
           .read(transactionServiceProvider)
@@ -85,9 +92,13 @@ class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
     if (userId == 0) return;
 
     final budgetId = ref.read(selectedBudgetIdProvider);
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<MenudoTransaction>>().copyWithPrevious(
+      state,
+    );
     try {
-      await ref.read(transactionServiceProvider).deleteTransaction(transactionId);
+      await ref
+          .read(transactionServiceProvider)
+          .deleteTransaction(transactionId);
       final transactions = await ref
           .read(transactionServiceProvider)
           .fetchTransactions(userId, budgetId: budgetId);
@@ -99,9 +110,9 @@ class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
   }
 
   Future<List<MenudoTransaction>> fetchTransactionsForWallet(int walletId) {
-    return ref.read(transactionServiceProvider).fetchTransactionsForWallet(
-      walletId,
-    );
+    return ref
+        .read(transactionServiceProvider)
+        .fetchTransactionsForWallet(walletId);
   }
 }
 

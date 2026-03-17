@@ -34,10 +34,37 @@ String presentError(
   if (lower.contains('socketexception') || lower.contains('clientexception')) {
     return 'No pudimos conectarnos en este momento. Revisa tu conexión e inténtalo otra vez.';
   }
+  if (lower.contains('rate_limit') || lower.contains('too many requests')) {
+    return 'Vas muy rápido. Espera un momento e inténtalo otra vez.';
+  }
   if (lower.contains(
     'solo admins pueden modificar este presupuesto compartido',
   )) {
     return 'Solo quien administra este presupuesto puede hacer ese cambio.';
+  }
+  if (lower.contains('already_member')) {
+    return 'Esa persona ya forma parte de este presupuesto.';
+  }
+  if (lower.contains('invite_pending')) {
+    return 'Ya hay una invitación pendiente para ese correo.';
+  }
+  if (lower.contains('email_error')) {
+    return 'No pudimos enviar la invitación ahora mismo. Inténtalo otra vez.';
+  }
+  if (lower.contains('limite_miembros')) {
+    return 'Este presupuesto ya llegó al límite de personas.';
+  }
+  if (lower.contains('moneda_mismatch')) {
+    return 'La moneda de este movimiento no coincide con la de la cuenta.';
+  }
+  if (lower.contains('cuenta_con_transacciones')) {
+    return 'No puedes eliminar esta cuenta porque ya tiene movimientos.';
+  }
+  if (lower.contains('categoria_con_transacciones')) {
+    return 'No puedes eliminar esta categoría porque ya tiene movimientos.';
+  }
+  if (lower.contains('categoria_en_presupuesto')) {
+    return 'No puedes eliminar esta categoría porque todavía está en uso en un presupuesto.';
   }
 
   return message;

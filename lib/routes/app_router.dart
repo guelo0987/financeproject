@@ -20,33 +20,62 @@ import '../features/categories/presentation/spending_categories_screen.dart';
 import '../features/tools/presentation/tools_screen.dart';
 import '../features/recurring/presentation/recurring_screen.dart';
 import '../features/subscription/presentation/paywall_screen.dart';
+import '../features/subscription/presentation/subscription_detail_screen.dart';
 import '../features/subscription/subscription_provider.dart';
 
 final appRouter = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
   final subState = ref.watch(subscriptionProvider);
   final isAuth = authState.isAuthenticated;
+  final hasVerifiedAccess = subState.isActive || subState.hasVerificationIssue;
 
   return GoRouter(
     initialLocation: '/splash',
     redirect: (context, state) {
       final loc = state.matchedLocation;
+      final staleFromReg =
+          loc == '/paywall' &&
+          state.uri.queryParameters['fromReg'] == 'true' &&
+          !authState.needsPaywall;
       final isGoingToAuthOrOnboarding =
           loc == '/login' ||
           loc == '/register' ||
           loc == '/splash' ||
           loc == '/onboarding';
+      final isAllowedWhileInactive =
+          loc == '/paywall' ||
+          loc == '/subscription' ||
+          loc == '/settings' ||
+          loc == '/profile' ||
+          loc == '/contact';
+      final paywallLocation = authState.needsPaywall
+          ? '/paywall?fromReg=true'
+          : '/paywall';
 
-      // Not logged in → splash/auth
-      if (!isAuth && !isGoingToAuthOrOnboarding) return '/splash';
-
-      // Logged in, auth loaded, subscription check done:
-      // if no active subscription → force paywall
-      if (isAuth && !subState.isLoading && !subState.isActive && loc != '/paywall') {
-        return '/paywall?fromReg=true';
+      if (authState.isBootstrapping) {
+        return loc == '/splash' ? null : '/splash';
       }
 
-      // Logged in going to auth pages → home
+      if (staleFromReg) return '/paywall';
+
+      if (!isAuth) {
+        if (loc == '/splash') return '/onboarding';
+        if (!isGoingToAuthOrOnboarding) return '/onboarding';
+        return null;
+      }
+
+      if (isAuth && subState.isLoading) {
+        return loc == '/splash' ? null : '/splash';
+      }
+
+      if (loc == '/splash') {
+        return hasVerifiedAccess ? '/' : paywallLocation;
+      }
+
+      if (!hasVerifiedAccess && !isAllowedWhileInactive) {
+        return paywallLocation;
+      }
+
       if (isAuth && isGoingToAuthOrOnboarding) return '/';
 
       return null;
@@ -129,6 +158,10 @@ final appRouter = Provider<GoRouter>((ref) {
           final fromReg = state.uri.queryParameters['fromReg'] == 'true';
           return PaywallScreen(fromRegistration: fromReg);
         },
+      ),
+      GoRoute(
+        path: '/subscription',
+        builder: (context, state) => const SubscriptionDetailScreen(),
       ),
     ],
   );

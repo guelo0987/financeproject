@@ -155,14 +155,22 @@ class _RegisterTransactionSheetState
   }
 
   Future<void> _saveTransaction() async {
-    if (_isSaving || _amount.isEmpty) return;
+    if (_isSaving) return;
+
+    if (_amount.isEmpty) {
+      _showError('Escribe un monto para guardar este movimiento.');
+      return;
+    }
 
     final amountValue = double.tryParse(_amount);
-    if (amountValue == null || amountValue == 0) return;
+    if (amountValue == null || amountValue == 0) {
+      _showError('El monto debe ser mayor que cero.');
+      return;
+    }
 
     final budget = ref.read(selectedBudgetProvider);
     if (budget == null) {
-      _showError('Selecciona un presupuesto antes de guardar el movimiento.');
+      _showError('Elige un presupuesto para guardar este movimiento.');
       return;
     }
 
@@ -176,24 +184,24 @@ class _RegisterTransactionSheetState
         : categoriesBySlug[_catKey!];
 
     if (_catKey == null || _catKey!.isEmpty) {
-      _showError('Selecciona una categoría antes de continuar.');
+      _showError('Elige una categoría para continuar.');
       return;
     }
 
     if (_fromAccountId == null ||
         !wallets.any((wallet) => wallet.id == _fromAccountId)) {
-      _showError('Selecciona una cuenta válida.');
+      _showError('Elige la cuenta desde donde saldrá este movimiento.');
       return;
     }
 
     if (_selectedType == 'transferencia') {
       if (_toAccountId == null ||
           !wallets.any((wallet) => wallet.id == _toAccountId)) {
-        _showError('Selecciona la cuenta destino de la transferencia.');
+        _showError('Elige la cuenta a la que quieres mover el dinero.');
         return;
       }
       if (_toAccountId == _fromAccountId) {
-        _showError('La cuenta origen y destino no pueden ser la misma.');
+        _showError('Usa dos cuentas distintas para mover dinero.');
         return;
       }
     }
@@ -246,9 +254,9 @@ class _RegisterTransactionSheetState
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
   }
 
   WalletAccount? _findWallet(int? id, List<WalletAccount> wallets) {
@@ -260,10 +268,10 @@ class _RegisterTransactionSheetState
   }
 
   String _accountName(int? id, List<WalletAccount> wallets) {
-    if (id == null) return "Seleccionar";
+    if (id == null) return "Elegir";
     final fallback = wallets.isNotEmpty ? wallets.first : null;
     final wallet = _findWallet(id, wallets);
-    return wallet?.nombre ?? fallback?.nombre ?? "Seleccionar";
+    return wallet?.nombre ?? fallback?.nombre ?? "Elegir";
   }
 
   String _formattedAmountDisplay() {
@@ -344,7 +352,7 @@ class _RegisterTransactionSheetState
               )
               .firstOrNull;
     final categoryLabel = selectedCategory == null
-        ? "Seleccionar"
+        ? "Elegir"
         : selectedParent == null
         ? selectedCategory.nombre
         : "${selectedParent.nombre} / ${selectedCategory.nombre}";
@@ -486,7 +494,7 @@ class _RegisterTransactionSheetState
                         label: "Presupuesto",
                         value:
                             ref.watch(selectedBudgetProvider)?.nombre ??
-                            "Elige uno",
+                            "Elegir",
                       ),
                       _DetailRow(
                         icon: LucideIcons.tag,
@@ -508,7 +516,7 @@ class _RegisterTransactionSheetState
                         icon: LucideIcons.fileText,
                         color: AppColors.p5,
                         label: "Nota",
-                        value: _nota ?? "Agregar",
+                        value: _nota ?? "Añadir",
                         onTap: _showNoteDialog,
                       ),
                       _DetailRow(
@@ -536,8 +544,10 @@ class _RegisterTransactionSheetState
             ),
             child: MenudoButton(
               label: _isSaving
-                  ? "Guardando..."
-                  : (_isEditing ? "Guardar cambios" : "Guardar"),
+                  ? "Guardando movimiento..."
+                  : (_isEditing
+                        ? "Guardar movimiento"
+                        : "Registrar movimiento"),
               isFullWidth: true,
               isDisabled: amountValue == 0 || _isSaving,
               onTap: () => _saveTransaction(),
@@ -568,7 +578,7 @@ class _RegisterTransactionSheetState
           autofocus: true,
           maxLines: 2,
           decoration: InputDecoration(
-            hintText: "Escribe una nota",
+            hintText: "Añade un detalle si lo necesitas",
             filled: true,
             fillColor: AppColors.g0,
             border: OutlineInputBorder(

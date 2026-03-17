@@ -337,7 +337,7 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
                           border: Border.all(color: AppColors.g2),
                         ),
                         child: const Text(
-                          'Todavía no hay grupos. Crea uno para empezar.',
+                          'Todavía no hay grupos aquí. Crea uno para empezar.',
                           style: TextStyle(fontSize: 13, color: AppColors.g4),
                         ),
                       ),

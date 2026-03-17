@@ -72,7 +72,7 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "Cuenta principal",
+                      "Cuenta preferida",
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -80,7 +80,7 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
                       ),
                     ),
                     Text(
-                      "Se usa primero al registrar movimientos.",
+                      "La usaremos primero cuando registres un movimiento.",
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.g4,
@@ -100,6 +100,15 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
                           await ref
                               .read(walletNotifierProvider.notifier)
                               .setDefaultWallet(widget.walletId);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Listo. Esta será tu cuenta preferida.',
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
                         } catch (error) {
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -126,10 +135,10 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
                 ),
                 child: Text(
                   isDefault
-                      ? 'Activa'
+                      ? 'Lista'
                       : _isUpdating
                       ? 'Guardando...'
-                      : 'Usar',
+                      : 'Elegir',
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
@@ -199,7 +208,7 @@ class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "Incluir en patrimonio",
+                      "Patrimonio",
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -234,6 +243,17 @@ class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
                                       !wallet.incluirEnPatrimonio,
                                 ),
                               );
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                !wallet.incluirEnPatrimonio
+                                    ? 'La cuenta ya cuenta dentro de tu patrimonio.'
+                                    : 'La cuenta quedó fuera de tu patrimonio.',
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
                         } catch (error) {
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -328,9 +348,9 @@ class WalletDetailSheet extends ConsumerWidget {
 
     // Type labels
     final Map<String, String> tipoLabels = {
-      'cuentas': 'Cuenta principal',
+      'cuentas': 'Cuenta',
       'gastos': 'Tarjeta o efectivo',
-      'deudas': 'Préstamo o deuda',
+      'deudas': 'Deuda',
     };
 
     final activeBudget = ref.watch(selectedBudgetProvider);
@@ -375,7 +395,7 @@ class WalletDetailSheet extends ConsumerWidget {
           Navigator.pop(context);
           messenger.showSnackBar(
             const SnackBar(
-              content: Text('Cuenta actualizada'),
+              content: Text('Listo. Guardamos los cambios de la cuenta.'),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -396,7 +416,7 @@ class WalletDetailSheet extends ConsumerWidget {
           ),
           title: const Text('Eliminar cuenta'),
           content: Text(
-            'Eliminarás "${w.nombre}" de tu cartera. Esta acción no se puede deshacer.',
+            'Eliminarás "${w.nombre}" de tu cartera y ya no podrás recuperarla.',
           ),
           actions: [
             TextButton(
@@ -409,7 +429,7 @@ class WalletDetailSheet extends ConsumerWidget {
                 backgroundColor: AppColors.r5,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Eliminar'),
+              child: const Text('Sí, eliminar'),
             ),
           ],
         ),
@@ -424,7 +444,7 @@ class WalletDetailSheet extends ConsumerWidget {
           Navigator.pop(context);
           messenger.showSnackBar(
             const SnackBar(
-              content: Text('Cuenta eliminada'),
+              content: Text('La cuenta fue eliminada.'),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -580,7 +600,7 @@ class WalletDetailSheet extends ConsumerWidget {
 
                     // Balance
                     Text(
-                      "SALDO ACTUAL",
+                      "SALDO",
                       style: TextStyle(
                         fontSize: 10,
                         color: Colors.white.withValues(alpha: 0.4),
@@ -651,7 +671,7 @@ class WalletDetailSheet extends ConsumerWidget {
                                       ),
                                       SizedBox(width: 8),
                                       Text(
-                                        "Transferir",
+                                        "Mover dinero",
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
@@ -689,7 +709,7 @@ class WalletDetailSheet extends ConsumerWidget {
                                       ),
                                       SizedBox(width: 8),
                                       Text(
-                                        "Editar",
+                                        "Editar cuenta",
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
@@ -755,7 +775,7 @@ class WalletDetailSheet extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(22),
                         ),
                         child: const Text(
-                          "No hay movimientos para esta cuenta en el presupuesto seleccionado.",
+                          "Todavía no hay movimientos en esta cuenta para este periodo.",
                           style: TextStyle(fontSize: 13, color: AppColors.g4),
                           textAlign: TextAlign.center,
                         ),

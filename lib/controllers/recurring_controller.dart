@@ -21,7 +21,9 @@ class RecurringController extends AsyncNotifier<List<RecurringTransaction>> {
     final userId = _uid();
     if (userId == 0) return;
 
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<RecurringTransaction>>().copyWithPrevious(
+      state,
+    );
     state = await AsyncValue.guard(
       () => ref.read(recurringServiceProvider).fetchRecurring(userId),
     );
@@ -33,7 +35,9 @@ class RecurringController extends AsyncNotifier<List<RecurringTransaction>> {
     final userId = _uid();
     if (userId == 0) return null;
 
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<RecurringTransaction>>().copyWithPrevious(
+      state,
+    );
     try {
       final created = await ref
           .read(recurringServiceProvider)
@@ -55,7 +59,9 @@ class RecurringController extends AsyncNotifier<List<RecurringTransaction>> {
     final userId = _uid();
     if (userId == 0) return null;
 
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<RecurringTransaction>>().copyWithPrevious(
+      state,
+    );
     try {
       final updated = await ref
           .read(recurringServiceProvider)

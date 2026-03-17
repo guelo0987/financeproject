@@ -99,7 +99,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         return AlertDialog(
           title: const Text('Eliminar presupuesto'),
           content: const Text(
-            'Esta acción eliminará el presupuesto y ya no podrás recuperarlo.',
+            'Eliminarás este presupuesto y ya no podrás recuperarlo.',
           ),
           actions: [
             TextButton(
@@ -109,7 +109,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               child: const Text(
-                'Eliminar',
+                'Sí, eliminar',
                 style: TextStyle(color: AppColors.r5),
               ),
             ),
@@ -578,15 +578,13 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   Widget _buildSharedBudgetSection({required bool isShared}) {
     final previewMembers = _members.take(3).toList();
     final extraMembers = _members.length - previewMembers.length;
-    final title = isShared
-        ? 'Presupuesto compartido'
-        : 'Comparte este presupuesto';
+    final title = isShared ? 'Presupuesto compartido' : 'Compartir presupuesto';
     final subtitle = _isLoadingMembers
-        ? 'Cargando miembros...'
+        ? 'Preparando accesos...'
         : isShared
         ? '${_members.length} miembro${_members.length == 1 ? '' : 's'} con acceso'
-        : 'Invita hasta 3 personas por email';
-    final actionLabel = isShared ? 'Gestionar' : 'Invitar';
+        : 'Invita hasta 3 personas por correo';
+    final actionLabel = isShared ? 'Abrir' : 'Invitar';
 
     return Container(
       margin: const EdgeInsets.only(top: 20),
@@ -827,9 +825,21 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                 .toList(),
           ),
           const SizedBox(height: 18),
+        ] else ...[
+          const _BudgetSectionTitle(title: 'Ingresos planificados'),
+          const SizedBox(height: 10),
+          _PlanStateCard(
+            icon: LucideIcons.trendingUp,
+            title: 'Todavía no has definido ingresos',
+            message:
+                'Añade ingresos esperados para que este plan se entienda mejor de un vistazo.',
+            actionLabel: 'Editar presupuesto',
+            onTap: _openBudgetEditor,
+          ),
+          const SizedBox(height: 18),
         ],
         if (otherIncomeSources.isNotEmpty) ...[
-          const _BudgetSectionTitle(title: 'Ingresos extra'),
+          const _BudgetSectionTitle(title: 'Ingresos fuera del plan'),
           const SizedBox(height: 10),
           _buildPlanGrid(
             context,
@@ -847,22 +857,32 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         ],
         const _BudgetSectionTitle(title: 'Categorías con límite'),
         const SizedBox(height: 10),
-        _buildPlanGrid(
-          context,
-          expenseCategories
-              .map(
-                (cat) => _PlanCategoryRow(
-                  cat: cat,
-                  parentLabel: _parentLabelForExpense(cat, categoriesById),
-                  budgetTotal: budget.displayIncomeBase,
-                  fmt: _fmt,
-                ),
-              )
-              .toList(),
-        ),
+        if (expenseCategories.isEmpty)
+          _PlanStateCard(
+            icon: LucideIcons.layoutGrid,
+            title: 'Aún no has organizado este plan',
+            message:
+                'Agrega categorías con límite para repartir mejor lo que quieres gastar.',
+            actionLabel: 'Editar presupuesto',
+            onTap: _openBudgetEditor,
+          )
+        else
+          _buildPlanGrid(
+            context,
+            expenseCategories
+                .map(
+                  (cat) => _PlanCategoryRow(
+                    cat: cat,
+                    parentLabel: _parentLabelForExpense(cat, categoriesById),
+                    budgetTotal: budget.displayIncomeBase,
+                    fmt: _fmt,
+                  ),
+                )
+                .toList(),
+          ),
         if (extraExpenseCategories.isNotEmpty) ...[
           const SizedBox(height: 18),
-          const _BudgetSectionTitle(title: 'Gastos sin tope'),
+          const _BudgetSectionTitle(title: 'Gastos fuera del plan'),
           const SizedBox(height: 10),
           _buildPlanGrid(
             context,
@@ -875,6 +895,17 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                   ),
                 )
                 .toList(),
+          ),
+        ] else ...[
+          const SizedBox(height: 18),
+          const _BudgetSectionTitle(title: 'Gastos fuera del plan'),
+          const SizedBox(height: 10),
+          const _PlanStateCard(
+            icon: LucideIcons.shieldCheck,
+            title: 'Todo va dentro del plan',
+            message:
+                'Cuando aparezca un gasto fuera de las categorías configuradas, lo verás aquí.',
+            tone: _PlanStateTone.success,
           ),
         ],
       ],
@@ -1337,6 +1368,98 @@ class _InlineInfoCard extends StatelessWidget {
 
 enum _InfoCardTone { neutral, error }
 
+class _PlanStateCard extends StatelessWidget {
+  const _PlanStateCard({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.actionLabel,
+    this.onTap,
+    this.tone = _PlanStateTone.neutral,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onTap;
+  final _PlanStateTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = tone == _PlanStateTone.success ? AppColors.e6 : AppColors.e8;
+    final background = tone == _PlanStateTone.success
+        ? AppColors.e1
+        : AppColors.g1;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: accent.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 20, color: accent),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.e8,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.g5,
+                  ),
+                ),
+                if (actionLabel != null && onTap != null) ...[
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: onTap,
+                    child: Text(
+                      actionLabel!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        color: accent,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+enum _PlanStateTone { neutral, success }
+
 class _BudgetMembersSheet extends ConsumerStatefulWidget {
   final int budgetId;
   final List<BudgetMember> initialMembers;
@@ -1400,7 +1523,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Quitar miembro'),
-        content: Text('Se removerá a ${member.n} de este presupuesto.'),
+        content: Text('${member.n} perderá acceso a este presupuesto.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -1408,7 +1531,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Quitar'),
+            child: const Text('Sí, quitar'),
           ),
         ],
       ),
@@ -1423,11 +1546,21 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
           .removeBudgetMember(widget.budgetId, targetUserId);
       if (!mounted) return;
       await _loadMembers();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${member.n} ya no tiene acceso a este presupuesto.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(presentError(error))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(presentError(error)),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _removingUserId = null);
@@ -1462,7 +1595,20 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Escribe un correo antes de enviar la invitación.'),
+          content: Text('Escribe un correo para poder invitar a alguien.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailPattern.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Ese correo no parece válido. Revísalo e inténtalo otra vez.',
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -1480,7 +1626,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Invitación enviada a $email.'),
+          content: Text('Listo. Enviamos la invitación a $email.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -1539,7 +1685,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'Acceso real a este presupuesto',
+                          'Personas con acceso a este presupuesto',
                           style: TextStyle(
                             fontSize: 13,
                             color: AppColors.g4,
@@ -1584,7 +1730,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                             ),
                             const SizedBox(height: 6),
                             const Text(
-                              'Envía acceso a este presupuesto sin volver al wizard.',
+                              'Comparte acceso sin salir de aquí.',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppColors.g4,
@@ -1689,8 +1835,8 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                         padding: EdgeInsets.only(top: 12),
                         child: _InlineInfoCard(
                           text: _canManageMembers
-                              ? 'Todavía no hay miembros aceptados. Las invitaciones nuevas aparecerán aquí cuando la persona se una.'
-                              : 'Este presupuesto todavía no tiene miembros adicionales.',
+                              ? 'Todavía nadie se ha unido. Cuando acepten su invitación, aparecerán aquí.'
+                              : 'Por ahora solo tú tienes acceso a este presupuesto.',
                         ),
                       )
                     else

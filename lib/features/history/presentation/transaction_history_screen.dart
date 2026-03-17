@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
+import '../../../shared/widgets/menudo_loading_view.dart';
 import '../../budgets/budget_providers.dart';
 import '../../transactions/presentation/transaction_presentation_utils.dart';
 import '../../transactions/providers/transaction_providers.dart';
@@ -70,6 +71,7 @@ class _TransactionHistoryScreenState
 
   @override
   Widget build(BuildContext context) {
+    final txnsAsync = ref.watch(transactionNotifierProvider);
     final txns = ref.watch(effectiveTransactionsProvider);
     final wallets = ref.watch(effectiveWalletsProvider);
     final activeBudget = ref.watch(selectedBudgetProvider);
@@ -83,6 +85,17 @@ class _TransactionHistoryScreenState
     final totalGastos = txns
         .where((t) => t.tipo == 'gasto')
         .fold(0.0, (s, t) => s + t.monto.abs());
+
+    if (txnsAsync.isLoading && txns.isEmpty) {
+      return const Scaffold(
+        backgroundColor: AppColors.g0,
+        body: MenudoLoadingView(
+          title: 'Cargando historial',
+          message: 'Estamos organizando tus movimientos recientes.',
+          logoSize: 88,
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.g0,
@@ -151,7 +164,12 @@ class _TransactionHistoryScreenState
             ),
           ),
           if (grouped.isEmpty)
-            SliverFillRemaining(child: _buildEmptyState())
+            SliverFillRemaining(
+              child: _buildEmptyState(
+                hasTransactions: txns.isNotEmpty,
+                filter: _filter,
+              ),
+            )
           else
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
@@ -187,7 +205,22 @@ class _TransactionHistoryScreenState
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState({
+    required bool hasTransactions,
+    required String filter,
+  }) {
+    final title = hasTransactions
+        ? switch (filter) {
+            'Gastos' => 'No hay gastos en esta vista',
+            'Ingresos' => 'No hay ingresos en esta vista',
+            'Transferencias' => 'No hay transferencias en esta vista',
+            _ => 'Todavía no hay movimientos',
+          }
+        : 'Todavía no hay movimientos';
+    final body = hasTransactions
+        ? 'Prueba con otra vista o vuelve más tarde para ver nuevos movimientos.'
+        : 'Cuando registres uno, lo verás aquí.';
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -202,8 +235,8 @@ class _TransactionHistoryScreenState
             child: const Icon(LucideIcons.inbox, size: 30, color: AppColors.g3),
           ),
           const SizedBox(height: 16),
-          const Text(
-            "Aún no hay movimientos",
+          Text(
+            title,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
@@ -211,9 +244,10 @@ class _TransactionHistoryScreenState
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            "Cuando guardes uno, lo verás aquí.",
+          Text(
+            body,
             style: TextStyle(fontSize: 14, color: AppColors.g5),
+            textAlign: TextAlign.center,
           ),
         ],
       ),

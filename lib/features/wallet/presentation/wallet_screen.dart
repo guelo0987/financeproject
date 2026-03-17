@@ -7,6 +7,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../core/utils/error_presenter.dart';
+import '../../../../shared/widgets/menudo_loading_view.dart';
 import '../../auth/auth_state.dart';
 import '../providers/wallet_providers.dart';
 import 'wallet_detail_sheet.dart';
@@ -58,10 +59,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
-          content: const Text(
-            'Cuenta agregada',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          content: const Text('Listo. Tu cuenta ya aparece en la cartera.'),
           backgroundColor: AppColors.e6,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -93,6 +91,17 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   Widget build(BuildContext context) {
     final walletAsync = ref.watch(walletNotifierProvider);
     final wallets = ref.watch(effectiveWalletsProvider);
+
+    if (walletAsync.isLoading && wallets.isEmpty) {
+      return const Scaffold(
+        backgroundColor: AppColors.g0,
+        body: MenudoLoadingView(
+          title: 'Cargando tu cartera',
+          message: 'Estamos organizando tus cuentas y balances.',
+          logoSize: 88,
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.g0,
@@ -445,7 +454,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           ),
           const SizedBox(height: 20),
           const Text(
-            "Tu cartera está vacía",
+            "Aún no has agregado cuentas",
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -454,7 +463,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            "Agrega tus cuentas bancarias, efectivo o deudas para empezar a ver tu patrimonio real.",
+            "Agrega efectivo, cuentas o deudas para ver todo tu dinero en un solo lugar.",
             style: TextStyle(fontSize: 14, color: AppColors.g5, height: 1.4),
             textAlign: TextAlign.center,
           ),
@@ -465,7 +474,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               backgroundColor: AppColors.o5,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Crear primera cuenta'),
+            child: const Text('Agregar primera cuenta'),
           ),
         ],
       ),

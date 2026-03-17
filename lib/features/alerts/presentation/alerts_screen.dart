@@ -7,6 +7,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/error_presenter.dart';
 import '../../../../model/models.dart';
+import '../../../../shared/widgets/menudo_loading_view.dart';
 import '../../auth/auth_state.dart';
 import '../../budgets/budget_providers.dart' as budget_providers;
 import '../../budgets/presentation/budget_detail_sheet.dart';
@@ -35,6 +36,13 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
         content: Text(presentError(error)),
         behavior: SnackBarBehavior.floating,
       ),
+    );
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -70,12 +78,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
       if (budgetId != null) {
         await _showBudgetDetails(budgetId);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invitación aceptada. Ya puedes ver el presupuesto.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        _showMessage('Listo. Ya puedes ver este presupuesto.');
       }
     } catch (error) {
       _showError(error);
@@ -92,6 +95,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
     setState(() => _markingAll = true);
     try {
       await ref.read(alertControllerProvider.notifier).markAllAsRead();
+      _showMessage('Listo. Ya revisaste todas tus alertas.');
     } catch (error) {
       _showError(error);
     } finally {
@@ -129,7 +133,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
   Future<void> _openBudget(AppAlert alert) async {
     final budgetId = alert.extra.budgetId;
     if (budgetId == null) {
-      _showError('Esta alerta no se puede abrir.');
+      _showError('Esta alerta todavía no se puede abrir.');
       return;
     }
 
@@ -186,10 +190,16 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                 ),
               ),
               ...alertsAsync.when(
+                skipLoadingOnRefresh: true,
+                skipLoadingOnReload: true,
                 loading: () => [
-                  const SliverFillRemaining(
+                  SliverFillRemaining(
                     hasScrollBody: false,
-                    child: Center(child: CircularProgressIndicator()),
+                    child: MenudoLoadingView(
+                      title: 'Cargando alertas',
+                      message: 'Estamos revisando tus novedades.',
+                      logoSize: 88,
+                    ),
                   ),
                 ],
                 error: (error, _) => [
@@ -220,9 +230,9 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                           padding: EdgeInsets.all(20),
                           child: _StateCard(
                             icon: LucideIcons.bell,
-                            title: 'No tienes alertas',
+                            title: 'Por ahora no tienes alertas',
                             body:
-                                'Cuando alguien te invite o haya novedades, aparecerán aquí.',
+                                'Cuando tengas invitaciones o novedades importantes, aparecerán aquí.',
                           ),
                         ),
                       ),
@@ -259,7 +269,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                                           strokeWidth: 2,
                                         ),
                                       )
-                                    : const Text('Marcar todas'),
+                                    : const Text('Marcar todo'),
                               ),
                           ],
                         ),

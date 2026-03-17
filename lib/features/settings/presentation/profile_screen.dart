@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/error_presenter.dart';
@@ -11,6 +12,7 @@ import '../../../model/user_profile.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_card.dart';
 import '../../../shared/widgets/menudo_chip.dart';
+import '../../../shared/widgets/menudo_loading_view.dart';
 import '../../budgets/budget_providers.dart';
 import '../../auth/auth_state.dart';
 
@@ -102,14 +104,65 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return 'Desde ${DateFormat('MMM yyyy', 'es').format(profile.createdAt!)}';
   }
 
-  String _budgetLabel(UserProfile profile) {
-    final budgets = ref.read(effectiveBudgetsProvider);
+  String _budgetLabel(
+    UserProfile profile,
+    List<MenudoBudget> budgets, {
+    required bool isLoading,
+  }) {
+    if (isLoading && budgets.isEmpty) {
+      return 'Cargando opciones...';
+    }
     for (final budget in budgets) {
       if (budget.id == profile.defaultBudgetId) {
         return budget.nombre;
       }
     }
-    return 'Se elige desde Presupuestos';
+    return budgets.isEmpty
+        ? 'Aún no tienes presupuestos'
+        : 'Elegir presupuesto';
+  }
+
+  Future<void> _pickDefaultBudget(UserProfile profile) async {
+    final budgets = ref.read(effectiveBudgetsProvider);
+    final budgetsState = ref.read(budgetNotifierProvider);
+    if (budgetsState.isLoading && budgets.isEmpty) {
+      _showMessage('Todavía estamos cargando tus presupuestos.');
+      return;
+    }
+    if (budgets.isEmpty) {
+      _showMessage('Cuando tengas un presupuesto, podrás dejarlo fijo aquí.');
+      return;
+    }
+
+    final result = await showModalBottomSheet<_DefaultBudgetSelection>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _DefaultBudgetSheet(
+        budgets: budgets,
+        selectedBudgetId: profile.defaultBudgetId,
+      ),
+    );
+
+    if (result == null) return;
+
+    try {
+      await ref.read(authProvider.notifier).setDefaultBudget(result.budgetId);
+      if (result.budgetId != null) {
+        ref
+            .read(budgetControllerProvider.notifier)
+            .selectBudgetLocally(result.budgetId!);
+      }
+      if (!mounted) return;
+      _showMessage(
+        result.budgetId == null
+            ? 'Ya no tienes un presupuesto fijo al abrir la app.'
+            : 'Tu presupuesto fijo ya quedó actualizado.',
+      );
+    } catch (error) {
+      _showMessage(presentError(error));
+    }
   }
 
   Future<void> _pickGoalDate() async {
@@ -163,7 +216,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tus cambios fueron guardados.')),
+        const SnackBar(
+          content: Text('Listo. Guardamos los cambios de tu perfil.'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     } catch (error) {
       _showMessage(presentError(error));
@@ -186,19 +242,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(authProvider).profile;
+    final budgetsState = ref.watch(budgetNotifierProvider);
+    final budgets = ref.watch(effectiveBudgetsProvider);
 
     if (profile == null) {
       return const Scaffold(
         backgroundColor: MenudoColors.appBg,
-        body: Center(child: CircularProgressIndicator()),
+        body: SafeArea(
+          child: MenudoLoadingView(
+            title: 'Cargando tu perfil',
+            message: 'Estamos trayendo tus datos personales.',
+          ),
+        ),
       );
     }
 
@@ -415,9 +478,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ),
                       ),
                       const SizedBox(height: 16),
-                      _FieldLabel('Presupuesto activo'),
+                      _FieldLabel('Presupuesto predeterminado'),
                       const SizedBox(height: 8),
-                      _ReadOnlyField(value: _budgetLabel(profile)),
+                      _ReadOnlyField(
+                        value: _budgetLabel(
+                          profile,
+                          budgets,
+                          isLoading:
+                              budgetsState.isLoading &&
+                              budgetsState.valueOrNull == null,
+                        ),
+                        onTap: () => _pickDefaultBudget(profile),
+                      ),
                     ],
                   ),
                 ),
@@ -437,7 +509,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Cambia tu contraseña cuando lo necesites.',
+                        'Hazlo cuando quieras mantener tu cuenta más segura.',
                         style: MenudoTextStyles.bodySmall.copyWith(
                           color: MenudoColors.textMuted,
                         ),
@@ -456,7 +528,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
                 child: MenudoButton(
-                  label: _isSaving ? 'Guardando...' : 'Guardar cambios',
+                  label: _isSaving ? 'Guardando perfil...' : 'Guardar perfil',
                   isFullWidth: true,
                   isDisabled: _isSaving,
                   onTap: _saveProfile,
@@ -497,9 +569,9 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
   }
 
   Future<void> _save() async {
@@ -509,7 +581,7 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
     final confirm = _confirmController.text;
 
     if (current.isEmpty || next.isEmpty || confirm.isEmpty) {
-      _showMessage('Completa los tres campos.');
+      _showMessage('Completa tu contraseña actual y la nueva.');
       return;
     }
     if (next.length < 8) {
@@ -517,7 +589,7 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
       return;
     }
     if (next != confirm) {
-      _showMessage('Las contraseñas no coinciden.');
+      _showMessage('La confirmación no coincide todavía.');
       return;
     }
 
@@ -529,7 +601,10 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tu contraseña fue actualizada.')),
+        const SnackBar(
+          content: Text('Listo. Tu contraseña ya quedó actualizada.'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     } catch (error) {
       _showMessage(presentError(error));
@@ -596,7 +671,7 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
           ),
           const SizedBox(height: 18),
           MenudoButton(
-            label: _saving ? 'Guardando...' : 'Actualizar contraseña',
+            label: _saving ? 'Guardando contraseña...' : 'Guardar contraseña',
             isFullWidth: true,
             isDisabled: _saving,
             onTap: _save,
@@ -750,6 +825,168 @@ class _ReadOnlyField extends StatelessWidget {
                 Icons.chevron_right_rounded,
                 color: MenudoColors.textMuted,
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DefaultBudgetSelection {
+  const _DefaultBudgetSelection(this.budgetId);
+
+  final int? budgetId;
+}
+
+class _DefaultBudgetSheet extends StatelessWidget {
+  const _DefaultBudgetSheet({
+    required this.budgets,
+    required this.selectedBudgetId,
+  });
+
+  final List<MenudoBudget> budgets;
+  final int? selectedBudgetId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        14,
+        20,
+        24 + MediaQuery.of(context).padding.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.g2,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text('Presupuesto predeterminado', style: MenudoTextStyles.h3),
+          const SizedBox(height: 6),
+          Text(
+            'Será el presupuesto que verás primero al entrar.',
+            style: MenudoTextStyles.bodySmall.copyWith(
+              color: MenudoColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 18),
+          ...budgets.map((budget) {
+            final isSelected = budget.id == selectedBudgetId;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _BudgetSelectionTile(
+                label: budget.nombre,
+                subtitle: budget.periodo,
+                selected: isSelected,
+                onTap: () => Navigator.of(
+                  context,
+                ).pop(_DefaultBudgetSelection(budget.id)),
+              ),
+            );
+          }),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: _BudgetSelectionTile(
+              label: 'No dejar uno fijo',
+              subtitle: 'Lo elegirás manualmente cuando lo necesites',
+              selected: selectedBudgetId == null,
+              isNeutral: true,
+              onTap: () => Navigator.of(
+                context,
+              ).pop(const _DefaultBudgetSelection(null)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BudgetSelectionTile extends StatelessWidget {
+  const _BudgetSelectionTile({
+    required this.label,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+    this.isNeutral = false,
+  });
+
+  final String label;
+  final String subtitle;
+  final bool selected;
+  final bool isNeutral;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = isNeutral ? AppColors.g5 : AppColors.e8;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: selected
+              ? accent.withValues(alpha: isNeutral ? 0.08 : 0.1)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected ? accent : MenudoColors.border,
+            width: selected ? 1.6 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                color: selected ? accent : Colors.transparent,
+                shape: BoxShape.circle,
+                border: Border.all(color: selected ? accent : AppColors.g3),
+              ),
+              alignment: Alignment.center,
+              child: selected
+                  ? const Icon(Icons.check, size: 12, color: Colors.white)
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: MenudoTextStyles.bodyLarge.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: MenudoColors.textMain,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: MenudoTextStyles.bodySmall.copyWith(
+                      color: MenudoColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

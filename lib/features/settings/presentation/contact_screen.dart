@@ -32,7 +32,7 @@ class _ContactScreenState extends ConsumerState<ContactScreen> {
 
   void _copyEmail() {
     Clipboard.setData(const ClipboardData(text: _supportEmail));
-    _showMessage('Correo copiado.');
+    _showMessage('Listo. El correo ya está copiado.');
   }
 
   void _copyMessage() {
@@ -41,30 +41,34 @@ class _ContactScreenState extends ConsumerState<ContactScreen> {
     final message = _messageController.text.trim();
 
     if (title.isEmpty || message.isEmpty) {
-      _showMessage('Escribe un asunto y un mensaje.');
+      _showMessage('Escribe un asunto y cuéntanos qué pasó.');
       return;
     }
+
+    final details = <String>[
+      if (profile?.email.trim().isNotEmpty == true) 'Cuenta: ${profile!.email}',
+      if (profile?.name.trim().isNotEmpty == true) 'Nombre: ${profile!.name}',
+      '',
+      'Detalle:',
+      message,
+    ];
 
     final formatted =
         '''
 Tipo: $_topic
 Asunto: $title
-Cuenta: ${profile?.email ?? 'Sin correo'}
-Nombre: ${profile?.name ?? 'Sin nombre'}
-
-Detalle:
-$message
+${details.join('\n')}
 ''';
 
     Clipboard.setData(ClipboardData(text: formatted.trim()));
-    _showMessage('Mensaje copiado. Ya puedes enviarlo.');
+    _showMessage('Listo. El mensaje ya quedó copiado.');
   }
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
   }
 
   @override
@@ -121,7 +125,7 @@ $message
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Cuéntanos cómo va tu experiencia.',
+                        'Cuéntanos qué podemos mejorar.',
                         style: MenudoTextStyles.h2.copyWith(
                           color: Colors.white,
                           fontSize: 26,
@@ -129,7 +133,7 @@ $message
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Puedes reportar un bug, pedir una mejora o escribirnos una idea.',
+                        'Puedes reportar un problema, pedir una mejora o escribirnos una idea.',
                         style: MenudoTextStyles.bodyMedium.copyWith(
                           color: Colors.white.withValues(alpha: 0.85),
                         ),
@@ -142,7 +146,7 @@ $message
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: _SectionTitle('Qué quieres enviar'),
+                child: _SectionTitle('Qué quieres contarnos'),
               ),
             ),
             SliverToBoxAdapter(
@@ -211,7 +215,7 @@ $message
                       if (profile != null) ...[
                         const SizedBox(height: 16),
                         Text(
-                          'Se añadirá tu correo: ${profile.email}',
+                          'Añadiremos tu correo para que podamos responderte mejor.',
                           style: MenudoTextStyles.bodySmall.copyWith(
                             color: MenudoColors.textMuted,
                           ),
@@ -260,7 +264,7 @@ $message
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Copia el mensaje y envíalo a este correo.',
+                              'Si prefieres, copia el mensaje y envíalo a este correo.',
                               style: MenudoTextStyles.bodySmall.copyWith(
                                 color: MenudoColors.textMuted,
                               ),
@@ -284,7 +288,7 @@ $message
                   children: [
                     Expanded(
                       child: MenudoSecondaryButton(
-                        label: 'Copiar correo',
+                        label: 'Copiar email',
                         onTap: _copyEmail,
                       ),
                     ),

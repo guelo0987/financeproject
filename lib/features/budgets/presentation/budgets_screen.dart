@@ -238,7 +238,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
             ),
             const SizedBox(height: 16),
             const Text(
-              "No hay presupuestos",
+              "Todavía no tienes presupuestos aquí",
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -247,8 +247,11 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              "No se encontraron presupuestos en la categoría '$_filtro'",
+              _filtro == "Todos"
+                  ? "Cuando crees uno, aparecerá aquí."
+                  : "No encontramos presupuestos en la vista '$_filtro'.",
               style: const TextStyle(fontSize: 14, color: AppColors.g5),
+              textAlign: TextAlign.center,
             ),
           ],
         ),

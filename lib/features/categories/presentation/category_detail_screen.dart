@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
+import '../../../shared/widgets/menudo_loading_view.dart';
 import '../../budgets/budget_providers.dart';
 import '../providers/category_providers.dart';
 import '../../transactions/providers/transaction_providers.dart';
@@ -28,6 +29,8 @@ class CategoryDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final categoriesState = ref.watch(categoryNotifierProvider);
+    final transactionsState = ref.watch(transactionNotifierProvider);
     final activeBudget = ref.watch(selectedBudgetProvider);
     final categories = ref.watch(effectiveCategoriesProvider);
     final budgetCat = activeBudget?.cats[catKey];
@@ -107,6 +110,18 @@ class CategoryDetailScreen extends ConsumerWidget {
         ? min(totalSpent / limite, 1.0)
         : 0;
     final bool over = hasLimit && totalSpent > limite;
+
+    if ((categoriesState.isLoading && categories.isEmpty) ||
+        (transactionsState.isLoading && txns.isEmpty)) {
+      return const Scaffold(
+        backgroundColor: AppColors.g0,
+        body: MenudoLoadingView(
+          title: 'Cargando categoría',
+          message: 'Estamos preparando el detalle de esta categoría.',
+          logoSize: 88,
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.g0,
@@ -305,7 +320,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          "Sin límite en este presupuesto",
+                          "Esta categoría no tiene tope en este presupuesto",
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -374,7 +389,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 14),
                   const Text(
-                    "Sin transacciones",
+                    "Todavía no hay movimientos en esta categoría",
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -383,7 +398,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    "Todavía no hay movimientos en esta categoría.",
+                    "Cuando registres uno, lo verás aquí.",
                     style: TextStyle(fontSize: 13, color: AppColors.g4),
                     textAlign: TextAlign.center,
                   ),

@@ -30,21 +30,21 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
   final List<Map<String, dynamic>> _typeOptions = [
     {
       'label': 'Cuentas',
-      'sub': 'Cuenta bancaria o cuenta de ahorros',
+      'sub': 'Banco, ahorro o efectivo',
       'tipo': 'cuentas',
       'color': AppColors.e6,
       'defaultIcon': LucideIcons.landmark,
     },
     {
       'label': 'Gastos',
-      'sub': 'Tarjeta de crédito, efectivo o fondos de uso diario',
+      'sub': 'Tarjeta o dinero de uso diario',
       'tipo': 'gastos',
       'color': AppColors.b5,
       'defaultIcon': LucideIcons.creditCard,
     },
     {
       'label': 'Deudas',
-      'sub': 'Préstamo, hipoteca o deuda pendiente',
+      'sub': 'Préstamo o saldo pendiente',
       'tipo': 'deudas',
       'color': AppColors.r5,
       'defaultIcon': LucideIcons.shieldAlert,
@@ -148,8 +148,24 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
     return '$whole.${parts.sublist(1).join()}';
   }
 
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
+  }
+
   void _save() {
-    if (_nameController.text.trim().isEmpty) return;
+    if (_nameController.text.trim().isEmpty) {
+      _showError('Ponle un nombre a esta cuenta.');
+      return;
+    }
+
+    if ((double.tryParse(_amount) ?? 0) <= 0) {
+      _showError('Escribe un monto mayor que cero.');
+      return;
+    }
+
     HapticFeedback.mediumImpact();
     final tipo = _typeOptions[_typeIndex]['tipo'] as String;
     final saldo = (double.tryParse(_amount) ?? 0) * (tipo == 'deudas' ? -1 : 1);
@@ -385,7 +401,7 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
                               color: AppColors.e8,
                             ),
                             decoration: const InputDecoration(
-                              hintText: 'Ej. BHD León Nómina',
+                              hintText: 'Ej. Cuenta nómina',
                               hintStyle: TextStyle(color: AppColors.g3),
                               border: InputBorder.none,
                               isDense: true,
@@ -512,8 +528,8 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
                                       const SizedBox(height: 3),
                                       Text(
                                         _includeInNetWorth
-                                            ? 'Esta wallet contará en la tarjeta de patrimonio neto.'
-                                            : 'Úsalo para tarjetas de crédito u otras wallets que no quieras sumar al patrimonio.',
+                                            ? 'Esta cuenta contará dentro de tu patrimonio.'
+                                            : 'Úsalo para tarjetas de crédito u otras cuentas que prefieras dejar aparte.',
                                         style: const TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w500,
@@ -689,7 +705,7 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      _isEditing ? 'Guardar cambios' : 'Agregar cuenta',
+                      _isEditing ? 'Guardar cuenta' : 'Crear cuenta',
                       style: TextStyle(
                         color: canSave ? Colors.white : AppColors.g4,
                         fontSize: 16,

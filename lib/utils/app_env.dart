@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 class AppEnv {
   static const _apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:3000',
+    defaultValue: 'https://financeapp-backend-eight.vercel.app',
   );
   static const _androidBaseUrl = String.fromEnvironment(
     'API_BASE_URL_ANDROID',

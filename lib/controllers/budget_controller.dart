@@ -33,7 +33,7 @@ class BudgetController extends AsyncNotifier<List<MenudoBudget>> {
     if (userId == 0) return;
     final currentSelectedBudgetId = _currentSelectedBudgetId();
 
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<MenudoBudget>>().copyWithPrevious(state);
     state = await AsyncValue.guard(() async {
       final budgets = await ref
           .read(budgetServiceProvider)
@@ -55,7 +55,7 @@ class BudgetController extends AsyncNotifier<List<MenudoBudget>> {
     final userId = _uid();
     if (userId == 0) return null;
 
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<MenudoBudget>>().copyWithPrevious(state);
     try {
       final created = await ref
           .read(budgetServiceProvider)
@@ -86,7 +86,7 @@ class BudgetController extends AsyncNotifier<List<MenudoBudget>> {
     final userId = _uid();
     if (userId == 0) return null;
 
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<MenudoBudget>>().copyWithPrevious(state);
     try {
       final updated = await ref
           .read(budgetServiceProvider)
@@ -107,7 +107,7 @@ class BudgetController extends AsyncNotifier<List<MenudoBudget>> {
     final userId = _uid();
     if (userId == 0) return;
 
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<MenudoBudget>>().copyWithPrevious(state);
     try {
       await ref.read(budgetServiceProvider).activateBudget(budgetId);
       final budgets = await ref
@@ -125,7 +125,7 @@ class BudgetController extends AsyncNotifier<List<MenudoBudget>> {
     final userId = _uid();
     if (userId == 0) return;
 
-    state = const AsyncValue.loading();
+    state = const AsyncLoading<List<MenudoBudget>>().copyWithPrevious(state);
     try {
       await ref.read(budgetServiceProvider).deleteBudget(budgetId);
       final budgets = await ref

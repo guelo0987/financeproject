@@ -10,6 +10,7 @@ import '../../alerts/providers/alert_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../shared/widgets/menudo_chip.dart';
+import '../../../../shared/widgets/menudo_loading_view.dart';
 import '../../auth/auth_state.dart';
 import '../../budgets/budget_providers.dart';
 import '../../budgets/presentation/budget_detail_sheet.dart';
@@ -173,7 +174,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Aún no hay actividad.',
+                    'Todavía no hay actividad.',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
@@ -184,8 +185,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SizedBox(height: 8),
                   Text(
                     demoMode
-                        ? 'Esta cuenta aún no tiene movimientos reales.'
-                        : 'Crea tu primer presupuesto para empezar.',
+                        ? 'Esta cuenta todavía no tiene movimientos reales.'
+                        : 'Crea tu primer presupuesto para empezar a ver todo aquí.',
                     style: const TextStyle(fontSize: 13, color: AppColors.g4),
                     textAlign: TextAlign.center,
                   ),
@@ -210,6 +211,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final budgetsState = ref.watch(budgetNotifierProvider);
+    final walletsState = ref.watch(walletNotifierProvider);
+    final transactionsState = ref.watch(transactionNotifierProvider);
     final budgets = ref.watch(effectiveBudgetsProvider);
     final txnsThisPeriod = ref.watch(selectedBudgetPeriodTransactionsProvider);
     final wallets = ref.watch(effectiveWalletsProvider);
@@ -219,6 +223,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         .watch(unreadAlertsCountProvider)
         .maybeWhen(data: (count) => count, orElse: () => 0);
     final greetingName = _firstName(authState.profile?.name);
+    final isHydratingHome =
+        authState.isBootstrapping ||
+        (budgetsState.isLoading && budgetsState.valueOrNull == null) ||
+        (walletsState.isLoading && walletsState.valueOrNull == null) ||
+        (transactionsState.isLoading && transactionsState.valueOrNull == null);
+
+    if (isHydratingHome) {
+      return const Scaffold(
+        backgroundColor: AppColors.g0,
+        body: SafeArea(
+          child: MenudoLoadingView(
+            title: 'Cargando tu resumen',
+            message: 'Estamos preparando tus presupuestos y movimientos.',
+          ),
+        ),
+      );
+    }
 
     if (budgets.isEmpty) {
       return _buildEmptyDashboard(context, demoMode);
@@ -1200,7 +1221,7 @@ class _WalletSetupTourSheet extends StatelessWidget {
             width: double.infinity,
             child: FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Crear wallet ahora'),
+              child: const Text('Agregar cuenta ahora'),
             ),
           ),
           const SizedBox(height: 8),
