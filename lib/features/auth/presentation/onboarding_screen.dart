@@ -86,7 +86,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   const SizedBox(height: 24),
                   MenudoPrimaryButton(
-                    label: _currentPage < 2 ? 'Siguiente' : 'Continuar',
+                    label: _currentPage < 2
+                        ? 'Siguiente'
+                        : 'Configurar con Apple',
                     onTap: _nextPage,
                   ),
                   const SizedBox(height: 12),

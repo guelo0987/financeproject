@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../types/types.dart';
 import '../utils/utils.dart';
@@ -20,6 +21,14 @@ class ApiService {
 
   final http.Client _client;
   final FlutterSecureStorage _storage;
+
+  SupabaseClient? get _supabaseOrNull {
+    try {
+      return Supabase.instance.client;
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<ApiResponse<T>> get<T>(
     String path, {
@@ -187,7 +196,9 @@ class ApiService {
     };
 
     if (authenticated) {
-      final token = await _storage.read(key: StorageKeys.authToken);
+      final token =
+          _supabaseOrNull?.auth.currentSession?.accessToken ??
+          await _storage.read(key: StorageKeys.authToken);
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
@@ -270,6 +281,12 @@ class ApiService {
   }
 
   Future<void> _clearAuthSession() async {
+    try {
+      await _supabaseOrNull?.auth.signOut();
+    } catch (_) {
+      // Local cleanup below is enough to reset the app session.
+    }
+
     await _storage.delete(key: StorageKeys.authToken);
     await _storage.delete(key: StorageKeys.refreshToken);
     await _storage.delete(key: StorageKeys.userId);
@@ -284,53 +301,34 @@ class ApiService {
   }
 
   Future<bool> _refreshAuthToken() async {
-    final refreshToken = await _storage.read(key: StorageKeys.refreshToken);
-    if (refreshToken == null || refreshToken.isEmpty) {
-      await _clearAuthSession();
-      return false;
-    }
-
-    final headers = <String, String>{
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-    };
-
     try {
-      final response = await _sendRequest(
-        'POST',
-        AppEnv.uri(ApiPaths.authRefresh),
-        headers: headers,
-        encodedBody: jsonEncode({'refreshToken': refreshToken}),
-      );
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
+      final supabase = _supabaseOrNull;
+      final currentSession = supabase?.auth.currentSession;
+      if (currentSession == null) {
         await _clearAuthSession();
         return false;
       }
 
-      final decoded = _decodeBody(response.body);
-      final payload = _unwrapPayload(decoded);
-      if (payload is! Map<String, dynamic>) {
+      final response = await supabase!.auth.refreshSession();
+      final session = response.session ?? supabase.auth.currentSession;
+      if (session == null) {
         await _clearAuthSession();
         return false;
       }
 
-      final accessToken = payload['accessToken']?.toString();
-      final nextRefreshToken =
-          payload['refreshToken']?.toString() ??
-          payload['refresh_token']?.toString() ??
-          refreshToken;
-
-      if (accessToken == null || accessToken.isEmpty) {
-        await _clearAuthSession();
-        return false;
-      }
-
-      await _storage.write(key: StorageKeys.authToken, value: accessToken);
       await _storage.write(
-        key: StorageKeys.refreshToken,
-        value: nextRefreshToken,
+        key: StorageKeys.authToken,
+        value: session.accessToken,
       );
+      if (session.refreshToken != null && session.refreshToken!.isNotEmpty) {
+        await _storage.write(
+          key: StorageKeys.refreshToken,
+          value: session.refreshToken,
+        );
+      } else {
+        await _storage.delete(key: StorageKeys.refreshToken);
+      }
+
       return true;
     } catch (_) {
       await _clearAuthSession();

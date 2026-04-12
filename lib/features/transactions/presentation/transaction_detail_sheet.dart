@@ -144,100 +144,72 @@ class TransactionDetailSheet extends ConsumerWidget {
     final String formattedDate = parts.length == 3
         ? "${int.tryParse(parts[2]) ?? parts[2]} de ${months[monthIdx]} de ${parts[0]}"
         : t.dateString;
-    final String compactDate = parts.length == 3
-        ? "${int.tryParse(parts[2]) ?? parts[2]} ${['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'][monthIdx]}"
-        : t.dateString;
-
     final String categoryPathLabel =
         childCategory != null && parentCategory != null
         ? '${parentCategory.nombre} · ${childCategory.nombre}'
         : catLabel;
-    final String heroOverline = isTransfer
+    final String summaryLabel = isTransfer
         ? transferBadgeLabel
-        : (isGasto ? 'Gasto registrado' : 'Ingreso registrado');
-    final String hierarchyHint = childCategory != null
-        ? 'Pertenece a ${parentCategory?.nombre ?? catLabel}'
-        : (isGasto
-              ? 'Se guardó directo en la categoría principal'
-              : 'Movimiento asociado a esta categoría');
+        : (isGasto ? 'Gasto' : 'Ingreso');
+    final String summaryTitle = isTransfer
+        ? presentation.routeLabel
+        : categoryPathLabel;
+    final String? summaryDescription =
+        t.desc.trim().isEmpty || t.desc.trim() == summaryTitle
+        ? null
+        : t.desc.trim();
     final String formattedAmount = amountPrefix.isEmpty
         ? fmt(t.monto.abs(), currency: t.moneda)
         : "$amountPrefix${fmt(t.monto.abs(), currency: t.moneda)}";
-
-    final Color heroBase = AppColors.e8;
-    final Color heroAccent = isTransfer
+    final summaryColor = isTransfer
         ? AppColors.b5
-        : _mix(AppColors.e7, catColor, 0.35);
-    final Color heroShadow = _mix(heroAccent, Colors.black, 0.28);
+        : _mix(amountColor, catColor, 0.4);
+    final summaryIcon = isTransfer ? LucideIcons.arrowRightLeft : catIcon;
 
-    final metrics = <_DetailMetric>[
-      _DetailMetric(
-        icon: isTransfer
-            ? LucideIcons.arrowRightLeft
-            : (isGasto ? LucideIcons.trendingDown : LucideIcons.trendingUp),
-        iconColor: amountColor,
-        label: 'Monto',
-        value: formattedAmount,
-      ),
+    final detailRows = <_SimpleDetailRowData>[
       if (!isTransfer)
-        _DetailMetric(
+        _SimpleDetailRowData(
           icon: parentCategory?.icono ?? catIcon,
           iconColor: parentCategory?.color ?? catColor,
-          label: childCategory != null ? 'Categoría padre' : 'Categoría',
-          value: parentCategory?.nombre ?? catLabel,
-          helper: childCategory != null
-              ? 'Grupo principal del gasto'
-              : 'Sin subcategoría asignada',
-        ),
-      if (childCategory != null)
-        _DetailMetric(
-          icon: childCategory.icono,
-          iconColor: childCategory.color,
-          label: 'Subcategoría',
-          value: childCategory.nombre,
-          helper: 'Te ayuda a leer mejor dónde se fue el dinero',
+          label: 'Categoría',
+          value: categoryPathLabel,
         ),
       if (isTransfer)
-        _DetailMetric(
+        _SimpleDetailRowData(
           icon: LucideIcons.arrowUpFromLine,
           iconColor: AppColors.e8,
           label: 'Origen',
           value: presentation.sourceWallet?.nombre ?? 'No registrada',
         ),
       if (isTransfer)
-        _DetailMetric(
+        _SimpleDetailRowData(
           icon: LucideIcons.arrowDownToLine,
           iconColor: AppColors.e6,
           label: 'Destino',
           value: presentation.destinationWallet?.nombre ?? 'No registrada',
         ),
       if (!isTransfer && accountLabel != null)
-        _DetailMetric(
+        _SimpleDetailRowData(
           icon: LucideIcons.wallet,
           iconColor: AppColors.b5,
           label: 'Cuenta',
           value: accountLabel,
-          helper: isGasto ? 'De aquí salió el dinero' : 'Aquí entró el dinero',
         ),
-      _DetailMetric(
+      _SimpleDetailRowData(
         icon: LucideIcons.calendarDays,
         iconColor: AppColors.o5,
         label: 'Fecha',
         value: formattedDate,
-        helper: compactDate,
       ),
       if (activeBudget != null)
-        _DetailMetric(
+        _SimpleDetailRowData(
           icon: isSharedBudget ? LucideIcons.users : LucideIcons.layoutGrid,
           iconColor: isSharedBudget ? AppColors.e6 : AppColors.p5,
           label: 'Presupuesto',
           value: activeBudget.nombre,
-          helper: isSharedBudget
-              ? 'Movimiento compartido'
-              : 'Presupuesto activo',
         ),
       if (performerLabel != null && (isSharedBudget || t.usuarioId != null))
-        _DetailMetric(
+        _SimpleDetailRowData(
           icon: LucideIcons.user,
           iconColor: AppColors.o5,
           label: 'Hecho por',
@@ -327,68 +299,24 @@ class TransactionDetailSheet extends ConsumerWidget {
                   controller: scrollController,
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                   children: [
-                    Center(
-                      child: _TypeBadge(
-                        label: isTransfer
-                            ? transferBadgeLabel
-                            : (isGasto ? 'Gasto' : 'Ingreso'),
-                        backgroundColor: isTransfer
-                            ? amountColor.withValues(alpha: 0.12)
-                            : (isGasto ? AppColors.r1 : AppColors.e1),
-                        textColor: amountColor,
-                      ),
-                    ).animate().fadeIn(duration: 250.ms),
-                    const SizedBox(height: 16),
-                    _HeroCard(
-                          icon: isTransfer
-                              ? LucideIcons.arrowRightLeft
-                              : catIcon,
-                          iconColor: Colors.white,
-                          overline: heroOverline,
-                          title: categoryPathLabel,
-                          subtitle: hierarchyHint,
+                    _SimpleSummaryCard(
+                          icon: summaryIcon,
+                          iconColor: summaryColor,
+                          label: summaryLabel,
+                          title: summaryTitle,
                           amount: formattedAmount,
-                          description: t.desc,
-                          startColor: heroBase,
-                          endColor: _mix(heroAccent, Colors.black, 0.14),
-                          shadowColor: heroShadow,
-                          pills: [
-                            _HeroMetaPill(
-                              icon: LucideIcons.calendarDays,
-                              label: compactDate,
-                            ),
-                            if (!isTransfer &&
-                                accountLabel != null &&
-                                accountLabel.isNotEmpty)
-                              _HeroMetaPill(
-                                icon: LucideIcons.wallet,
-                                label: accountLabel,
-                              ),
-                            if (activeBudget != null)
-                              _HeroMetaPill(
-                                icon: isSharedBudget
-                                    ? LucideIcons.users
-                                    : LucideIcons.layoutGrid,
-                                label: activeBudget.nombre,
-                              ),
-                            if (performerLabel != null &&
-                                (isSharedBudget || t.usuarioId != null))
-                              _HeroMetaPill(
-                                icon: LucideIcons.user,
-                                label: performerLabel,
-                              ),
-                          ],
+                          description: summaryDescription,
                         )
                         .animate()
-                        .fadeIn(duration: 360.ms)
+                        .fadeIn(duration: 320.ms)
                         .slideY(begin: 0.05, end: 0),
                     const SizedBox(height: 16),
                     _DetailSection(
                           title: 'Detalles',
-                          child: _MetricGrid(metrics: metrics),
+                          child: _SimpleDetailList(rows: detailRows),
                         )
                         .animate()
-                        .fadeIn(duration: 320.ms, delay: 140.ms)
+                        .fadeIn(duration: 280.ms, delay: 100.ms)
                         .slideY(begin: 0.04, end: 0),
                     if (t.nota != null && t.nota!.trim().isNotEmpty) ...[
                       const SizedBox(height: 16),
@@ -396,9 +324,9 @@ class TransactionDetailSheet extends ConsumerWidget {
                         title: 'Nota',
                         child: _NoteCard(
                           note: t.nota!.trim(),
-                          accentColor: heroAccent,
+                          accentColor: summaryColor,
                         ),
-                      ).animate().fadeIn(duration: 320.ms, delay: 180.ms),
+                      ).animate().fadeIn(duration: 280.ms, delay: 140.ms),
                     ],
                     const SizedBox(height: 22),
                     Row(
@@ -493,7 +421,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                           ),
                         ),
                       ],
-                    ).animate().fadeIn(duration: 320.ms, delay: 220.ms),
+                    ).animate().fadeIn(duration: 280.ms, delay: 180.ms),
                   ],
                 ),
               ),
@@ -505,200 +433,194 @@ class TransactionDetailSheet extends ConsumerWidget {
   }
 }
 
-class _TypeBadge extends StatelessWidget {
-  const _TypeBadge({
-    required this.label,
-    required this.backgroundColor,
-    required this.textColor,
-  });
-
-  final String label;
-  final Color backgroundColor;
-  final Color textColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-          color: textColor,
-        ),
-      ),
-    );
-  }
-}
-
-class _HeroCard extends StatelessWidget {
-  const _HeroCard({
+class _SimpleSummaryCard extends StatelessWidget {
+  const _SimpleSummaryCard({
     required this.icon,
     required this.iconColor,
-    required this.overline,
+    required this.label,
     required this.title,
-    required this.subtitle,
     required this.amount,
-    required this.description,
-    required this.startColor,
-    required this.endColor,
-    required this.shadowColor,
-    required this.pills,
+    this.description,
   });
 
   final IconData icon;
   final Color iconColor;
-  final String overline;
+  final String label;
   final String title;
-  final String subtitle;
   final String amount;
-  final String description;
-  final Color startColor;
-  final Color endColor;
-  final Color shadowColor;
-  final List<Widget> pills;
+  final String? description;
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [startColor, endColor],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: shadowColor.withValues(alpha: 0.14),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        border: Border.all(color: AppColors.g2),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(icon, size: 22, color: iconColor),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        overline.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white.withValues(alpha: 0.58),
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: -0.4,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.white.withValues(alpha: 0.76),
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Text(
-              amount,
-              style: const TextStyle(
-                fontSize: 38,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: -1.2,
+                alignment: Alignment.center,
+                child: Icon(icon, size: 18, color: iconColor),
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.g4,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            amount,
+            style: TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.w900,
+              color: iconColor,
+              letterSpacing: -1.1,
             ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: AppColors.e8,
+              letterSpacing: -0.3,
+            ),
+          ),
+          if (description != null) ...[
             const SizedBox(height: 6),
             Text(
-              description,
-              style: TextStyle(
-                fontSize: 15,
+              description!,
+              style: const TextStyle(
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Colors.white.withValues(alpha: 0.88),
+                color: AppColors.g5,
               ),
             ),
-            if (pills.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Wrap(spacing: 8, runSpacing: 8, children: pills),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }
 }
 
-class _HeroMetaPill extends StatelessWidget {
-  const _HeroMetaPill({required this.icon, required this.label});
+class _SimpleDetailList extends StatelessWidget {
+  const _SimpleDetailList({required this.rows});
 
-  final IconData icon;
-  final String label;
+  final List<_SimpleDetailRowData> rows;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.g2),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
         children: [
-          Icon(icon, size: 13, color: Colors.white),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
+          for (var i = 0; i < rows.length; i++) ...[
+            _SimpleDetailRow(row: rows[i]),
+            if (i != rows.length - 1)
+              const Divider(
+                height: 1,
+                indent: 16,
+                endIndent: 16,
+                color: AppColors.g1,
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SimpleDetailRow extends StatelessWidget {
+  const _SimpleDetailRow({required this.row});
+
+  final _SimpleDetailRowData row;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: row.iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Icon(row.icon, size: 17, color: row.iconColor),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  row.label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.g4,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  row.value,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.e8,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+}
+
+class _SimpleDetailRowData {
+  const _SimpleDetailRowData({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String value;
 }
 
 class _DetailSection extends StatelessWidget {
@@ -729,108 +651,6 @@ class _DetailSection extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           child,
-        ],
-      ),
-    );
-  }
-}
-
-class _MetricGrid extends StatelessWidget {
-  const _MetricGrid({required this.metrics});
-
-  final List<_DetailMetric> metrics;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = constraints.maxWidth > 460;
-        final tileWidth = wide
-            ? (constraints.maxWidth - 12) / 2
-            : constraints.maxWidth;
-
-        return Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: metrics
-              .map(
-                (metric) => SizedBox(
-                  width: tileWidth,
-                  child: _MetricTile(metric: metric),
-                ),
-              )
-              .toList(),
-        );
-      },
-    );
-  }
-}
-
-class _MetricTile extends StatelessWidget {
-  const _MetricTile({required this.metric});
-
-  final _DetailMetric metric;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.g0,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: metric.iconColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(13),
-            ),
-            alignment: Alignment.center,
-            child: Icon(metric.icon, size: 18, color: metric.iconColor),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  metric.label,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.g4,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  metric.value,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.e8,
-                    height: 1.25,
-                  ),
-                ),
-                if (metric.helper != null &&
-                    metric.helper!.trim().isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    metric.helper!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.g5,
-                      height: 1.3,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -885,20 +705,4 @@ class _NoteCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _DetailMetric {
-  const _DetailMetric({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-    required this.value,
-    this.helper,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final String value;
-  final String? helper;
 }

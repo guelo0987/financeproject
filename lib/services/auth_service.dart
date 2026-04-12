@@ -35,22 +35,8 @@ class AuthService {
     return _repository.clearSession();
   }
 
-  Future<AuthSession> login({required String email, required String password}) {
-    return _repository.login(email: email, password: password);
-  }
-
-  Future<AuthSession> register({
-    required String name,
-    required String email,
-    required String password,
-    required String currency,
-  }) {
-    return _repository.register(
-      name: name,
-      email: email,
-      password: password,
-      currency: currency,
-    );
+  Future<AuthBootstrapResult> signInWithApple({String? currency}) {
+    return _repository.signInWithApple(currency: currency);
   }
 
   Future<UserProfile> fetchProfile() {
@@ -70,16 +56,6 @@ class AuthService {
       financialGoal: financialGoal,
       goalAmount: goalAmount,
       goalDate: goalDate,
-    );
-  }
-
-  Future<void> changePassword({
-    required String currentPassword,
-    required String newPassword,
-  }) {
-    return _repository.changePassword(
-      currentPassword: currentPassword,
-      newPassword: newPassword,
     );
   }
 

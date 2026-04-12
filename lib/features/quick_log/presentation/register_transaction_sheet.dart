@@ -124,7 +124,8 @@ class _RegisterTransactionSheetState
 
     setState(() {
       _selectedTypeIndex = index;
-      if (selectedCategory != null && selectedCategory.tipo != nextType) {
+      if (nextType == 'transferencia' ||
+          (selectedCategory != null && selectedCategory.tipo != nextType)) {
         _catKey = null;
       }
       if (nextType != 'transferencia') {
@@ -182,8 +183,9 @@ class _RegisterTransactionSheetState
     final selectedCategory = _catKey == null
         ? null
         : categoriesBySlug[_catKey!];
+    final requiresCategory = _selectedType != 'transferencia';
 
-    if (_catKey == null || _catKey!.isEmpty) {
+    if (requiresCategory && (_catKey == null || _catKey!.isEmpty)) {
       _showError('Elige una categoría para continuar.');
       return;
     }
@@ -206,20 +208,29 @@ class _RegisterTransactionSheetState
       }
     }
 
-    final fallbackDescription = selectedCategory?.nombre ?? _catKey!;
+    final fallbackDescription = _selectedType == 'transferencia'
+        ? 'Transferencia'
+        : (selectedCategory?.nombre ?? _catKey!);
+    final description = _isEditing && widget.transaction!.tipo == _selectedType
+        ? widget.transaction!.desc
+        : fallbackDescription;
     final transaction = MenudoTransaction(
       id: widget.transaction?.id ?? 0,
       dateString:
           widget.transaction?.dateString ??
           DateTime.now().toIso8601String().split('T').first,
-      desc: _isEditing ? widget.transaction!.desc : fallbackDescription,
-      catKey: _catKey!,
+      desc: description,
+      catKey: _selectedType == 'transferencia' ? '' : _catKey!,
       budgetId: budget.id,
-      categoryId: selectedCategory?.id,
+      categoryId: _selectedType == 'transferencia'
+          ? null
+          : selectedCategory?.id,
       monto: _selectedType == 'ingreso' ? amountValue : -amountValue,
       tipo: _selectedType,
       icono:
-          selectedCategory?.icono ??
+          (_selectedType == 'transferencia'
+              ? LucideIcons.arrowLeftRight
+              : selectedCategory?.icono) ??
           widget.transaction?.icono ??
           LucideIcons.circle,
       fromAccountId: _fromAccountId,
@@ -285,7 +296,35 @@ class _RegisterTransactionSheetState
     return '$whole.${parts.sublist(1).join()}';
   }
 
+  String _dateLabel() {
+    final rawDate = widget.transaction?.dateString;
+    if (rawDate == null || rawDate.isEmpty) return 'Hoy';
+
+    final today = DateTime.now().toIso8601String().split('T').first;
+    if (rawDate == today) return 'Hoy';
+
+    final parts = rawDate.split('-');
+    if (parts.length != 3) return rawDate;
+    const months = {
+      '01': 'ene',
+      '02': 'feb',
+      '03': 'mar',
+      '04': 'abr',
+      '05': 'may',
+      '06': 'jun',
+      '07': 'jul',
+      '08': 'ago',
+      '09': 'sep',
+      '10': 'oct',
+      '11': 'nov',
+      '12': 'dic',
+    };
+    return '${int.tryParse(parts[2]) ?? parts[2]} ${months[parts[1]] ?? parts[1]}';
+  }
+
   Future<void> _pickCategory() async {
+    if (_selectedType == 'transferencia') return;
+
     final selected = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -336,6 +375,7 @@ class _RegisterTransactionSheetState
     final amountValue = double.tryParse(_amount) ?? 0;
     final isTransfer = _selectedTypeIndex == 2;
     final wallets = ref.watch(effectiveWalletsProvider);
+    final selectedBudget = ref.watch(selectedBudgetProvider);
     final categories = ref.watch(effectiveCategoriesProvider);
     final categoriesBySlug = {
       for (final category in categories) category.slug: category,
@@ -356,6 +396,10 @@ class _RegisterTransactionSheetState
         : selectedParent == null
         ? selectedCategory.nombre
         : "${selectedParent.nombre} / ${selectedCategory.nombre}";
+    final dateLabel = _dateLabel();
+    final noteLabel = (_nota == null || _nota!.trim().isEmpty)
+        ? 'Agregar nota'
+        : _nota!.trim();
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.94,
@@ -409,8 +453,9 @@ class _RegisterTransactionSheetState
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(bottom: 24),
-            child:
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Column(
+              children: [
                 Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -456,101 +501,124 @@ class _RegisterTransactionSheetState
                     .animate(key: ValueKey(_selectedTypeIndex))
                     .fadeIn()
                     .scale(begin: const Offset(0.95, 0.95)),
-          ),
-          Expanded(
-            child: ListView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(color: AppColors.g2),
-                  ),
-                  child: Column(
-                    children: [
-                      if (isTransfer) ...[
-                        _DetailRow(
-                          icon: LucideIcons.arrowUpFromLine,
-                          color: AppColors.e6,
-                          label: "Origen",
-                          value: _accountName(_fromAccountId, wallets),
-                          onTap: () =>
-                              _pickAccount(isFrom: true, wallets: wallets),
-                        ),
-                        _DetailRow(
-                          icon: LucideIcons.arrowDownToLine,
-                          color: AppColors.b5,
-                          label: "Destino",
-                          value: _accountName(_toAccountId, wallets),
-                          onTap: () =>
-                              _pickAccount(isFrom: false, wallets: wallets),
-                        ),
-                      ],
-                      _DetailRow(
-                        icon: LucideIcons.layoutGrid,
-                        color: AppColors.e8,
-                        label: "Presupuesto",
-                        value:
-                            ref.watch(selectedBudgetProvider)?.nombre ??
-                            "Elegir",
-                      ),
-                      _DetailRow(
-                        icon: LucideIcons.tag,
-                        color: AppColors.o5,
-                        label: "Categoría",
-                        value: categoryLabel,
-                        onTap: _pickCategory,
-                      ),
-                      if (!isTransfer)
-                        _DetailRow(
-                          icon: LucideIcons.landmark,
-                          color: AppColors.b5,
-                          label: "Cuenta",
-                          value: _accountName(_fromAccountId, wallets),
-                          onTap: () =>
-                              _pickAccount(isFrom: true, wallets: wallets),
-                        ),
-                      _DetailRow(
-                        icon: LucideIcons.fileText,
-                        color: AppColors.p5,
-                        label: "Nota",
-                        value: _nota ?? "Añadir",
-                        onTap: _showNoteDialog,
-                      ),
-                      _DetailRow(
-                        icon: LucideIcons.calendar,
-                        color: AppColors.e8,
-                        label: "Fecha",
-                        value: "Hoy",
-                        isLast: true,
-                      ),
-                    ],
+                const SizedBox(height: 10),
+                Text(
+                  isTransfer
+                      ? 'Mover entre tus cuentas'
+                      : _selectedTypeIndex == 1
+                      ? 'Registrar ingreso'
+                      : 'Registrar gasto',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.g4,
                   ),
                 ),
-                const SizedBox(height: 24),
-                _Numpad(onKeyTap: _onKeyTap),
-                const SizedBox(height: 32),
               ],
             ),
           ),
-          Padding(
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _InfoStrip(
+                    budgetName: selectedBudget?.nombre ?? 'Sin presupuesto',
+                    dateLabel: dateLabel,
+                  ),
+                  const SizedBox(height: 14),
+                  if (isTransfer) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _FieldCard(
+                            icon: LucideIcons.arrowUpFromLine,
+                            color: AppColors.e6,
+                            label: 'Origen',
+                            value: _accountName(_fromAccountId, wallets),
+                            onTap: () =>
+                                _pickAccount(isFrom: true, wallets: wallets),
+                            isPlaceholder: _fromAccountId == null,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _FieldCard(
+                            icon: LucideIcons.arrowDownToLine,
+                            color: AppColors.b5,
+                            label: 'Destino',
+                            value: _accountName(_toAccountId, wallets),
+                            onTap: () =>
+                                _pickAccount(isFrom: false, wallets: wallets),
+                            isPlaceholder: _toAccountId == null,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ] else ...[
+                    _FieldCard(
+                      icon: LucideIcons.tag,
+                      color: AppColors.o5,
+                      label: 'Categoría',
+                      value: categoryLabel,
+                      onTap: _pickCategory,
+                      isPlaceholder: selectedCategory == null,
+                    ),
+                    const SizedBox(height: 12),
+                    _FieldCard(
+                      icon: LucideIcons.landmark,
+                      color: AppColors.b5,
+                      label: 'Cuenta',
+                      value: _accountName(_fromAccountId, wallets),
+                      onTap: () => _pickAccount(isFrom: true, wallets: wallets),
+                      isPlaceholder: _fromAccountId == null,
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  _SecondaryActionCard(
+                    icon: LucideIcons.fileText,
+                    color: AppColors.p5,
+                    label: 'Nota',
+                    value: noteLabel,
+                    onTap: _showNoteDialog,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+          Container(
             padding: EdgeInsets.fromLTRB(
               20,
-              0,
+              12,
               20,
               24 + MediaQuery.of(context).padding.bottom,
             ),
-            child: MenudoButton(
-              label: _isSaving
-                  ? "Guardando movimiento..."
-                  : (_isEditing
-                        ? "Guardar movimiento"
-                        : "Registrar movimiento"),
-              isFullWidth: true,
-              isDisabled: amountValue == 0 || _isSaving,
-              onTap: () => _saveTransaction(),
+            decoration: BoxDecoration(
+              color: AppColors.g0,
+              border: Border(
+                top: BorderSide(color: AppColors.g1.withValues(alpha: 0.9)),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _Numpad(onKeyTap: _onKeyTap),
+                const SizedBox(height: 14),
+                MenudoButton(
+                  label: _isSaving
+                      ? "Guardando movimiento..."
+                      : (_isEditing
+                            ? "Guardar movimiento"
+                            : "Registrar movimiento"),
+                  isFullWidth: true,
+                  isDisabled: amountValue == 0 || _isSaving,
+                  onTap: () => _saveTransaction(),
+                ),
+              ],
             ),
           ),
         ],
@@ -670,81 +738,269 @@ class _TypeSegment extends StatelessWidget {
   }
 }
 
-class _DetailRow extends StatelessWidget {
+class _InfoStrip extends StatelessWidget {
+  final String budgetName;
+  final String dateLabel;
+
+  const _InfoStrip({required this.budgetName, required this.dateLabel});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.g2),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _InfoStripItem(
+              label: 'Presupuesto',
+              value: budgetName,
+              icon: LucideIcons.layoutGrid,
+              color: AppColors.e8,
+            ),
+          ),
+          const SizedBox(width: 12),
+          _InfoStripItem(
+            label: 'Fecha',
+            value: dateLabel,
+            icon: LucideIcons.calendar,
+            color: AppColors.g4,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoStripItem extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _InfoStripItem({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 16, color: color),
+        ),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.g4,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.e8,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FieldCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final String label;
   final String value;
-  final VoidCallback? onTap;
-  final bool isLast;
+  final VoidCallback onTap;
+  final bool isPlaceholder;
 
-  const _DetailRow({
+  const _FieldCard({
     required this.icon,
     required this.color,
     required this.label,
     required this.value,
-    this.onTap,
-    this.isLast = false,
+    required this.onTap,
+    this.isPlaceholder = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon, size: 18, color: color),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.g4,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        value,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.e8,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (onTap != null)
-                  Icon(LucideIcons.chevronRight, size: 16, color: AppColors.g3),
-              ],
-            ),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: isPlaceholder
+                ? AppColors.o5.withValues(alpha: 0.28)
+                : AppColors.g2,
+            width: isPlaceholder ? 1.4 : 1,
           ),
-          if (!isLast)
-            const Divider(
-              height: 1,
-              color: AppColors.g1,
-              indent: 56,
-              endIndent: 16,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, size: 18, color: color),
             ),
-        ],
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.g4,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: isPlaceholder ? AppColors.g4 : AppColors.e8,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(LucideIcons.chevronRight, size: 16, color: AppColors.g3),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SecondaryActionCard extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  const _SecondaryActionCard({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.g2),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, size: 16, color: color),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.g4,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.e8,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Editar',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -757,13 +1013,14 @@ class _Numpad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.of(context).size.height < 760;
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 3,
-      childAspectRatio: 1.8,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
+      childAspectRatio: compact ? 1.95 : 1.78,
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
       children: [...'123456789.0'.split(''), 'backspace']
           .map((key) => _NumpadKey(value: key, onTap: () => onKeyTap(key)))
           .toList(),
@@ -785,7 +1042,8 @@ class _NumpadKey extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.g2.withValues(alpha: 0.8)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),

@@ -2,12 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'routes/app_router.dart';
 import 'services/subscription_service.dart';
+import 'utils/app_env.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: AppEnv.supabaseUrl,
+    anonKey: AppEnv.supabasePublishableKey,
+  );
   await initializeDateFormatting('es', null);
   await SubscriptionService.initialize();
   SystemChrome.setSystemUIOverlayStyle(

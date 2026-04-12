@@ -79,30 +79,18 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> login(String email, String password) async {
-    final session = await _service.login(email: email, password: password);
-    await _service.saveSession(
-      userId: session.userId,
-      token: session.token,
-      refreshToken: session.refreshToken,
-      profile: session.profile,
-    );
-    _setAuthenticated(session);
-    await Future.wait([_hydrateProfile(), _rcLogIn(session.userId.toString())]);
+  Future<void> loginWithApple() async {
+    final result = await _service.signInWithApple();
+    await _completeAppleSignIn(result);
   }
 
-  Future<void> register({
-    required String name,
-    required String email,
-    required String password,
-    required String currency,
-  }) async {
-    final session = await _service.register(
-      name: name,
-      email: email,
-      password: password,
-      currency: currency,
-    );
+  Future<void> registerWithApple({required String currency}) async {
+    final result = await _service.signInWithApple(currency: currency);
+    await _completeAppleSignIn(result);
+  }
+
+  Future<void> _completeAppleSignIn(AuthBootstrapResult result) async {
+    final session = result.session;
     await _service.saveSession(
       userId: session.userId,
       token: session.token,
@@ -110,7 +98,7 @@ class AuthController extends StateNotifier<AuthState> {
       profile: session.profile,
     );
     _setAuthenticated(session);
-    state = state.copyWith(needsPaywall: true);
+    state = state.copyWith(needsPaywall: result.isNewUser);
     await Future.wait([_hydrateProfile(), _rcLogIn(session.userId.toString())]);
   }
 
@@ -181,16 +169,6 @@ class AuthController extends StateNotifier<AuthState> {
     await _service.saveProfile(profile);
     state = state.copyWith(userId: profile.userId.toString(), profile: profile);
     return profile;
-  }
-
-  Future<void> changePassword({
-    required String currentPassword,
-    required String newPassword,
-  }) {
-    return _service.changePassword(
-      currentPassword: currentPassword,
-      newPassword: newPassword,
-    );
   }
 
   void _setAuthenticated(AuthSession session) {

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/error_presenter.dart';
-import '../../../shared/widgets/menudo_text_field.dart';
-import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_logo.dart';
 import '../auth_state.dart';
 
@@ -18,17 +18,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
   bool _isLoading = false;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
 
   void _showError(String message) {
     if (!mounted) return;
@@ -37,21 +27,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Future<void> _handleLogin() async {
-    if (_emailController.text.trim().isEmpty ||
-        _passwordController.text.isEmpty) {
-      _showError('Completa email y contraseña.');
-      return;
-    }
-
+  Future<void> _handleAppleLogin() async {
+    if (_isLoading) return;
     setState(() => _isLoading = true);
 
     try {
-      await ref
-          .read(authProvider.notifier)
-          .login(_emailController.text.trim(), _passwordController.text);
+      await ref.read(authProvider.notifier).loginWithApple();
       if (!mounted) return;
-      context.go('/');
+
+      final needsPaywall = ref.read(authProvider).needsPaywall;
+      context.go(needsPaywall ? '/paywall?fromReg=true' : '/');
     } catch (error) {
       _showError(presentError(error));
     } finally {
@@ -86,7 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 8),
 
               Text(
-                'Usa tu correo para continuar.',
+                'Tu acceso ahora se maneja con tu Apple ID.',
                 style: MenudoTextStyles.bodyMedium.copyWith(
                   color: MenudoColors.textMuted,
                 ),
@@ -95,44 +80,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
               const SizedBox(height: 32),
 
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  MenudoTextField(
-                    label: 'Correo electrónico',
-                    hint: 'tu@correo.com',
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    prefixIcon: const Icon(Icons.email_outlined),
-                  ),
-                  const SizedBox(height: 16),
-                  MenudoTextField(
-                    label: 'Contraseña',
-                    hint: '••••••••',
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    trailing: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: MenudoColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Usa Sign in with Apple para entrar o recuperar tu cuenta.',
+                      style: MenudoTextStyles.bodyMedium.copyWith(
                         color: MenudoColors.textSecondary,
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
+                      textAlign: TextAlign.center,
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  MenudoPrimaryButton(
-                    label: _isLoading ? 'Cargando...' : 'Iniciar Sesión',
-                    onTap: _isLoading ? null : () => _handleLogin(),
-                    isDisabled: _isLoading,
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    IgnorePointer(
+                      ignoring: _isLoading,
+                      child: Opacity(
+                        opacity: _isLoading ? 0.7 : 1,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: SignInWithAppleButton(
+                            onPressed: _handleAppleLogin,
+                            style: SignInWithAppleButtonStyle.black,
+                            text: _isLoading
+                                ? 'Conectando...'
+                                : 'Continuar con Apple',
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Disponible en iPhone, iPad y Mac con Apple ID.',
+                      style: MenudoTextStyles.bodySmall.copyWith(
+                        color: MenudoColors.textMuted,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
 
               const SizedBox(height: 24),
@@ -140,17 +131,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    '¿No tienes cuenta?',
-                    style: MenudoTextStyles.bodyMedium,
-                  ),
+                  Text('¿Primera vez?', style: MenudoTextStyles.bodyMedium),
                   TextButton(
                     onPressed: () => context.push('/register'),
                     style: TextButton.styleFrom(
                       foregroundColor: MenudoColors.primary,
                     ),
                     child: const Text(
-                      'Regístrate',
+                      'Configura tu cuenta',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),

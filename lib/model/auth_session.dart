@@ -54,3 +54,10 @@ class AuthSession {
     );
   }
 }
+
+class AuthBootstrapResult {
+  const AuthBootstrapResult({required this.session, required this.isNewUser});
+
+  final AuthSession session;
+  final bool isNewUser;
+}

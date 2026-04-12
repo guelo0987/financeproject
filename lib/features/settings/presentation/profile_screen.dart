@@ -230,16 +230,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  Future<void> _openPasswordSheet() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const _ChangePasswordSheet(),
-    );
-  }
-
   void _showMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -509,15 +499,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hazlo cuando quieras mantener tu cuenta más segura.',
+                        'Tu acceso se administra con tu Apple ID. Si necesitas cambiar algo sensible de tu sesión, hazlo desde los ajustes de Apple.',
                         style: MenudoTextStyles.bodySmall.copyWith(
                           color: MenudoColors.textMuted,
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      MenudoSecondaryButton(
-                        label: 'Cambiar contraseña',
-                        onTap: _openPasswordSheet,
                       ),
                     ],
                   ),
@@ -537,146 +522,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ChangePasswordSheet extends ConsumerStatefulWidget {
-  const _ChangePasswordSheet();
-
-  @override
-  ConsumerState<_ChangePasswordSheet> createState() =>
-      _ChangePasswordSheetState();
-}
-
-class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
-  final _currentController = TextEditingController();
-  final _newController = TextEditingController();
-  final _confirmController = TextEditingController();
-  bool _saving = false;
-  bool _showCurrent = false;
-  bool _showNew = false;
-  bool _showConfirm = false;
-
-  @override
-  void dispose() {
-    _currentController.dispose();
-    _newController.dispose();
-    _confirmController.dispose();
-    super.dispose();
-  }
-
-  void _showMessage(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
-  }
-
-  Future<void> _save() async {
-    if (_saving) return;
-    final current = _currentController.text;
-    final next = _newController.text;
-    final confirm = _confirmController.text;
-
-    if (current.isEmpty || next.isEmpty || confirm.isEmpty) {
-      _showMessage('Completa tu contraseña actual y la nueva.');
-      return;
-    }
-    if (next.length < 8) {
-      _showMessage('La nueva contraseña debe tener al menos 8 caracteres.');
-      return;
-    }
-    if (next != confirm) {
-      _showMessage('La confirmación no coincide todavía.');
-      return;
-    }
-
-    setState(() => _saving = true);
-    try {
-      await ref
-          .read(authProvider.notifier)
-          .changePassword(currentPassword: current, newPassword: next);
-      if (!mounted) return;
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Listo. Tu contraseña ya quedó actualizada.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } catch (error) {
-      _showMessage(presentError(error));
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        20,
-        14,
-        20,
-        24 + MediaQuery.of(context).padding.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 5,
-            decoration: BoxDecoration(
-              color: AppColors.g2,
-              borderRadius: BorderRadius.circular(99),
-            ),
-          ),
-          const SizedBox(height: 18),
-          Text('Cambiar contraseña', style: MenudoTextStyles.h3),
-          const SizedBox(height: 18),
-          _PlainTextField(
-            controller: _currentController,
-            hintText: 'Contraseña actual',
-            obscureText: !_showCurrent,
-            trailing: _VisibilityToggle(
-              visible: _showCurrent,
-              onTap: () => setState(() => _showCurrent = !_showCurrent),
-            ),
-          ),
-          const SizedBox(height: 12),
-          _PlainTextField(
-            controller: _newController,
-            hintText: 'Nueva contraseña',
-            obscureText: !_showNew,
-            trailing: _VisibilityToggle(
-              visible: _showNew,
-              onTap: () => setState(() => _showNew = !_showNew),
-            ),
-          ),
-          const SizedBox(height: 12),
-          _PlainTextField(
-            controller: _confirmController,
-            hintText: 'Repite la nueva contraseña',
-            obscureText: !_showConfirm,
-            trailing: _VisibilityToggle(
-              visible: _showConfirm,
-              onTap: () => setState(() => _showConfirm = !_showConfirm),
-            ),
-          ),
-          const SizedBox(height: 18),
-          MenudoButton(
-            label: _saving ? 'Guardando contraseña...' : 'Guardar contraseña',
-            isFullWidth: true,
-            isDisabled: _saving,
-            onTap: _save,
-          ),
-        ],
       ),
     );
   }
@@ -1000,8 +845,6 @@ class _PlainTextField extends StatelessWidget {
     required this.hintText,
     this.keyboardType,
     this.onChanged,
-    this.obscureText = false,
-    this.trailing,
     this.textCapitalization = TextCapitalization.none,
     this.prefixText,
   });
@@ -1010,8 +853,6 @@ class _PlainTextField extends StatelessWidget {
   final String hintText;
   final TextInputType? keyboardType;
   final ValueChanged<String>? onChanged;
-  final bool obscureText;
-  final Widget? trailing;
   final TextCapitalization textCapitalization;
   final String? prefixText;
 
@@ -1021,13 +862,11 @@ class _PlainTextField extends StatelessWidget {
       controller: controller,
       keyboardType: keyboardType,
       onChanged: onChanged,
-      obscureText: obscureText,
       textCapitalization: textCapitalization,
       style: MenudoTextStyles.bodyLarge,
       decoration: InputDecoration(
         hintText: hintText,
         prefixText: prefixText,
-        suffixIcon: trailing,
         hintStyle: MenudoTextStyles.bodyLarge.copyWith(
           color: MenudoColors.textMuted,
         ),
@@ -1052,24 +891,6 @@ class _PlainTextField extends StatelessWidget {
             width: 2,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _VisibilityToggle extends StatelessWidget {
-  const _VisibilityToggle({required this.visible, required this.onTap});
-
-  final bool visible;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onTap,
-      icon: Icon(
-        visible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-        color: MenudoColors.textSecondary,
       ),
     );
   }

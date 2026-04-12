@@ -85,7 +85,7 @@ class TransactionRepository {
     if (txn.fromAccountId == null) {
       throw StateError('Elige una cuenta antes de continuar.');
     }
-    if (txn.catKey.isEmpty) {
+    if (txn.tipo != 'transferencia' && txn.catKey.isEmpty) {
       throw StateError('Elige una categoría antes de continuar.');
     }
 
@@ -95,7 +95,7 @@ class TransactionRepository {
       'monto': txn.monto.abs(),
       'tipo': txn.tipo,
       'budgetId': txn.budgetId,
-      'catKey': txn.catKey,
+      'catKey': txn.catKey.isEmpty ? null : txn.catKey,
       'walletId': txn.fromAccountId,
       if (txn.toAccountId != null) 'toWalletId': txn.toAccountId,
       if (txn.nota != null) 'nota': txn.nota,

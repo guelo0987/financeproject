@@ -5,6 +5,14 @@ class AppEnv {
     'API_BASE_URL',
     defaultValue: 'https://financeapp-backend-eight.vercel.app',
   );
+  static const _supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://fzklyclzehpmggqvjipy.supabase.co',
+  );
+  static const _supabasePublishableKey = String.fromEnvironment(
+    'SUPABASE_PUBLISHABLE_KEY',
+    defaultValue: 'sb_publishable_q5Ghc7KehdhGbK9VCS2eGA_wU0imUWp',
+  );
   static const _androidBaseUrl = String.fromEnvironment(
     'API_BASE_URL_ANDROID',
     defaultValue: '',
@@ -52,6 +60,10 @@ class AppEnv {
 
     return baseUrl;
   }
+
+  static String get supabaseUrl => _supabaseUrl;
+
+  static String get supabasePublishableKey => _supabasePublishableKey;
 
   static Duration get timeout {
     final seconds = int.tryParse(_timeoutSecondsRaw);

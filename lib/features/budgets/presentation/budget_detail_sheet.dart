@@ -443,28 +443,16 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 4),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              MenudoChip.custom(
-                                label: displayBudget.periodo.toUpperCase(),
-                                color: Colors.white.withValues(alpha: 0.9),
-                                bgColor: Colors.white.withValues(alpha: 0.15),
-                                isSmall: true,
-                              ),
-                              if (isShared) ...[
-                                const SizedBox(width: 6),
-                                MenudoChip.custom(
-                                  label: "COMPARTIDO",
-                                  color: const Color(0xFF6EE7B7),
-                                  bgColor: const Color(
-                                    0xFF6EE7B7,
-                                  ).withValues(alpha: 0.15),
-                                  isSmall: true,
-                                ),
-                              ],
-                            ],
+                          const SizedBox(height: 6),
+                          Text(
+                            isShared
+                                ? '${displayBudget.periodo.toUpperCase()} · Compartido'
+                                : displayBudget.periodo.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white.withValues(alpha: 0.7),
+                            ),
                           ),
                         ],
                       ),
@@ -490,9 +478,8 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                 ),
 
                 const SizedBox(height: 24),
-                MenudoGauge(
-                  budget: displayBudget,
-                  isDark: true,
+                RepaintBoundary(
+                  child: MenudoGauge(budget: displayBudget, isDark: true),
                 ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
                 const SizedBox(height: 24),
 
@@ -503,32 +490,50 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
           ),
 
           Expanded(
-            child: ListView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
-              children: [
-                if (_tab == "resumen") ...[
-                  _buildSummaryMetrics(
-                    spent,
-                    left,
-                    displayBudget.actualIncomeTotal,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.0, 0.03),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
                   ),
-                  _buildSharedBudgetSection(isShared: isShared),
-                  _buildCategoriesSection(
-                    displayBudget,
-                    categoriesById,
-                    extraExpenseCategories,
-                  ),
+                );
+              },
+              child: ListView(
+                key: ValueKey(_tab),
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+                children: [
+                  if (_tab == "resumen") ...[
+                    _buildSummaryMetrics(
+                      spent,
+                      left,
+                      displayBudget.actualIncomeTotal,
+                    ),
+                    _buildSharedBudgetSection(isShared: isShared),
+                    _buildCategoriesSection(
+                      displayBudget,
+                      categoriesById,
+                      extraExpenseCategories,
+                    ),
+                  ],
+                  if (_tab == "plan")
+                    _buildPlanTab(
+                      context,
+                      displayBudget,
+                      categoriesById,
+                      extraExpenseCategories,
+                    ),
+                  if (_tab == "insights") _buildInsightsTab(displayBudget),
                 ],
-                if (_tab == "plan")
-                  _buildPlanTab(
-                    context,
-                    displayBudget,
-                    categoriesById,
-                    extraExpenseCategories,
-                  ),
-                if (_tab == "insights") _buildInsightsTab(displayBudget),
-              ],
+              ),
             ),
           ),
         ],
@@ -561,12 +566,51 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
               ],
             ),
             const SizedBox(height: 12),
-            _MetricCard(
-              label: "INGRESOS RECIBIDOS",
-              amount: _fmt(incomeActual),
-              color: AppColors.e8,
-              icon: LucideIcons.trendingUp,
-              isWide: true,
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.g2),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.e8.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      LucideIcons.trendingUp,
+                      size: 16,
+                      color: AppColors.e8,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Ingresos recibidos',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.g5,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    _fmt(incomeActual),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.e8,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         )
@@ -1178,14 +1222,12 @@ class _MetricCard extends StatelessWidget {
   final String label, amount;
   final Color color;
   final IconData icon;
-  final bool isWide;
 
   const _MetricCard({
     required this.label,
     required this.amount,
     required this.color,
     required this.icon,
-    this.isWide = false,
   });
 
   @override
@@ -1226,7 +1268,7 @@ class _MetricCard extends StatelessWidget {
           Text(
             amount,
             style: TextStyle(
-              fontSize: isWide ? 22 : 18,
+              fontSize: 18,
               fontWeight: FontWeight.w900,
               color: color,
               letterSpacing: -0.5,

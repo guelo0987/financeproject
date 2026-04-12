@@ -1,8 +1,15 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../../model/auth_session.dart';
 import '../../../model/user_profile.dart';
 import '../../../services/api_service.dart';
+import '../../../types/api_exception.dart';
 import '../../../utils/utils.dart';
 
 class AuthRepository {
@@ -10,10 +17,26 @@ class AuthRepository {
 
   final ApiService _api;
   static const _storage = FlutterSecureStorage();
+  SupabaseClient? get _supabaseOrNull {
+    try {
+      return Supabase.instance.client;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  SupabaseClient get _supabase {
+    final client = _supabaseOrNull;
+    if (client == null) {
+      throw const ApiException('Supabase todavía no está inicializado.');
+    }
+    return client;
+  }
 
   Future<AuthSession?> restoreSession() async {
-    final token = await _storage.read(key: StorageKeys.authToken);
-    final refreshToken = await _storage.read(key: StorageKeys.refreshToken);
+    final session = _supabaseOrNull?.auth.currentSession;
+    if (session == null) return null;
+
     final userIdStr = await _storage.read(key: StorageKeys.userId);
     final userName = await _storage.read(key: StorageKeys.userName);
     final userEmail = await _storage.read(key: StorageKeys.userEmail);
@@ -27,13 +50,13 @@ class AuthRepository {
     final userDefaultBudgetId = await _storage.read(
       key: StorageKeys.userDefaultBudgetId,
     );
-    if (token == null || userIdStr == null) return null;
-    final userId = int.tryParse(userIdStr);
-    if (userId == null) return null;
+
+    final userId = int.tryParse(userIdStr ?? '') ?? 0;
+
     return AuthSession(
       userId: userId,
-      token: token,
-      refreshToken: refreshToken,
+      token: session.accessToken,
+      refreshToken: session.refreshToken,
       profile:
           userName == null &&
               userEmail == null &&
@@ -70,6 +93,8 @@ class AuthRepository {
     await _storage.write(key: StorageKeys.userId, value: userId.toString());
     if (refreshToken != null && refreshToken.isNotEmpty) {
       await _storage.write(key: StorageKeys.refreshToken, value: refreshToken);
+    } else {
+      await _storage.delete(key: StorageKeys.refreshToken);
     }
     await saveProfile(profile);
   }
@@ -136,6 +161,12 @@ class AuthRepository {
   }
 
   Future<void> clearSession() async {
+    try {
+      await _supabaseOrNull?.auth.signOut();
+    } catch (_) {
+      // Local cleanup below is enough to avoid leaving the app in a bad state.
+    }
+
     await _storage.delete(key: StorageKeys.authToken);
     await _storage.delete(key: StorageKeys.refreshToken);
     await _storage.delete(key: StorageKeys.userId);
@@ -149,37 +180,105 @@ class AuthRepository {
     await _storage.delete(key: StorageKeys.userCreatedAt);
   }
 
-  Future<AuthSession> login({
-    required String email,
-    required String password,
-  }) async {
-    final response = await _api.post<Map<String, dynamic>>(
-      ApiPaths.authLogin,
-      authenticated: false,
-      body: {'email': email, 'password': password},
-      parser: asJsonMap,
-    );
-    return AuthSession.fromJson(response.requireData());
-  }
+  Future<AuthBootstrapResult> signInWithApple({String? currency}) async {
+    try {
+      final isAvailable = await SignInWithApple.isAvailable();
+      if (!isAvailable) {
+        throw const ApiException(
+          'Sign in with Apple solo está disponible en dispositivos Apple.',
+        );
+      }
 
-  Future<AuthSession> register({
-    required String name,
-    required String email,
-    required String password,
-    required String currency,
-  }) async {
-    final response = await _api.post<Map<String, dynamic>>(
-      ApiPaths.authRegister,
-      authenticated: false,
-      body: {
-        'nombre': name,
-        'email': email,
-        'password': password,
-        'moneda_base': currency,
-      },
-      parser: asJsonMap,
-    );
-    return AuthSession.fromJson(response.requireData());
+      final rawNonce = _supabase.auth.generateRawNonce();
+      final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
+
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: const [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: hashedNonce,
+      );
+
+      final idToken = credential.identityToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw const ApiException(
+          'Apple no devolvió un token válido. Inténtalo otra vez.',
+        );
+      }
+
+      await _supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.apple,
+        idToken: idToken,
+        nonce: rawNonce,
+      );
+
+      if (credential.givenName != null || credential.familyName != null) {
+        final nameParts = <String>[
+          if (credential.givenName != null &&
+              credential.givenName!.trim().isNotEmpty)
+            credential.givenName!.trim(),
+          if (credential.familyName != null &&
+              credential.familyName!.trim().isNotEmpty)
+            credential.familyName!.trim(),
+        ];
+
+        if (nameParts.isNotEmpty) {
+          await _supabase.auth.updateUser(
+            UserAttributes(
+              data: {
+                'full_name': nameParts.join(' '),
+                'given_name': credential.givenName,
+                'family_name': credential.familyName,
+              },
+            ),
+          );
+        }
+      }
+
+      final session = _supabase.auth.currentSession;
+      if (session == null) {
+        throw const ApiException(
+          'No pudimos recuperar tu sesión de Supabase. Inténtalo otra vez.',
+        );
+      }
+
+      final response = await _api.post<Map<String, dynamic>>(
+        ApiPaths.authSession,
+        body: {
+          if (currency != null && currency.isNotEmpty) 'moneda_base': currency,
+        },
+        parser: asJsonMap,
+      );
+
+      final data = response.requireData();
+      final profilePayload = data['usuario'] ?? data['user'] ?? data;
+      final profileJson = profilePayload is Map
+          ? Map<String, dynamic>.from(profilePayload)
+          : const <String, dynamic>{};
+      final profile = UserProfile.fromJson(profileJson);
+
+      final appSession = AuthSession(
+        userId: profile.userId,
+        token: session.accessToken,
+        refreshToken: session.refreshToken,
+        profile: profile,
+      );
+
+      return AuthBootstrapResult(
+        session: appSession,
+        isNewUser: data['isNewUser'] == true || data['is_new_user'] == true,
+      );
+    } on SignInWithAppleAuthorizationException catch (error) {
+      if (error.code == AuthorizationErrorCode.canceled) {
+        throw const ApiException('Cancelaste el inicio con Apple.');
+      }
+      throw ApiException(
+        'No pudimos completar el inicio con Apple: ${error.message}',
+      );
+    } on AuthException catch (error) {
+      throw ApiException(error.message);
+    }
   }
 
   Future<UserProfile> fetchProfile() async {
@@ -209,16 +308,6 @@ class AuthRepository {
       parser: asJsonMap,
     );
     return UserProfile.fromJson(response.requireData());
-  }
-
-  Future<void> changePassword({
-    required String currentPassword,
-    required String newPassword,
-  }) async {
-    await _api.put<void>(
-      ApiPaths.authPassword,
-      body: {'currentPassword': currentPassword, 'newPassword': newPassword},
-    );
   }
 
   Future<int?> setDefaultBudget(int? budgetId) async {

@@ -9,7 +9,6 @@ import '../../../core/utils/error_presenter.dart';
 import '../../alerts/providers/alert_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
-import '../../../../shared/widgets/menudo_chip.dart';
 import '../../../../shared/widgets/menudo_loading_view.dart';
 import '../../auth/auth_state.dart';
 import '../../budgets/budget_providers.dart';
@@ -49,6 +48,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  Future<void> _refreshDashboard() async {
+    try {
+      ref.invalidate(unreadAlertsCountProvider);
+      await Future.wait([
+        ref.read(walletNotifierProvider.notifier).refresh(),
+        ref.read(budgetNotifierProvider.notifier).refresh(),
+      ]);
+      await ref.read(transactionNotifierProvider.notifier).refresh();
+    } catch (error) {
+      _showError(error);
+    }
   }
 
   bool _needsWalletTour(List<WalletAccount> wallets, bool demoMode) {
@@ -217,6 +229,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final budgets = ref.watch(effectiveBudgetsProvider);
     final txnsThisPeriod = ref.watch(selectedBudgetPeriodTransactionsProvider);
     final wallets = ref.watch(effectiveWalletsProvider);
+    final defaultWallet = ref.watch(defaultWalletProvider);
     final demoMode = ref.watch(demoModeProvider);
     final authState = ref.watch(authProvider);
     final unreadAlerts = ref
@@ -249,11 +262,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     _maybeShowBudgetTour(budgets, txnsThisPeriod, wallets, demoMode);
 
     final budget = ref.watch(selectedBudgetProvider) ?? budgets.first;
+    final hasIncomePlan = budget.ingresos > 0;
     final double spent = budget.totalSpent;
-    final double remaining = budget.availableToSpend;
-    final double pct = budget.displayIncomeBase > 0
-        ? spent / budget.displayIncomeBase
-        : 0;
+    final double plannedRemaining = budget.ingresos - spent;
+    final double actualCashflow = budget.actualIncomeTotal - spent;
+    final double primaryAmount = hasIncomePlan
+        ? plannedRemaining
+        : actualCashflow;
+    final String primaryLabel = hasIncomePlan
+        ? 'Disponible del plan'
+        : 'Flujo del periodo';
+    final double progressBase = hasIncomePlan
+        ? budget.ingresos
+        : budget.displayIncomeBase;
+    final double pct = progressBase > 0 ? spent / progressBase : 0;
 
     final recent = txnsThisPeriod
         .where((t) => t.tipo != 'transferencia')
@@ -272,131 +294,145 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Scaffold(
       backgroundColor: AppColors.g0,
       body: SafeArea(
-        child: ListView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
-          children: [
-            // ── Header ────────────────────────────────────────────────
-            Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+        child: RefreshIndicator.adaptive(
+          onRefresh: _refreshDashboard,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+            children: [
+              // ── Header ────────────────────────────────────────────────
+              Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              greetingName == null
+                                  ? "Hola"
+                                  : "Hola, $greetingName",
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.e8,
+                                letterSpacing: -0.8,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              "Resumen de $periodoLabel",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.g5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Row(
                         children: [
-                          Text(
-                            greetingName == null
-                                ? "Hola"
-                                : "Hola, $greetingName",
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.e8,
-                              letterSpacing: -0.8,
-                            ),
+                          _HeaderCircleButton(
+                            icon: LucideIcons.bell,
+                            badgeCount: unreadAlerts,
+                            onTap: () => context.push('/alerts'),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            "Tu resumen financiero de $periodoLabel",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.g5,
-                              fontWeight: FontWeight.w500,
-                            ),
+                          const SizedBox(width: 10),
+                          _HeaderCircleButton(
+                            icon: LucideIcons.settings,
+                            onTap: () => context.push('/settings'),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Row(
-                      children: [
-                        _HeaderCircleButton(
-                          icon: LucideIcons.bell,
-                          badgeCount: unreadAlerts,
-                          onTap: () => context.push('/alerts'),
+                    ],
+                  )
+                  .animate()
+                  .fadeIn(duration: 400.ms)
+                  .slideX(begin: -0.05, end: 0, curve: Curves.easeOutBack),
+
+              const SizedBox(height: 24),
+
+              // ── Budget Card ────────────────────────────────────────────
+              _buildBudgetCard(
+                    context,
+                    budget,
+                    primaryAmount: primaryAmount,
+                    primaryLabel: primaryLabel,
+                    actualCashflow: actualCashflow,
+                    defaultWallet: defaultWallet,
+                    pct: pct,
+                    hasIncomePlan: hasIncomePlan,
+                  )
+                  .animate()
+                  .fadeIn(duration: 500.ms, delay: 100.ms)
+                  .scale(
+                    begin: const Offset(0.95, 0.95),
+                    curve: Curves.easeOutBack,
+                    delay: 100.ms,
+                  ),
+
+              const SizedBox(height: 20),
+
+              // ── Quick Log Action ────────────────────────────────────────
+              _buildQuickLogButton(context)
+                  .animate()
+                  .fadeIn(duration: 400.ms, delay: 200.ms)
+                  .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
+
+              const SizedBox(height: 20),
+
+              // ── Action Grid ────────────────────────────────────────────
+              const _SectionHeader(
+                title: "Accesos rápidos",
+              ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
+
+              const SizedBox(height: 12),
+
+              _buildActionGrid(context)
+                  .animate()
+                  .fadeIn(duration: 400.ms, delay: 360.ms)
+                  .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
+
+              const SizedBox(height: 32),
+
+              // ── Recent Transactions ────────────────────────────────────
+              _SectionHeader(
+                title: "Transacciones recientes",
+                trailing: TextButton(
+                  onPressed: () => context.push('/history'),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "Ver todo",
+                        style: TextStyle(
+                          color: AppColors.o5,
+                          fontWeight: FontWeight.w700,
                         ),
-                        const SizedBox(width: 10),
-                        _HeaderCircleButton(
-                          icon: LucideIcons.settings,
-                          onTap: () => context.push('/settings'),
-                        ),
-                      ],
-                    ),
-                  ],
-                )
-                .animate()
-                .fadeIn(duration: 400.ms)
-                .slideX(begin: -0.05, end: 0, curve: Curves.easeOutBack),
-
-            const SizedBox(height: 24),
-
-            // ── Budget Card ────────────────────────────────────────────
-            _buildBudgetCard(context, budget, remaining, pct)
-                .animate()
-                .fadeIn(duration: 500.ms, delay: 100.ms)
-                .scale(
-                  begin: const Offset(0.95, 0.95),
-                  curve: Curves.easeOutBack,
-                  delay: 100.ms,
-                ),
-
-            const SizedBox(height: 20),
-
-            // ── Quick Log Action ────────────────────────────────────────
-            _buildQuickLogButton(context)
-                .animate()
-                .fadeIn(duration: 400.ms, delay: 200.ms)
-                .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
-
-            const SizedBox(height: 20),
-
-            // ── Action Grid ────────────────────────────────────────────
-            const _SectionHeader(
-              title: "Accesos rápidos",
-            ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
-
-            const SizedBox(height: 12),
-
-            _buildActionGrid(context)
-                .animate()
-                .fadeIn(duration: 400.ms, delay: 360.ms)
-                .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
-
-            const SizedBox(height: 32),
-
-            // ── Recent Transactions ────────────────────────────────────
-            _SectionHeader(
-              title: "Transacciones recientes",
-              trailing: TextButton(
-                onPressed: () => context.push('/history'),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      "Ver todo",
-                      style: TextStyle(
-                        color: AppColors.o5,
-                        fontWeight: FontWeight.w700,
                       ),
-                    ),
-                    const Icon(
-                      LucideIcons.chevronRight,
-                      size: 14,
-                      color: AppColors.o5,
-                    ),
-                  ],
+                      const Icon(
+                        LucideIcons.chevronRight,
+                        size: 14,
+                        color: AppColors.o5,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ).animate().fadeIn(duration: 400.ms, delay: 440.ms),
+              ).animate().fadeIn(duration: 400.ms, delay: 440.ms),
 
-            const SizedBox(height: 4),
+              const SizedBox(height: 4),
 
-            _buildRecentTransactions(budget, recent)
-                .animate()
-                .fadeIn(duration: 500.ms, delay: 520.ms)
-                .slideY(begin: 0.05, end: 0, curve: Curves.easeOut),
-          ],
+              _buildRecentTransactions(budget, recent)
+                  .animate()
+                  .fadeIn(duration: 500.ms, delay: 520.ms)
+                  .slideY(begin: 0.05, end: 0, curve: Curves.easeOut),
+            ],
+          ),
         ),
       ),
     );
@@ -404,15 +440,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildBudgetCard(
     BuildContext context,
-    MenudoBudget budget,
-    double remaining,
-    double pct,
-  ) {
+    MenudoBudget budget, {
+    required double primaryAmount,
+    required String primaryLabel,
+    required double actualCashflow,
+    required WalletAccount? defaultWallet,
+    required double pct,
+    required bool hasIncomePlan,
+  }) {
     final isShared = budget.miembros.length > 1 || budget.espacioId != null;
     final progress = pct.clamp(0.0, 1.0);
-    final incomePlanLabel = budget.ingresos > 0
-        ? 'Plan ${_fmt(budget.ingresos)}'
-        : 'Sin plan';
+    final periodLabel = budget.periodo.toUpperCase();
+    final supportingLine = hasIncomePlan
+        ? 'Plan ${_fmt(budget.ingresos)} · Gastado ${_fmt(budget.totalSpent)}'
+        : 'Ingresos ${_fmt(budget.actualIncomeTotal)} · Gastado ${_fmt(budget.totalSpent)}';
+    final footerLeftLabel = hasIncomePlan ? 'Flujo real' : 'Disponible';
+    final footerLeftValue = hasIncomePlan
+        ? _fmt(actualCashflow)
+        : _fmt(primaryAmount);
+    final footerRightLabel = defaultWallet == null ? null : 'Cuenta';
+    final footerRightValue = defaultWallet == null
+        ? null
+        : '${defaultWallet.nombre} · ${_fmt(defaultWallet.saldo)}';
+    final summaryMeta = isShared ? '$periodLabel · Compartido' : periodLabel;
 
     return Container(
       decoration: BoxDecoration(
@@ -447,25 +497,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           letterSpacing: -0.4,
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          MenudoChip.custom(
-                            label: budget.periodo.toUpperCase(),
-                            color: Colors.white,
-                            bgColor: Colors.white.withValues(alpha: 0.15),
-                            isSmall: true,
-                          ),
-                          if (isShared)
-                            MenudoChip.custom(
-                              label: 'COMPARTIDO',
-                              color: AppColors.e1,
-                              bgColor: Colors.white.withValues(alpha: 0.12),
-                              isSmall: true,
-                            ),
-                        ],
+                      const SizedBox(height: 6),
+                      Text(
+                        summaryMeta,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.68),
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
@@ -482,7 +521,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "DISPONIBLE",
+                  primaryLabel.toUpperCase(),
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -495,7 +534,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      _fmt(remaining),
+                      _fmt(primaryAmount),
                       style: const TextStyle(
                         fontSize: 40,
                         fontWeight: FontWeight.w900,
@@ -505,46 +544,60 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _BudgetMetaPill(
-                      label: incomePlanLabel,
-                      backgroundColor: Colors.white.withValues(alpha: 0.1),
-                    ),
-                    if (budget.actualIncomeTotal > 0)
-                      _BudgetMetaPill(
-                        label: 'Ingresos ${_fmt(budget.actualIncomeTotal)}',
-                        backgroundColor: Colors.white.withValues(alpha: 0.1),
-                      ),
-                  ],
+                const SizedBox(height: 8),
+                Text(
+                  supportingLine,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.76),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 18),
                 _buildMainProgressBar(progress),
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Gastado ${_fmt(budget.totalSpent)}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.white.withValues(alpha: 0.76),
-                          fontWeight: FontWeight.w700,
+                Text(
+                  hasIncomePlan
+                      ? 'Te quedan ${_fmt(primaryAmount)} del plan'
+                      : 'Balance neto ${_fmt(primaryAmount)}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.76),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _BudgetMetaPill(
+                          label: footerLeftLabel,
+                          value: footerLeftValue,
                         ),
                       ),
-                    ),
-                    Text(
-                      '${(progress * 100).round()}% del periodo',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.52),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                      if (footerRightValue != null) ...[
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _BudgetMetaPill(
+                            label: footerRightLabel!,
+                            value: footerRightValue,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -1041,25 +1094,42 @@ class _TransactionTile extends StatelessWidget {
 
 class _BudgetMetaPill extends StatelessWidget {
   final String label;
-  final Color backgroundColor;
+  final String value;
 
-  const _BudgetMetaPill({required this.label, required this.backgroundColor});
+  const _BudgetMetaPill({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(999),
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: Colors.white.withValues(alpha: 0.52),
+              letterSpacing: 0.6,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              letterSpacing: -0.3,
+            ),
+          ),
+        ],
       ),
     );
   }
