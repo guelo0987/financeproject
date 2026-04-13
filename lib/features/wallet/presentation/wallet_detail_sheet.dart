@@ -362,8 +362,13 @@ class WalletDetailSheet extends ConsumerWidget {
 
     Future<void> openTransfer() async {
       HapticFeedback.lightImpact();
+      final rootNavigator = Navigator.of(context, rootNavigator: true);
+      final rootContext = rootNavigator.context;
+      Navigator.pop(context);
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+      if (!rootContext.mounted) return;
       await showModalBottomSheet<void>(
-        context: context,
+        context: rootContext,
         useRootNavigator: true,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
@@ -376,8 +381,13 @@ class WalletDetailSheet extends ConsumerWidget {
 
     Future<void> openEditWallet() async {
       HapticFeedback.lightImpact();
+      final rootNavigator = Navigator.of(context, rootNavigator: true);
+      final rootContext = rootNavigator.context;
+      Navigator.pop(context);
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+      if (!rootContext.mounted) return;
       final updatedWallet = await showModalBottomSheet<WalletAccount>(
-        context: context,
+        context: rootContext,
         useRootNavigator: true,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
@@ -390,9 +400,8 @@ class WalletDetailSheet extends ConsumerWidget {
         await ref
             .read(walletNotifierProvider.notifier)
             .updateWallet(updatedWallet);
-        if (context.mounted) {
-          final messenger = ScaffoldMessenger.of(context);
-          Navigator.pop(context);
+        if (rootContext.mounted) {
+          final messenger = ScaffoldMessenger.of(rootContext);
           messenger.showSnackBar(
             const SnackBar(
               content: Text('Listo. Guardamos los cambios de la cuenta.'),
@@ -401,8 +410,8 @@ class WalletDetailSheet extends ConsumerWidget {
           );
         }
       } catch (error) {
-        if (context.mounted) {
-          _showError(context, error);
+        if (rootContext.mounted) {
+          _showError(rootContext, error);
         }
       }
     }

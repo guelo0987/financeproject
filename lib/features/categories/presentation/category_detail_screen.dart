@@ -126,7 +126,8 @@ class CategoryDetailScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.g0,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.g0,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: GestureDetector(
           onTap: () {
@@ -165,27 +166,16 @@ class CategoryDetailScreen extends ConsumerWidget {
             ),
           ],
         ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: const Color(0xFFF3F4F6), height: 1),
-        ),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
         children: [
-          // Hero card
           Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: AppColors.e8,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    const BoxShadow(
-                      color: Color(0x44065F46),
-                      blurRadius: 40,
-                      offset: Offset(0, 12),
-                    ),
-                  ],
+                  border: Border.all(color: AppColors.g2),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,27 +183,26 @@ class CategoryDetailScreen extends ConsumerWidget {
                     Row(
                       children: [
                         Container(
-                          width: 48,
-                          height: 48,
+                          width: 46,
+                          height: 46,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
+                            color: color.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           alignment: Alignment.center,
-                          child: Icon(icono, size: 24, color: Colors.white),
+                          child: Icon(icono, size: 22, color: color),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 "Total en ${label.toLowerCase()}",
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.white.withValues(alpha: 0.5),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.g4,
                                   fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.5,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -221,8 +210,8 @@ class CategoryDetailScreen extends ConsumerWidget {
                                 fmt(totalSpent),
                                 style: const TextStyle(
                                   fontSize: 28,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.e8,
                                   letterSpacing: -1,
                                 ),
                               ),
@@ -231,104 +220,72 @@ class CategoryDetailScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    if (hasLimit) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(4),
+                    if (activeBudget != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        activeBudget.nombre,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.g5,
                         ),
-                        alignment: Alignment.centerLeft,
-                        child: LayoutBuilder(
-                          builder: (ctx, constraints) => AnimatedContainer(
-                            duration: const Duration(milliseconds: 900),
-                            curve: Curves.easeOutCubic,
-                            height: 8,
-                            width: constraints.maxWidth * pct,
-                            decoration: BoxDecoration(
-                              color: over ? AppColors.r5 : color,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    if (hasLimit) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          value: pct,
+                          minHeight: 8,
+                          backgroundColor: AppColors.g1,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            over ? AppColors.r5 : color,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            "${(pct * 100).round()}% del límite",
-                            style: TextStyle(
+                            "Gastado ${fmt(totalSpent)}",
+                            style: const TextStyle(
                               fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white.withValues(alpha: 0.6),
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.g5,
                             ),
                           ),
                           Text(
-                            "Límite: ${fmt(limite)}",
-                            style: TextStyle(
+                            "Límite ${fmt(limite)}",
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: Colors.white.withValues(alpha: 0.7),
+                              color: AppColors.g5,
                             ),
                           ),
                         ],
                       ),
                       if (over) ...[
                         const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.r5.withValues(alpha: 0.25),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                LucideIcons.alertTriangle,
-                                size: 14,
-                                color: Color(0xFFFCA5A5),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                "Excedido por ${fmt(totalSpent - limite)}",
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFFFCA5A5),
-                                ),
-                              ),
-                            ],
+                        Text(
+                          "Excedido por ${fmt(totalSpent - limite)}",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.r5,
                           ),
                         ),
                       ],
-                    ],
-                    if (!hasLimit) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          "Esta categoría no tiene tope en este presupuesto",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white.withValues(alpha: 0.6),
-                          ),
+                    ] else
+                      const Text(
+                        "Esta categoría no tiene tope en este presupuesto.",
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.g5,
                         ),
                       ),
-                    ],
                   ],
                 ),
               )

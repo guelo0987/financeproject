@@ -221,6 +221,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  void _openRegisterSheet(
+    BuildContext context, {
+    String initialType = 'gasto',
+  }) {
+    HapticFeedback.mediumImpact();
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => RegisterTransactionSheet(initialType: initialType),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final budgetsState = ref.watch(budgetNotifierProvider);
@@ -269,17 +283,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final double primaryAmount = hasIncomePlan
         ? plannedRemaining
         : actualCashflow;
-    final String primaryLabel = hasIncomePlan
-        ? 'Disponible del plan'
-        : 'Flujo del periodo';
-    final double progressBase = hasIncomePlan
-        ? budget.ingresos
-        : budget.displayIncomeBase;
-    final double pct = progressBase > 0 ? spent / progressBase : 0;
 
     final recent = txnsThisPeriod
         .where((t) => t.tipo != 'transferencia')
-        .take(4)
+        .take(3)
         .toList();
 
     final periodoLabel =
@@ -290,6 +297,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           'unico': 'este periodo',
         }[budget.periodo.toLowerCase()] ??
         budget.periodo.toLowerCase();
+    final hour = TimeOfDay.now().hour;
+    final salutation = hour < 12
+        ? 'Buenos días,'
+        : hour < 18
+        ? 'Buenas tardes,'
+        : 'Buenas noches,';
+    final avatarLabel = greetingName?.trim().isNotEmpty == true
+        ? greetingName!.trim().substring(0, 1).toUpperCase()
+        : 'M';
 
     return Scaffold(
       backgroundColor: AppColors.g0,
@@ -302,52 +318,59 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
             children: [
-              // ── Header ────────────────────────────────────────────────
               Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              greetingName == null
-                                  ? "Hola"
-                                  : "Hola, $greetingName",
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.e8,
-                                letterSpacing: -0.8,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              "Resumen de $periodoLabel",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AppColors.g5,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       Row(
                         children: [
-                          _HeaderCircleButton(
-                            icon: LucideIcons.bell,
-                            badgeCount: unreadAlerts,
-                            onTap: () => context.push('/alerts'),
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: const BoxDecoration(
+                              color: AppColors.e1,
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              avatarLabel,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.e8,
+                              ),
+                            ),
                           ),
-                          const SizedBox(width: 10),
-                          _HeaderCircleButton(
-                            icon: LucideIcons.settings,
-                            onTap: () => context.push('/settings'),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                salutation,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.g4,
+                                ),
+                              ),
+                              Text(
+                                greetingName ?? 'Mi cuenta',
+                                style: const TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.e8,
+                                  letterSpacing: -0.8,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
+                      ),
+                      const SizedBox(width: 12),
+                      _HeaderCircleButton(
+                        icon: LucideIcons.bell,
+                        badgeCount: unreadAlerts,
+                        onTap: () => context.push('/alerts'),
                       ),
                     ],
                   )
@@ -355,18 +378,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   .fadeIn(duration: 400.ms)
                   .slideX(begin: -0.05, end: 0, curve: Curves.easeOutBack),
 
-              const SizedBox(height: 24),
-
-              // ── Budget Card ────────────────────────────────────────────
+              const SizedBox(height: 22),
               _buildBudgetCard(
                     context,
                     budget,
                     primaryAmount: primaryAmount,
-                    primaryLabel: primaryLabel,
-                    actualCashflow: actualCashflow,
                     defaultWallet: defaultWallet,
-                    pct: pct,
                     hasIncomePlan: hasIncomePlan,
+                    periodLabel: periodoLabel,
                   )
                   .animate()
                   .fadeIn(duration: 500.ms, delay: 100.ms)
@@ -377,32 +396,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
 
               const SizedBox(height: 20),
-
-              // ── Quick Log Action ────────────────────────────────────────
-              _buildQuickLogButton(context)
+              _buildActionGrid(context)
                   .animate()
                   .fadeIn(duration: 400.ms, delay: 200.ms)
                   .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
 
-              const SizedBox(height: 20),
-
-              // ── Action Grid ────────────────────────────────────────────
-              const _SectionHeader(
-                title: "Accesos rápidos",
-              ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
-
-              const SizedBox(height: 12),
-
-              _buildActionGrid(context)
+              const SizedBox(height: 18),
+              _buildSummaryCard(
+                    amount: primaryAmount,
+                    hasIncomePlan: hasIncomePlan,
+                    periodLabel: periodoLabel,
+                  )
                   .animate()
-                  .fadeIn(duration: 400.ms, delay: 360.ms)
+                  .fadeIn(duration: 400.ms, delay: 300.ms)
                   .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
 
-              const SizedBox(height: 32),
-
-              // ── Recent Transactions ────────────────────────────────────
+              const SizedBox(height: 28),
               _SectionHeader(
-                title: "Transacciones recientes",
+                title: "Recientes",
                 trailing: TextButton(
                   onPressed: () => context.push('/history'),
                   child: Row(
@@ -442,172 +453,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     BuildContext context,
     MenudoBudget budget, {
     required double primaryAmount,
-    required String primaryLabel,
-    required double actualCashflow,
     required WalletAccount? defaultWallet,
-    required double pct,
     required bool hasIncomePlan,
+    required String periodLabel,
   }) {
-    final isShared = budget.miembros.length > 1 || budget.espacioId != null;
-    final progress = pct.clamp(0.0, 1.0);
-    final periodLabel = budget.periodo.toUpperCase();
-    final supportingLine = hasIncomePlan
-        ? 'Plan ${_fmt(budget.ingresos)} · Gastado ${_fmt(budget.totalSpent)}'
-        : 'Ingresos ${_fmt(budget.actualIncomeTotal)} · Gastado ${_fmt(budget.totalSpent)}';
-    final footerLeftLabel = hasIncomePlan ? 'Flujo real' : 'Disponible';
-    final footerLeftValue = hasIncomePlan
-        ? _fmt(actualCashflow)
-        : _fmt(primaryAmount);
-    final footerRightLabel = defaultWallet == null ? null : 'Cuenta';
-    final footerRightValue = defaultWallet == null
-        ? null
-        : '${defaultWallet.nombre} · ${_fmt(defaultWallet.saldo)}';
-    final summaryMeta = isShared ? '$periodLabel · Compartido' : periodLabel;
+    final accountLabel = defaultWallet?.nombre ?? budget.nombre;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.e8,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.e8.withValues(alpha: 0.16),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(22, 22, 22, 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        budget.nombre,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: -0.4,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        summaryMeta,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white.withValues(alpha: 0.68),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                _buildVerButton(context, budget),
-              ],
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(22, 0, 22, 22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  primaryLabel.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white.withValues(alpha: 0.4),
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      _fmt(primaryAmount),
-                      style: const TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: -1.5,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  supportingLine,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withValues(alpha: 0.76),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                _buildMainProgressBar(progress),
-                const SizedBox(height: 10),
-                Text(
-                  hasIncomePlan
-                      ? 'Te quedan ${_fmt(primaryAmount)} del plan'
-                      : 'Balance neto ${_fmt(primaryAmount)}',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withValues(alpha: 0.76),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _BudgetMetaPill(
-                          label: footerLeftLabel,
-                          value: footerLeftValue,
-                        ),
-                      ),
-                      if (footerRightValue != null) ...[
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _BudgetMetaPill(
-                            label: footerRightLabel!,
-                            value: footerRightValue,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVerButton(BuildContext context, MenudoBudget budget) {
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
@@ -620,19 +471,129 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+          color: AppColors.e8,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.e8.withValues(alpha: 0.16),
+              blurRadius: 24,
+              offset: const Offset(0, 12),
+            ),
+          ],
         ),
-        child: const Text(
-          "Detalles",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          LucideIcons.wallet,
+                          size: 12,
+                          color: Colors.white.withValues(alpha: 0.82),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            accountLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    showModalBottomSheet(
+                      context: context,
+                      useRootNavigator: true,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => BudgetDetailSheet(budget: budget),
+                    );
+                  },
+                  child: Icon(
+                    LucideIcons.moreHorizontal,
+                    color: Colors.white.withValues(alpha: 0.86),
+                    size: 18,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Disponible de $periodLabel',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Colors.white.withValues(alpha: 0.76),
+              ),
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 52,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  _fmt(primaryAmount),
+                  style: const TextStyle(
+                    fontSize: 42,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: -1.6,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Divider(color: Colors.white.withValues(alpha: 0.12), height: 1),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: _BudgetMetaPill(
+                    label: hasIncomePlan ? 'Presupuesto' : 'Ingresos',
+                    value: _fmt(
+                      hasIncomePlan
+                          ? budget.ingresos
+                          : budget.actualIncomeTotal,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _BudgetMetaPill(
+                    label: 'Gastado',
+                    value: _fmt(budget.totalSpent),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -641,128 +602,133 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget _buildActionGrid(BuildContext context) {
     final actions = [
       (
-        icon: LucideIcons.layoutGrid,
-        label: 'Categorías',
-        color: AppColors.e6,
-        bgColor: AppColors.e1,
-        onTap: () => context.push('/categories'),
+        icon: LucideIcons.arrowDownLeft,
+        label: 'Ingreso',
+        color: const Color(0xFFF59E0B),
+        bgColor: const Color(0xFFFEF3C7),
+        onTap: () => _openRegisterSheet(context, initialType: 'ingreso'),
+      ),
+      (
+        icon: LucideIcons.arrowUpRight,
+        label: 'Gasto',
+        color: const Color(0xFFEF4444),
+        bgColor: const Color(0xFFFFE4E6),
+        onTap: () => _openRegisterSheet(context),
       ),
       (
         icon: LucideIcons.repeat2,
-        label: 'Automáticas',
-        color: AppColors.o5,
-        bgColor: AppColors.o1,
-        onTap: () => context.push('/recurring'),
-      ),
-      (
-        icon: LucideIcons.pieChart,
-        label: 'Desglose',
+        label: 'Transferir',
         color: AppColors.b5,
         bgColor: const Color(0xFFDBEAFE),
-        onTap: () => context.push('/categories-spending'),
+        onTap: () => _openRegisterSheet(context, initialType: 'transferencia'),
       ),
       (
-        icon: LucideIcons.wrench,
-        label: 'Herramientas',
-        color: AppColors.o5,
-        bgColor: AppColors.o1,
+        icon: LucideIcons.layoutGrid,
+        label: 'Más',
+        color: AppColors.g5,
+        bgColor: AppColors.g1,
         onTap: () => context.push('/tools'),
       ),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const spacing = 12.0;
-        final itemWidth = (constraints.maxWidth - spacing) / 2;
+    return Row(
+      children: [
+        for (var i = 0; i < actions.length; i++) ...[
+          Expanded(
+            child: _QuickAction(
+              icon: actions[i].icon,
+              label: actions[i].label,
+              color: actions[i].color,
+              bgColor: actions[i].bgColor,
+              onTap: actions[i].onTap,
+            ),
+          ),
+          if (i != actions.length - 1) const SizedBox(width: 10),
+        ],
+      ],
+    );
+  }
 
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: actions
-              .map(
-                (action) => SizedBox(
-                  width: itemWidth,
-                  child: _QuickAction(
-                    icon: action.icon,
-                    label: action.label,
-                    color: action.color,
-                    bgColor: action.bgColor,
-                    onTap: action.onTap,
+  Widget _buildSummaryCard({
+    required double amount,
+    required bool hasIncomePlan,
+    required String periodLabel,
+  }) {
+    final positive = amount >= 0;
+    final statusColor = positive ? AppColors.e6 : AppColors.o5;
+    final message = hasIncomePlan
+        ? positive
+              ? 'Te quedan ${_fmt(amount)} del plan.'
+              : 'Vas ${_fmt(amount.abs())} por encima del plan.'
+        : positive
+        ? 'Cierre neto de ${_fmt(amount)} en $periodLabel.'
+        : 'Balance de ${_fmt(amount.abs())} en rojo.';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.g2),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE0E7FF),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(
+              LucideIcons.clock3,
+              size: 18,
+              color: Color(0xFF6366F1),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Resumen del periodo',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.e8,
                   ),
                 ),
-              )
-              .toList(),
-        );
-      },
-    );
-  }
-
-  Widget _buildMainProgressBar(double pct) {
-    return Container(
-      height: 7,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: LayoutBuilder(
-        builder: (_, constraints) => AnimatedContainer(
-          duration: const Duration(milliseconds: 1000),
-          curve: Curves.easeOutQuart,
-          width: constraints.maxWidth * pct,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: pct > 0.9
-                  ? [AppColors.o5, const Color(0xFFF59E0B)]
-                  : [const Color(0xFF6EE7B7), const Color(0xFF34D399)],
+                const SizedBox(height: 2),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.g5,
+                  ),
+                ),
+              ],
             ),
-            borderRadius: BorderRadius.circular(4),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickLogButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.mediumImpact();
-        showModalBottomSheet(
-          context: context,
-          useRootNavigator: true,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => const RegisterTransactionSheet(),
-        );
-      },
-      child: Container(
-        height: 58,
-        decoration: BoxDecoration(
-          color: AppColors.o5,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.o5.withValues(alpha: 0.2),
-              blurRadius: 14,
-              offset: const Offset(0, 8),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(LucideIcons.plusCircle, color: Colors.white, size: 22),
-            SizedBox(width: 10),
-            Text(
-              "Nueva transacción",
+            child: Text(
+              positive ? 'Al día' : 'Revisar',
               style: TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.1,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: statusColor,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -937,33 +903,28 @@ class _QuickAction extends StatelessWidget {
         HapticFeedback.lightImpact();
         onTap();
       },
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 90),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.g2),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 38,
-              height: 38,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 color: bgColor,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(15),
               ),
               child: Icon(icon, size: 18, color: color),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               label,
+              textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: FontWeight.w800,
-                color: AppColors.e8,
+                color: AppColors.g5,
               ),
             ),
           ],

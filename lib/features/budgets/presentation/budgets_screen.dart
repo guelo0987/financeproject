@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -7,7 +6,6 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../core/utils/error_presenter.dart';
-import '../../../../shared/widgets/menudo_chip.dart';
 import '../budget_providers.dart';
 import 'budget_detail_sheet.dart';
 import 'wizard/create_budget_wizard.dart';
@@ -81,6 +79,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     final selectedIdx = ref
         .watch(selectedBudgetIdxProvider)
         .clamp(0, budgets.isEmpty ? 0 : budgets.length - 1);
+    final activeBudget = budgets.isEmpty ? null : budgets[selectedIdx];
 
     final filteredBudgets = _filtro == "Todos"
         ? budgets
@@ -94,44 +93,54 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
         physics: const BouncingScrollPhysics(),
         slivers: [
           SliverAppBar(
-            expandedHeight: 120.0,
-            floating: false,
             pinned: true,
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.g0,
+            surfaceTintColor: Colors.transparent,
             elevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsetsDirectional.only(
-                start: 20,
-                bottom: 16,
-              ),
-              centerTitle: false,
-              title: const Text(
-                'Presupuestos',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.e8,
-                  letterSpacing: -0.8,
+            toolbarHeight: 82,
+            titleSpacing: 20,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const Text(
+                  'Presupuestos',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.e8,
+                    letterSpacing: -0.8,
+                  ),
                 ),
-              ),
-              background: Container(color: Colors.white),
+                const SizedBox(height: 2),
+                Text(
+                  activeBudget == null
+                      ? '${budgets.length} presupuesto${budgets.length == 1 ? '' : 's'}'
+                      : 'Activo: ${activeBudget.nombre}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.g4,
+                  ),
+                ),
+              ],
             ),
             actions: [
               Padding(
-                padding: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.only(right: 16),
                 child: IconButton(
                   onPressed: _showCreate,
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.o5,
-                      shape: BoxShape.circle,
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(
-                      LucideIcons.plus,
-                      color: Colors.white,
-                      size: 18,
-                    ),
+                    side: const BorderSide(color: AppColors.g2),
+                  ),
+                  icon: const Icon(
+                    LucideIcons.plus,
+                    color: AppColors.e8,
+                    size: 18,
                   ),
                 ),
               ),
@@ -139,17 +148,15 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Filters
                   _buildFilters().animate().fadeIn(
                     duration: 400.ms,
                     delay: 100.ms,
                   ),
-
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 18),
 
                   if (filteredBudgets.isEmpty)
                     _buildEmptyState()
@@ -184,7 +191,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
 
   Widget _buildFilters() {
     return SizedBox(
-      height: 38,
+      height: 34,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -201,12 +208,12 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: selected ? AppColors.e8 : Colors.white,
+                color: selected ? AppColors.e8 : AppColors.g1,
                 borderRadius: BorderRadius.circular(100),
                 border: Border.all(
-                  color: selected ? AppColors.e8 : AppColors.g2,
+                  color: selected ? AppColors.e8 : Colors.transparent,
                 ),
               ),
               alignment: Alignment.center,
@@ -226,35 +233,35 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.only(top: 60),
-        child: Column(
-          children: [
-            const Icon(
-              LucideIcons.clipboardList,
-              size: 48,
-              color: AppColors.g3,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.g2),
+      ),
+      child: Column(
+        children: [
+          const Icon(LucideIcons.clipboardList, size: 36, color: AppColors.g3),
+          const SizedBox(height: 14),
+          const Text(
+            "Todavía no tienes presupuestos aquí",
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: AppColors.e8,
             ),
-            const SizedBox(height: 16),
-            const Text(
-              "Todavía no tienes presupuestos aquí",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.e8,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _filtro == "Todos"
-                  ? "Cuando crees uno, aparecerá aquí."
-                  : "No encontramos presupuestos en la vista '$_filtro'.",
-              style: const TextStyle(fontSize: 14, color: AppColors.g5),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _filtro == "Todos"
+                ? "Cuando crees uno, aparecerá aquí."
+                : "No encontramos presupuestos en la vista '$_filtro'.",
+            style: const TextStyle(fontSize: 14, color: AppColors.g5),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -279,132 +286,150 @@ class _BudgetCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final double spent = budget.totalSpent;
     final double remaining = budget.availableToSpend;
-    final double incomeBase = budget.displayIncomeBase;
-    final double pct = min(spent / (incomeBase > 0 ? incomeBase : 1), 1.0);
+    final isShared = budget.miembros.isNotEmpty || budget.espacioId != null;
 
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 20),
+        margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isDashboardActive ? AppColors.e8 : AppColors.g2,
-            width: isDashboardActive ? 2 : 1,
+            color: isDashboardActive
+                ? AppColors.e6.withValues(alpha: 0.28)
+                : AppColors.g2,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: (isDashboardActive ? AppColors.e8 : AppColors.g4)
-                  .withValues(alpha: 0.08),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
         ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: isDashboardActive ? AppColors.e8 : AppColors.g0,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(26),
-                ),
-              ),
-              child: Row(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
                           children: [
-                            MenudoChip.custom(
-                              label: budget.periodo.toUpperCase(),
-                              color: isDashboardActive
-                                  ? Colors.white.withValues(alpha: 0.8)
-                                  : AppColors.g5,
-                              bgColor: isDashboardActive
-                                  ? Colors.white.withValues(alpha: 0.15)
-                                  : AppColors.g2,
-                              isSmall: true,
-                            ),
+                            _BudgetMetaTag(label: budget.periodo.toUpperCase()),
+                            if (isShared)
+                              _BudgetMetaTag(
+                                label: budget.miembros.isEmpty
+                                    ? 'Compartido'
+                                    : '${budget.miembros.length} miembros',
+                              ),
+                            if (isDashboardActive) const _BudgetActivePill(),
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 10),
                         Text(
                           budget.nombre,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: isDashboardActive
-                                ? Colors.white
-                                : AppColors.e8,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.e8,
                             letterSpacing: -0.4,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  _buildAvatars(
-                    budget.miembros,
-                    isShared: budget.espacioId != null,
+                  if (budget.miembros.isNotEmpty ||
+                      budget.espacioId != null) ...[
+                    const SizedBox(width: 12),
+                    _buildAvatars(
+                      budget.miembros,
+                      isShared: budget.espacioId != null,
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Disponible',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.g4,
+                ),
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                height: 40,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    fmt(remaining),
+                    style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w900,
+                      color: remaining < 0 ? AppColors.r5 : AppColors.e8,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Plan ${fmt(budget.ingresos)} · Gastado ${fmt(spent)}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.g5,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: _BudgetFact(
+                      label: 'Plan',
+                      value: fmt(budget.ingresos),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _BudgetFact(label: 'Gastado', value: fmt(spent)),
                   ),
                 ],
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
+              const SizedBox(height: 18),
+              Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _BudgetStat(
-                        label: "GASTADO",
-                        value: fmt(spent),
-                        color: AppColors.r5,
-                      ),
-                      _BudgetStat(
-                        label: "DISPONIBLE",
-                        value: fmt(remaining),
-                        color: AppColors.e6,
-                        center: true,
-                      ),
-                      _BudgetStat(
-                        label: "PLAN",
-                        value: fmt(budget.ingresos),
-                        color: AppColors.e8,
-                        right: true,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _ProgressBar(pct: pct),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "${(pct * 100).round()}% utilizado",
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.g4,
-                          fontWeight: FontWeight.w700,
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onTap,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.e8,
+                        side: const BorderSide(color: AppColors.g2),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      _DashboardToggleButton(
-                        isActive: isDashboardActive,
-                        onToggle: onSetActive,
+                      child: const Text(
+                        'Ver detalle',
+                        style: TextStyle(fontWeight: FontWeight.w700),
                       ),
-                    ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  _DashboardToggleButton(
+                    isActive: isDashboardActive,
+                    onToggle: onSetActive,
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -462,80 +487,43 @@ class _BudgetCard extends StatelessWidget {
   }
 }
 
-class _BudgetStat extends StatelessWidget {
-  final String label, value;
-  final Color color;
-  final bool center, right;
+class _BudgetFact extends StatelessWidget {
+  final String label;
+  final String value;
 
-  const _BudgetStat({
-    required this.label,
-    required this.value,
-    required this.color,
-    this.center = false,
-    this.right = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: right
-          ? CrossAxisAlignment.end
-          : center
-          ? CrossAxisAlignment.center
-          : CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            color: AppColors.g4,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w900,
-            color: color,
-            letterSpacing: -0.4,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ProgressBar extends StatelessWidget {
-  final double pct;
-
-  const _ProgressBar({required this.pct});
+  const _BudgetFact({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 8,
-      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.g1,
-        borderRadius: BorderRadius.circular(4),
+        color: AppColors.g0,
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: LayoutBuilder(
-        builder: (_, constraints) => AnimatedContainer(
-          duration: const Duration(milliseconds: 800),
-          curve: Curves.easeOutQuart,
-          width: constraints.maxWidth * pct,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: pct > 0.9
-                  ? [AppColors.r5, AppColors.r5.withValues(alpha: 0.7)]
-                  : [AppColors.o5, AppColors.o5.withValues(alpha: 0.7)],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: AppColors.g4,
             ),
-            borderRadius: BorderRadius.circular(4),
           ),
-        ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: AppColors.e8,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -556,10 +544,11 @@ class _DashboardToggleButton extends StatelessWidget {
       onTap: onToggle,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.e8 : AppColors.g1,
-          borderRadius: BorderRadius.circular(100),
+          color: isActive ? AppColors.e8 : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isActive ? AppColors.e8 : AppColors.g2),
         ),
         child: Row(
           children: [
@@ -570,15 +559,63 @@ class _DashboardToggleButton extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              isActive ? "ACTIVO" : "USAR EN DASHBOARD",
+              isActive ? "Activo" : "Usar",
               style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
                 color: isActive ? Colors.white : AppColors.g5,
-                letterSpacing: 0.5,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BudgetMetaTag extends StatelessWidget {
+  final String label;
+
+  const _BudgetMetaTag({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.g1,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: AppColors.g5,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+}
+
+class _BudgetActivePill extends StatelessWidget {
+  const _BudgetActivePill();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.e1,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: const Text(
+        'Activo',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: AppColors.e6,
         ),
       ),
     );

@@ -277,7 +277,8 @@ class _SpendingCategoriesScreenState
     return Scaffold(
       backgroundColor: AppColors.g0,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.g0,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(LucideIcons.chevronLeft, color: AppColors.e8),
@@ -334,26 +335,22 @@ class _SpendingCategoriesScreenState
                 ),
               ],
               legend: groups.take(3).map((group) {
-                final share = total == 0
-                    ? 0
-                    : (group.total / total * 100).round();
                 return _LegendItem(
                   label: group.label,
-                  value: '$share%',
+                  value: _fmtMoney(group.total),
                   color: group.color,
                 );
               }).toList(),
               footer:
                   '${sectionVerb[0].toUpperCase()}${sectionVerb.substring(1)} $periodLabel',
             ).animate().fadeIn(duration: 240.ms).slideY(begin: 0.03, end: 0),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             Text(
               '$sectionTitle por categoría',
               style: const TextStyle(
                 fontSize: 18,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
                 color: AppColors.e8,
-                letterSpacing: -0.4,
               ),
             ),
             const SizedBox(height: 6),
@@ -401,11 +398,10 @@ class _TypeSwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(6),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.g2),
+        color: AppColors.g1,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
@@ -459,16 +455,19 @@ class _TypeOption extends StatelessWidget {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 11),
         decoration: BoxDecoration(
-          color: selected ? selectedBackground : Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          color: selected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AppColors.g2 : Colors.transparent,
+          ),
         ),
         alignment: Alignment.center,
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: FontWeight.w800,
             color: selected ? selectedColor : AppColors.g5,
           ),
@@ -502,24 +501,15 @@ class _BreakdownOverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: AppColors.g2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 44,
-            height: 4,
-            decoration: BoxDecoration(
-              color: accentColor,
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-          const SizedBox(height: 16),
           Text(
             '$title $periodLabel',
             style: const TextStyle(
@@ -533,7 +523,7 @@ class _BreakdownOverviewCard extends StatelessWidget {
           Text(
             totalLabel,
             style: const TextStyle(
-              fontSize: 34,
+              fontSize: 32,
               fontWeight: FontWeight.w900,
               color: AppColors.e8,
               letterSpacing: -1.2,
@@ -580,7 +570,7 @@ class _BreakdownOverviewCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: accentColor,
+              color: AppColors.g4,
             ),
           ),
         ],
@@ -618,25 +608,22 @@ class _ParentCategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final share = total == 0 ? 0 : (group.total / total * 100).round();
-
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: expanded ? group.color.withValues(alpha: 0.32) : AppColors.g2,
-          width: 1.4,
         ),
       ),
       child: Column(
         children: [
           InkWell(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(20),
             onTap: onTap,
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(15),
               child: Column(
                 children: [
                   Row(
@@ -660,7 +647,7 @@ class _ParentCategoryCard extends StatelessWidget {
                               group.label,
                               style: const TextStyle(
                                 fontSize: 16,
-                                fontWeight: FontWeight.w900,
+                                fontWeight: FontWeight.w800,
                                 color: AppColors.e8,
                               ),
                             ),
@@ -684,13 +671,13 @@ class _ParentCategoryCard extends StatelessWidget {
                             moneyFormatter(group.total),
                             style: const TextStyle(
                               fontSize: 15,
-                              fontWeight: FontWeight.w900,
+                              fontWeight: FontWeight.w800,
                               color: AppColors.e8,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '$share%',
+                            '${countFormatter(group.transactions.length)} mov.',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
@@ -739,7 +726,6 @@ class _ParentCategoryCard extends StatelessWidget {
                           padding: const EdgeInsets.only(top: 10),
                           child: _SubcategoryCard(
                             subcategory: subcategory,
-                            parentTotal: group.total,
                             selectedType: selectedType,
                             countFormatter: countFormatter,
                             moneyFormatter: moneyFormatter,
@@ -763,7 +749,6 @@ class _ParentCategoryCard extends StatelessWidget {
 class _SubcategoryCard extends StatelessWidget {
   const _SubcategoryCard({
     required this.subcategory,
-    required this.parentTotal,
     required this.selectedType,
     required this.countFormatter,
     required this.moneyFormatter,
@@ -774,7 +759,6 @@ class _SubcategoryCard extends StatelessWidget {
   });
 
   final _SubcategoryGroup subcategory;
-  final double parentTotal;
   final String selectedType;
   final String Function(int value) countFormatter;
   final String Function(double value, {String currency}) moneyFormatter;
@@ -785,14 +769,10 @@ class _SubcategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final share = parentTotal == 0
-        ? 0
-        : (subcategory.total / parentTotal * 100).round();
-
     return Container(
       decoration: BoxDecoration(
         color: AppColors.g0,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: expanded
               ? subcategory.color.withValues(alpha: 0.28)
@@ -808,7 +788,7 @@ class _SubcategoryCard extends StatelessWidget {
               onTap();
             },
             child: Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(13),
               child: Row(
                 children: [
                   Container(
@@ -842,7 +822,7 @@ class _SubcategoryCard extends StatelessWidget {
                         Text(
                           subcategory.isDirectParentEntry
                               ? 'Registrado directo en la categoría padre'
-                              : '${countFormatter(subcategory.transactions.length)} movimientos · $share% del grupo',
+                              : '${countFormatter(subcategory.transactions.length)} movimientos · ${moneyFormatter(subcategory.total)}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.g5,
@@ -857,7 +837,7 @@ class _SubcategoryCard extends StatelessWidget {
                     moneyFormatter(subcategory.total),
                     style: const TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.e8,
                     ),
                   ),

@@ -40,6 +40,7 @@ class _RegisterTransactionSheetState
   int? _fromAccountId;
   int? _toAccountId;
   bool _isSaving = false;
+  String? _formMessage;
 
   bool get _isEditing => widget.transaction != null;
 
@@ -124,6 +125,7 @@ class _RegisterTransactionSheetState
 
     setState(() {
       _selectedTypeIndex = index;
+      _formMessage = null;
       if (nextType == 'transferencia' ||
           (selectedCategory != null && selectedCategory.tipo != nextType)) {
         _catKey = null;
@@ -137,6 +139,7 @@ class _RegisterTransactionSheetState
   void _onKeyTap(String key) {
     HapticFeedback.lightImpact();
     setState(() {
+      _formMessage = null;
       if (key == 'backspace') {
         if (_amount.isNotEmpty) {
           _amount = _amount.substring(0, _amount.length - 1);
@@ -240,7 +243,10 @@ class _RegisterTransactionSheetState
     );
 
     HapticFeedback.mediumImpact();
-    setState(() => _isSaving = true);
+    setState(() {
+      _formMessage = null;
+      _isSaving = true;
+    });
 
     try {
       final notifier = ref.read(transactionNotifierProvider.notifier);
@@ -265,9 +271,7 @@ class _RegisterTransactionSheetState
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
+    setState(() => _formMessage = message);
   }
 
   WalletAccount? _findWallet(int? id, List<WalletAccount> wallets) {
@@ -276,6 +280,77 @@ class _RegisterTransactionSheetState
       if (wallet.id == id) return wallet;
     }
     return null;
+  }
+
+  void _maybeSeedFromAccount(List<WalletAccount> wallets) {
+    if (wallets.isEmpty) return;
+
+    final currentIsValid =
+        _fromAccountId != null &&
+        wallets.any((wallet) => wallet.id == _fromAccountId);
+    if (currentIsValid) return;
+
+    final defaultId =
+        widget.initialFromAccountId ?? ref.read(defaultWalletIdProvider);
+    final fallbackId =
+        defaultId != null && wallets.any((wallet) => wallet.id == defaultId)
+        ? defaultId
+        : wallets.first.id;
+
+    if (_fromAccountId == fallbackId) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final stillInvalid =
+          _fromAccountId == null ||
+          !wallets.any((wallet) => wallet.id == _fromAccountId);
+      if (!stillInvalid) return;
+
+      setState(() {
+        _fromAccountId = fallbackId;
+      });
+    });
+  }
+
+  List<String> _missingFields(List<WalletAccount> wallets, double amountValue) {
+    final items = <String>[];
+    final hasFromAccount =
+        _fromAccountId != null &&
+        wallets.any((wallet) => wallet.id == _fromAccountId);
+
+    if (amountValue <= 0) {
+      items.add('monto');
+    }
+
+    if (_selectedType != 'transferencia' &&
+        (_catKey == null || _catKey!.isEmpty)) {
+      items.add('categoría');
+    }
+
+    if (!hasFromAccount) {
+      items.add('cuenta');
+    }
+
+    if (_selectedType == 'transferencia') {
+      final hasDestination =
+          _toAccountId != null &&
+          wallets.any((wallet) => wallet.id == _toAccountId);
+      if (!hasDestination) {
+        items.add('destino');
+      } else if (_toAccountId == _fromAccountId) {
+        items.add('cuentas distintas');
+      }
+    }
+
+    return items;
+  }
+
+  String _missingFieldsLabel(List<String> items) {
+    if (items.isEmpty) return '';
+    if (items.length == 1) return items.first;
+    if (items.length == 2) return '${items.first} y ${items.last}';
+    return '${items.take(items.length - 1).join(', ')} y ${items.last}';
   }
 
   String _accountName(int? id, List<WalletAccount> wallets) {
@@ -337,7 +412,10 @@ class _RegisterTransactionSheetState
     );
 
     if (selected != null && mounted) {
-      setState(() => _catKey = selected);
+      setState(() {
+        _catKey = selected;
+        _formMessage = null;
+      });
     }
   }
 
@@ -360,6 +438,7 @@ class _RegisterTransactionSheetState
     ).then((id) {
       if (id != null && mounted) {
         setState(() {
+          _formMessage = null;
           if (isFrom) {
             _fromAccountId = id;
           } else {
@@ -372,9 +451,13 @@ class _RegisterTransactionSheetState
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final compactSheet = media.size.height < 900 || media.size.width < 420;
+    final stackFieldPairs = media.size.width <= 390;
     final amountValue = double.tryParse(_amount) ?? 0;
     final isTransfer = _selectedTypeIndex == 2;
     final wallets = ref.watch(effectiveWalletsProvider);
+    _maybeSeedFromAccount(wallets);
     final selectedBudget = ref.watch(selectedBudgetProvider);
     final categories = ref.watch(effectiveCategoriesProvider);
     final categoriesBySlug = {
@@ -400,9 +483,11 @@ class _RegisterTransactionSheetState
     final noteLabel = (_nota == null || _nota!.trim().isEmpty)
         ? 'Agregar nota'
         : _nota!.trim();
+    final missingFields = _missingFields(wallets, amountValue);
+    final canSubmit = missingFields.isEmpty && !_isSaving;
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.94,
+      height: media.size.height * (compactSheet ? 0.95 : 0.92),
       decoration: const BoxDecoration(
         color: AppColors.g0,
         borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
@@ -421,7 +506,12 @@ class _RegisterTransactionSheetState
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+            padding: EdgeInsets.fromLTRB(
+              24,
+              compactSheet ? 10 : 14,
+              24,
+              compactSheet ? 14 : 20,
+            ),
             child: Container(
               decoration: BoxDecoration(
                 color: AppColors.g1,
@@ -453,25 +543,27 @@ class _RegisterTransactionSheetState
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: EdgeInsets.only(bottom: compactSheet ? 4 : 8),
             child: Column(
               children: [
                 Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          isTransfer
-                              ? 'RD\$'
-                              : (_selectedTypeIndex == 1 ? '+RD\$' : '-RD\$'),
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: _accentColor.withValues(alpha: 0.4),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            isTransfer
+                                ? 'RD\$'
+                                : (_selectedTypeIndex == 1 ? '+RD\$' : '-RD\$'),
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: _accentColor.withValues(alpha: 0.4),
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 160),
                           transitionBuilder: (child, animation) =>
@@ -489,7 +581,7 @@ class _RegisterTransactionSheetState
                             _formattedAmountDisplay(),
                             key: ValueKey('${_selectedTypeIndex}_$_amount'),
                             style: TextStyle(
-                              fontSize: 52,
+                              fontSize: compactSheet ? 42 : 48,
                               fontWeight: FontWeight.w900,
                               letterSpacing: -2,
                               color: _accentColor,
@@ -520,63 +612,113 @@ class _RegisterTransactionSheetState
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.fromLTRB(20, compactSheet ? 4 : 2, 20, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (isTransfer) ...[
+                    if (stackFieldPairs) ...[
+                      _FieldCard(
+                        icon: LucideIcons.arrowUpFromLine,
+                        color: AppColors.e6,
+                        label: 'Origen',
+                        value: _accountName(_fromAccountId, wallets),
+                        onTap: () =>
+                            _pickAccount(isFrom: true, wallets: wallets),
+                        isPlaceholder: _fromAccountId == null,
+                      ),
+                      const SizedBox(height: 12),
+                      _FieldCard(
+                        icon: LucideIcons.arrowDownToLine,
+                        color: AppColors.b5,
+                        label: 'Destino',
+                        value: _accountName(_toAccountId, wallets),
+                        onTap: () =>
+                            _pickAccount(isFrom: false, wallets: wallets),
+                        isPlaceholder: _toAccountId == null,
+                      ),
+                    ] else
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _FieldCard(
+                              icon: LucideIcons.arrowUpFromLine,
+                              color: AppColors.e6,
+                              label: 'Origen',
+                              value: _accountName(_fromAccountId, wallets),
+                              onTap: () =>
+                                  _pickAccount(isFrom: true, wallets: wallets),
+                              isPlaceholder: _fromAccountId == null,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _FieldCard(
+                              icon: LucideIcons.arrowDownToLine,
+                              color: AppColors.b5,
+                              label: 'Destino',
+                              value: _accountName(_toAccountId, wallets),
+                              onTap: () =>
+                                  _pickAccount(isFrom: false, wallets: wallets),
+                              isPlaceholder: _toAccountId == null,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ] else ...[
+                    if (stackFieldPairs) ...[
+                      _FieldCard(
+                        icon: LucideIcons.tag,
+                        color: AppColors.o5,
+                        label: 'Categoría',
+                        value: categoryLabel,
+                        onTap: _pickCategory,
+                        isPlaceholder: selectedCategory == null,
+                      ),
+                      const SizedBox(height: 12),
+                      _FieldCard(
+                        icon: LucideIcons.landmark,
+                        color: AppColors.b5,
+                        label: 'Cuenta',
+                        value: _accountName(_fromAccountId, wallets),
+                        onTap: () =>
+                            _pickAccount(isFrom: true, wallets: wallets),
+                        isPlaceholder: _fromAccountId == null,
+                      ),
+                    ] else
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: _FieldCard(
+                              icon: LucideIcons.tag,
+                              color: AppColors.o5,
+                              label: 'Categoría',
+                              value: categoryLabel,
+                              onTap: _pickCategory,
+                              isPlaceholder: selectedCategory == null,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _FieldCard(
+                              icon: LucideIcons.landmark,
+                              color: AppColors.b5,
+                              label: 'Cuenta',
+                              value: _accountName(_fromAccountId, wallets),
+                              onTap: () =>
+                                  _pickAccount(isFrom: true, wallets: wallets),
+                              isPlaceholder: _fromAccountId == null,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                  const SizedBox(height: 12),
                   _InfoStrip(
                     budgetName: selectedBudget?.nombre ?? 'Sin presupuesto',
                     dateLabel: dateLabel,
                   ),
-                  const SizedBox(height: 14),
-                  if (isTransfer) ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _FieldCard(
-                            icon: LucideIcons.arrowUpFromLine,
-                            color: AppColors.e6,
-                            label: 'Origen',
-                            value: _accountName(_fromAccountId, wallets),
-                            onTap: () =>
-                                _pickAccount(isFrom: true, wallets: wallets),
-                            isPlaceholder: _fromAccountId == null,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _FieldCard(
-                            icon: LucideIcons.arrowDownToLine,
-                            color: AppColors.b5,
-                            label: 'Destino',
-                            value: _accountName(_toAccountId, wallets),
-                            onTap: () =>
-                                _pickAccount(isFrom: false, wallets: wallets),
-                            isPlaceholder: _toAccountId == null,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                  ] else ...[
-                    _FieldCard(
-                      icon: LucideIcons.tag,
-                      color: AppColors.o5,
-                      label: 'Categoría',
-                      value: categoryLabel,
-                      onTap: _pickCategory,
-                      isPlaceholder: selectedCategory == null,
-                    ),
-                    const SizedBox(height: 12),
-                    _FieldCard(
-                      icon: LucideIcons.landmark,
-                      color: AppColors.b5,
-                      label: 'Cuenta',
-                      value: _accountName(_fromAccountId, wallets),
-                      onTap: () => _pickAccount(isFrom: true, wallets: wallets),
-                      isPlaceholder: _fromAccountId == null,
-                    ),
-                  ],
                   const SizedBox(height: 12),
                   _SecondaryActionCard(
                     icon: LucideIcons.fileText,
@@ -593,9 +735,9 @@ class _RegisterTransactionSheetState
           Container(
             padding: EdgeInsets.fromLTRB(
               20,
-              12,
+              compactSheet ? 10 : 12,
               20,
-              24 + MediaQuery.of(context).padding.bottom,
+              (compactSheet ? 18 : 22) + media.padding.bottom,
             ),
             decoration: BoxDecoration(
               color: AppColors.g0,
@@ -608,6 +750,38 @@ class _RegisterTransactionSheetState
               children: [
                 _Numpad(onKeyTap: _onKeyTap),
                 const SizedBox(height: 14),
+                if (_formMessage != null || missingFields.isNotEmpty) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _formMessage != null
+                          ? AppColors.negative.withValues(alpha: 0.08)
+                          : AppColors.g1,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _formMessage != null
+                            ? AppColors.negative.withValues(alpha: 0.22)
+                            : AppColors.g2,
+                      ),
+                    ),
+                    child: Text(
+                      _formMessage ??
+                          'Falta ${_missingFieldsLabel(missingFields)} para registrar este movimiento.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _formMessage != null
+                            ? AppColors.negative
+                            : AppColors.g5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 MenudoButton(
                   label: _isSaving
                       ? "Guardando movimiento..."
@@ -615,7 +789,7 @@ class _RegisterTransactionSheetState
                             ? "Guardar movimiento"
                             : "Registrar movimiento"),
                   isFullWidth: true,
-                  isDisabled: amountValue == 0 || _isSaving,
+                  isDisabled: !canSubmit,
                   onTap: () => _saveTransaction(),
                 ),
               ],
@@ -665,10 +839,10 @@ class _RegisterTransactionSheetState
           ),
           TextButton(
             onPressed: () {
-              setState(
-                () =>
-                    _nota = ctrl.text.trim().isEmpty ? null : ctrl.text.trim(),
-              );
+              setState(() {
+                _formMessage = null;
+                _nota = ctrl.text.trim().isEmpty ? null : ctrl.text.trim();
+              });
               Navigator.pop(context);
             },
             child: const Text(
@@ -747,10 +921,10 @@ class _InfoStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.g2),
       ),
       child: Row(
@@ -764,11 +938,13 @@ class _InfoStrip extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          _InfoStripItem(
-            label: 'Fecha',
-            value: dateLabel,
-            icon: LucideIcons.calendar,
-            color: AppColors.g4,
+          Expanded(
+            child: _InfoStripItem(
+              label: 'Fecha',
+              value: dateLabel,
+              icon: LucideIcons.calendar,
+              color: AppColors.g4,
+            ),
           ),
         ],
       ),
@@ -792,6 +968,7 @@ class _InfoStripItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           width: 34,
@@ -861,10 +1038,10 @@ class _FieldCard extends StatelessWidget {
         onTap();
       },
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isPlaceholder
                 ? AppColors.o5.withValues(alpha: 0.28)
@@ -947,7 +1124,7 @@ class _SecondaryActionCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppColors.g2),
         ),
         child: Row(
@@ -1013,14 +1190,15 @@ class _Numpad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.of(context).size.height < 760;
+    final media = MediaQuery.of(context);
+    final compact = media.size.height < 900 || media.size.width < 420;
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 3,
-      childAspectRatio: compact ? 1.95 : 1.78,
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
+      childAspectRatio: compact ? 2.32 : 1.9,
+      mainAxisSpacing: compact ? 8 : 10,
+      crossAxisSpacing: compact ? 8 : 10,
       children: [...'123456789.0'.split(''), 'backspace']
           .map((key) => _NumpadKey(value: key, onTap: () => onKeyTap(key)))
           .toList(),
@@ -1042,7 +1220,7 @@ class _NumpadKey extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: AppColors.g2.withValues(alpha: 0.8)),
           boxShadow: [
             BoxShadow(

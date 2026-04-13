@@ -38,7 +38,8 @@ class CategoriesScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.g0,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.g0,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(LucideIcons.chevronLeft, color: AppColors.e8),
@@ -58,25 +59,17 @@ class CategoriesScreen extends ConsumerWidget {
             padding: const EdgeInsets.only(right: 12),
             child: IconButton(
               onPressed: () => _showAddCategory(context),
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.o5,
-                  shape: BoxShape.circle,
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(
-                  LucideIcons.plus,
-                  color: Colors.white,
-                  size: 18,
-                ),
+                side: const BorderSide(color: AppColors.g2),
               ),
+              icon: const Icon(LucideIcons.plus, color: AppColors.e8, size: 18),
             ),
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: const Color(0xFFF3F4F6), height: 1),
-        ),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
@@ -121,13 +114,9 @@ class _CategoriesOverviewCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.e0, Colors.white],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.e1),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.g2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -463,15 +452,8 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                 margin: const EdgeInsets.only(bottom: 10),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: AppColors.g2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
                 ),
                 child: Row(
                   children: [
