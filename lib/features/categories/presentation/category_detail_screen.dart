@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -7,7 +6,6 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
 import '../../../shared/widgets/menudo_loading_view.dart';
-import '../../budgets/budget_providers.dart';
 import '../providers/category_providers.dart';
 import '../../transactions/providers/transaction_providers.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
@@ -31,9 +29,7 @@ class CategoryDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final categoriesState = ref.watch(categoryNotifierProvider);
     final transactionsState = ref.watch(transactionNotifierProvider);
-    final activeBudget = ref.watch(selectedBudgetProvider);
     final categories = ref.watch(effectiveCategoriesProvider);
-    final budgetCat = activeBudget?.cats[catKey];
     final category = _findCategory(categories, catKey);
 
     // Fallback meta for categories not in budget
@@ -81,35 +77,26 @@ class CategoryDetailScreen extends ConsumerWidget {
     };
 
     final String label =
-        budgetCat?.label ??
         category?.nombre ??
         fallbackMeta[catKey]?['label'] ??
         (catKey[0].toUpperCase() + catKey.substring(1));
     final IconData icono =
-        budgetCat?.icono ??
         category?.icono ??
         fallbackMeta[catKey]?['icono'] ??
         LucideIcons.tag;
     final Color color =
-        budgetCat?.color ??
         category?.color ??
         fallbackMeta[catKey]?['color'] ??
         AppColors.g4;
 
     final txns = ref
-        .watch(selectedBudgetPeriodTransactionsProvider)
+        .watch(currentMonthTransactionsProvider)
         .where((t) => t.catKey == catKey)
         .toList();
     final double totalSpent = txns
         .where((t) => t.tipo == 'gasto')
         .fold(0.0, (s, t) => s + t.monto.abs());
-
-    final bool hasLimit = budgetCat != null;
-    final double limite = budgetCat?.limite ?? 0;
-    final double pct = hasLimit && limite > 0
-        ? min(totalSpent / limite, 1.0)
-        : 0;
-    final bool over = hasLimit && totalSpent > limite;
+    final double averageSpent = txns.isEmpty ? 0 : totalSpent / txns.length;
 
     if ((categoriesState.isLoading && categories.isEmpty) ||
         (transactionsState.isLoading && txns.isEmpty)) {
@@ -220,72 +207,24 @@ class CategoryDetailScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    if (activeBudget != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        activeBudget.nombre,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.g5,
-                        ),
-                      ),
-                    ],
                     const SizedBox(height: 16),
-                    if (hasLimit) ...[
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(999),
-                        child: LinearProgressIndicator(
-                          value: pct,
-                          minHeight: 8,
-                          backgroundColor: AppColors.g1,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            over ? AppColors.r5 : color,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _CategoryStatCard(
+                            label: 'Movimientos',
+                            value: '${txns.length}',
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Gastado ${fmt(totalSpent)}",
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.g5,
-                            ),
-                          ),
-                          Text(
-                            "Límite ${fmt(limite)}",
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.g5,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (over) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          "Excedido por ${fmt(totalSpent - limite)}",
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.r5,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _CategoryStatCard(
+                            label: 'Promedio',
+                            value: fmt(averageSpent),
                           ),
                         ),
                       ],
-                    ] else
-                      const Text(
-                        "Esta categoría no tiene tope en este presupuesto.",
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.g5,
-                        ),
-                      ),
+                    ),
                   ],
                 ),
               )
@@ -486,6 +425,46 @@ class CategoryDetailScreen extends ConsumerWidget {
                 .animate()
                 .fadeIn(duration: 400.ms, delay: 200.ms)
                 .slideY(begin: 0.04, end: 0, duration: 400.ms, delay: 200.ms),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryStatCard extends StatelessWidget {
+  const _CategoryStatCard({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.g1,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.g5,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: AppColors.e8,
+            ),
+          ),
         ],
       ),
     );

@@ -31,10 +31,6 @@ class RecurringRepository {
   }
 
   Future<RecurringTransaction> createRecurring(RecurringTransaction rec) async {
-    if (rec.presupuestoId == null) {
-      throw StateError('Elige un presupuesto antes de continuar.');
-    }
-
     final response = await _api.post<Map<String, dynamic>>(
       ApiPaths.recurringTransactions,
       body: {
@@ -58,9 +54,6 @@ class RecurringRepository {
   Future<RecurringTransaction> updateRecurring(RecurringTransaction rec) async {
     if (rec.id <= 0) {
       throw StateError('No pudimos actualizar esta automatización.');
-    }
-    if (rec.presupuestoId == null) {
-      throw StateError('Elige un presupuesto antes de continuar.');
     }
 
     final response = await _api.put<Map<String, dynamic>>(

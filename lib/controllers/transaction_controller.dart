@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/data/models.dart';
 import '../features/auth/auth_state.dart';
-import '../features/budgets/budget_providers.dart';
 import '../services/transaction_service.dart';
 
 class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
@@ -14,26 +13,20 @@ class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
   @override
   Future<List<MenudoTransaction>> build() async {
     final uid = ref.watch(authProvider).userId;
-    final budgetId = ref.watch(selectedBudgetIdProvider);
     if (uid == null) return const [];
 
-    return ref
-        .read(transactionServiceProvider)
-        .fetchTransactions(int.parse(uid), budgetId: budgetId);
+    return ref.read(transactionServiceProvider).fetchTransactions(int.parse(uid));
   }
 
   Future<void> refresh() async {
     final userId = _uid();
     if (userId == 0) return;
 
-    final budgetId = ref.read(selectedBudgetIdProvider);
     state = const AsyncLoading<List<MenudoTransaction>>().copyWithPrevious(
       state,
     );
     state = await AsyncValue.guard(
-      () => ref
-          .read(transactionServiceProvider)
-          .fetchTransactions(userId, budgetId: budgetId),
+      () => ref.read(transactionServiceProvider).fetchTransactions(userId),
     );
   }
 
@@ -43,7 +36,6 @@ class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
     final userId = _uid();
     if (userId == 0) return null;
 
-    final budgetId = ref.read(selectedBudgetIdProvider);
     state = const AsyncLoading<List<MenudoTransaction>>().copyWithPrevious(
       state,
     );
@@ -53,7 +45,7 @@ class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
           .createTransaction(transaction);
       final transactions = await ref
           .read(transactionServiceProvider)
-          .fetchTransactions(userId, budgetId: budgetId);
+          .fetchTransactions(userId);
       state = AsyncValue.data(transactions);
       return created;
     } catch (error, stackTrace) {
@@ -68,7 +60,6 @@ class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
     final userId = _uid();
     if (userId == 0) return null;
 
-    final budgetId = ref.read(selectedBudgetIdProvider);
     state = const AsyncLoading<List<MenudoTransaction>>().copyWithPrevious(
       state,
     );
@@ -78,7 +69,7 @@ class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
           .updateTransaction(transaction);
       final transactions = await ref
           .read(transactionServiceProvider)
-          .fetchTransactions(userId, budgetId: budgetId);
+          .fetchTransactions(userId);
       state = AsyncValue.data(transactions);
       return updated;
     } catch (error, stackTrace) {
@@ -91,7 +82,6 @@ class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
     final userId = _uid();
     if (userId == 0) return;
 
-    final budgetId = ref.read(selectedBudgetIdProvider);
     state = const AsyncLoading<List<MenudoTransaction>>().copyWithPrevious(
       state,
     );
@@ -101,7 +91,7 @@ class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
           .deleteTransaction(transactionId);
       final transactions = await ref
           .read(transactionServiceProvider)
-          .fetchTransactions(userId, budgetId: budgetId);
+          .fetchTransactions(userId);
       state = AsyncValue.data(transactions);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);

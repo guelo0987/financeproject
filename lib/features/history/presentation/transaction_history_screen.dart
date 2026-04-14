@@ -6,7 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
 import '../../../shared/widgets/menudo_loading_view.dart';
-import '../../budgets/budget_providers.dart';
+import '../../categories/providers/category_providers.dart';
 import '../../transactions/presentation/transaction_presentation_utils.dart';
 import '../../transactions/providers/transaction_providers.dart';
 import '../../wallet/providers/wallet_providers.dart';
@@ -73,8 +73,8 @@ class _TransactionHistoryScreenState
   Widget build(BuildContext context) {
     final txnsAsync = ref.watch(transactionNotifierProvider);
     final txns = ref.watch(effectiveTransactionsProvider);
+    final categories = ref.watch(effectiveCategoriesProvider);
     final wallets = ref.watch(effectiveWalletsProvider);
-    final activeBudget = ref.watch(selectedBudgetProvider);
 
     final filtered = _filtered(txns);
     final grouped = _grouped(filtered);
@@ -180,18 +180,13 @@ class _TransactionHistoryScreenState
                   final dayTotal = dayTxns
                       .where((t) => t.tipo == 'gasto')
                       .fold(0.0, (s, t) => s + t.monto.abs());
-                  final isSharedBudget =
-                      activeBudget != null &&
-                      (activeBudget.miembros.length > 1 ||
-                          activeBudget.espacioId != null);
 
                   return _DayGroupSection(
                         dateKey: dateKey,
                         dayTotal: dayTotal,
                         dayTxns: dayTxns,
-                        activeBudget: activeBudget,
+                        categories: categories,
                         wallets: wallets,
-                        isSharedBudget: isSharedBudget,
                         fmt: _fmt,
                       )
                       .animate()
@@ -409,20 +404,28 @@ class _DayGroupSection extends StatelessWidget {
   final String dateKey;
   final double dayTotal;
   final List<MenudoTransaction> dayTxns;
-  final MenudoBudget? activeBudget;
+  final List<MenudoCategory> categories;
   final List<WalletAccount> wallets;
-  final bool isSharedBudget;
   final String Function(double) fmt;
 
   const _DayGroupSection({
     required this.dateKey,
     required this.dayTotal,
     required this.dayTxns,
-    required this.activeBudget,
+    required this.categories,
     required this.wallets,
-    required this.isSharedBudget,
     required this.fmt,
   });
+
+  MenudoCategory? _findCategory(MenudoTransaction transaction) {
+    for (final category in categories) {
+      if (category.slug == transaction.catKey) return category;
+      if (transaction.categoryId != null && category.id == transaction.categoryId) {
+        return category;
+      }
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -473,14 +476,13 @@ class _DayGroupSection extends StatelessWidget {
             child: Column(
               children: List.generate(dayTxns.length, (i) {
                 final t = dayTxns[i];
-                final ci = activeBudget?.cats[t.catKey];
+                final category = _findCategory(t);
                 final presentation = buildTransactionPresentation(t, wallets);
 
                 return _HistoryTile(
                   transaction: t,
-                  category: ci,
+                  category: category,
                   presentation: presentation,
-                  isSharedBudget: isSharedBudget,
                   isLast: i == dayTxns.length - 1,
                   fmt: fmt,
                 );
@@ -495,9 +497,8 @@ class _DayGroupSection extends StatelessWidget {
 
 class _HistoryTile extends StatelessWidget {
   final MenudoTransaction transaction;
-  final BudgetCategory? category;
+  final MenudoCategory? category;
   final TransactionViewPresentation presentation;
-  final bool isSharedBudget;
   final bool isLast;
   final String Function(double) fmt;
 
@@ -505,7 +506,6 @@ class _HistoryTile extends StatelessWidget {
     required this.transaction,
     this.category,
     required this.presentation,
-    required this.isSharedBudget,
     required this.isLast,
     required this.fmt,
   });
@@ -515,17 +515,9 @@ class _HistoryTile extends StatelessWidget {
     final isTransfer = transaction.tipo == 'transferencia';
     final color = isTransfer ? AppColors.b5 : (category?.color ?? AppColors.g4);
     final walletRoute = presentation.routeLabel;
-    final sharedLabel =
-        transaction.userName != null && transaction.userName!.trim().isNotEmpty
-        ? transaction.userName!.trim()
-        : null;
     final subtitle = isTransfer
-        ? (isSharedBudget && sharedLabel != null
-              ? '$sharedLabel · $walletRoute'
-              : walletRoute)
-        : (isSharedBudget && sharedLabel != null
-              ? '$sharedLabel · ${category?.label ?? transaction.catKey.toUpperCase()}'
-              : category?.label ?? transaction.catKey.toUpperCase());
+        ? walletRoute
+        : category?.nombre ?? transaction.catKey.toUpperCase();
 
     return GestureDetector(
       onTap: () {

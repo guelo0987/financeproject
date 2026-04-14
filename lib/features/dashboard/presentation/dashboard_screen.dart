@@ -11,9 +11,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../shared/widgets/menudo_loading_view.dart';
 import '../../auth/auth_state.dart';
-import '../../budgets/budget_providers.dart';
-import '../../budgets/presentation/budget_detail_sheet.dart';
-import '../../budgets/presentation/wizard/create_budget_wizard.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
 import '../../transactions/providers/transaction_providers.dart';
@@ -29,7 +26,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _didShowWalletTour = false;
-  bool _didShowBudgetTour = false;
 
   String _fmt(double val) =>
       "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
@@ -55,7 +51,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ref.invalidate(unreadAlertsCountProvider);
       await Future.wait([
         ref.read(walletNotifierProvider.notifier).refresh(),
-        ref.read(budgetNotifierProvider.notifier).refresh(),
       ]);
       await ref.read(transactionNotifierProvider.notifier).refresh();
     } catch (error) {
@@ -65,55 +60,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   bool _needsWalletTour(List<WalletAccount> wallets, bool demoMode) {
     return !demoMode && wallets.isEmpty;
-  }
-
-  bool _needsBudgetTour(
-    List<MenudoBudget> budgets,
-    List<MenudoTransaction> txnsThisPeriod,
-    bool demoMode,
-  ) {
-    if (demoMode || budgets.length != 1) return false;
-    final budget = budgets.first;
-    return budget.nombre.toLowerCase() == 'predeterminado' &&
-        budget.ingresos == 0 &&
-        budget.cats.isEmpty &&
-        txnsThisPeriod.isEmpty;
-  }
-
-  void _maybeShowBudgetTour(
-    List<MenudoBudget> budgets,
-    List<MenudoTransaction> txnsThisPeriod,
-    List<WalletAccount> wallets,
-    bool demoMode,
-  ) {
-    if (_didShowBudgetTour ||
-        wallets.isEmpty ||
-        !_needsBudgetTour(budgets, txnsThisPeriod, demoMode) ||
-        !mounted) {
-      return;
-    }
-
-    _didShowBudgetTour = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      final baseBudget = budgets.first;
-
-      final configureNow = await showModalBottomSheet<bool>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (_) => const _BudgetSetupTourSheet(),
-      );
-
-      if (configureNow == true && mounted) {
-        await showModalBottomSheet<void>(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => CreateBudgetWizard(initialBudget: baseBudget),
-        );
-      }
-    });
   }
 
   void _maybeShowWalletTour(List<WalletAccount> wallets, bool demoMode) {
@@ -198,14 +144,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   Text(
                     demoMode
                         ? 'Esta cuenta todavía no tiene movimientos reales.'
-                        : 'Crea tu primer presupuesto para empezar a ver todo aquí.',
+                        : 'Agrega una cuenta y registra tu primer movimiento para ver el resumen aquí.',
                     style: const TextStyle(fontSize: 13, color: AppColors.g4),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 18),
                   FilledButton(
-                    onPressed: () => context.push('/budgets'),
-                    child: const Text('Ir a presupuestos'),
+                    onPressed: () => context.push('/wallet'),
+                    child: const Text('Ir a cuentas'),
                   ),
                   const SizedBox(height: 8),
                   TextButton(
@@ -237,11 +183,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final budgetsState = ref.watch(budgetNotifierProvider);
     final walletsState = ref.watch(walletNotifierProvider);
     final transactionsState = ref.watch(transactionNotifierProvider);
-    final budgets = ref.watch(effectiveBudgetsProvider);
-    final txnsThisPeriod = ref.watch(selectedBudgetPeriodTransactionsProvider);
+    final currentMonthTransactions = ref.watch(currentMonthTransactionsProvider);
+    final allTransactions = ref.watch(effectiveTransactionsProvider);
+    final monthlyIncome = ref.watch(generalMonthlyIncomeProvider);
+    final monthlySpent = ref.watch(generalMonthlySpentProvider);
+    final monthlyBalance = ref.watch(generalMonthlyBalanceProvider);
     final wallets = ref.watch(effectiveWalletsProvider);
     final defaultWallet = ref.watch(defaultWalletProvider);
     final demoMode = ref.watch(demoModeProvider);
@@ -252,7 +200,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final greetingName = _firstName(authState.profile?.name);
     final isHydratingHome =
         authState.isBootstrapping ||
-        (budgetsState.isLoading && budgetsState.valueOrNull == null) ||
         (walletsState.isLoading && walletsState.valueOrNull == null) ||
         (transactionsState.isLoading && transactionsState.valueOrNull == null);
 
@@ -262,41 +209,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         body: SafeArea(
           child: MenudoLoadingView(
             title: 'Cargando tu resumen',
-            message: 'Estamos preparando tus presupuestos y movimientos.',
+            message: 'Estamos preparando tus cuentas y movimientos.',
           ),
         ),
       );
     }
 
-    if (budgets.isEmpty) {
+    if (wallets.isEmpty && allTransactions.isEmpty) {
       return _buildEmptyDashboard(context, demoMode);
     }
 
     _maybeShowWalletTour(wallets, demoMode);
-    _maybeShowBudgetTour(budgets, txnsThisPeriod, wallets, demoMode);
 
-    final budget = ref.watch(selectedBudgetProvider) ?? budgets.first;
-    final hasIncomePlan = budget.ingresos > 0;
-    final double spent = budget.totalSpent;
-    final double plannedRemaining = budget.ingresos - spent;
-    final double actualCashflow = budget.actualIncomeTotal - spent;
-    final double primaryAmount = hasIncomePlan
-        ? plannedRemaining
-        : actualCashflow;
-
-    final recent = txnsThisPeriod
+    final recent = allTransactions
         .where((t) => t.tipo != 'transferencia')
         .take(3)
         .toList();
-
-    final periodoLabel =
-        {
-          'mensual': 'este mes',
-          'quincenal': 'esta quincena',
-          'semanal': 'esta semana',
-          'unico': 'este periodo',
-        }[budget.periodo.toLowerCase()] ??
-        budget.periodo.toLowerCase();
     final hour = TimeOfDay.now().hour;
     final salutation = hour < 12
         ? 'Buenos días,'
@@ -379,13 +307,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   .slideX(begin: -0.05, end: 0, curve: Curves.easeOutBack),
 
               const SizedBox(height: 22),
-              _buildBudgetCard(
+              _buildOverviewCard(
                     context,
-                    budget,
-                    primaryAmount: primaryAmount,
-                    defaultWallet: defaultWallet,
-                    hasIncomePlan: hasIncomePlan,
-                    periodLabel: periodoLabel,
+                    accountLabel: defaultWallet?.nombre ?? 'Resumen general',
+                    availableThisMonth: monthlyBalance,
+                    incomeThisMonth: monthlyIncome,
+                    spentThisMonth: monthlySpent,
                   )
                   .animate()
                   .fadeIn(duration: 500.ms, delay: 100.ms)
@@ -403,9 +330,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
               const SizedBox(height: 18),
               _buildSummaryCard(
-                    amount: primaryAmount,
-                    hasIncomePlan: hasIncomePlan,
-                    periodLabel: periodoLabel,
+                    income: monthlyIncome,
+                    spent: monthlySpent,
+                    balance: monthlyBalance,
+                    hasTransactions: currentMonthTransactions.isNotEmpty,
                   )
                   .animate()
                   .fadeIn(duration: 400.ms, delay: 300.ms)
@@ -438,7 +366,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
               const SizedBox(height: 4),
 
-              _buildRecentTransactions(budget, recent)
+              _buildRecentTransactions(recent)
                   .animate()
                   .fadeIn(duration: 500.ms, delay: 520.ms)
                   .slideY(begin: 0.05, end: 0, curve: Curves.easeOut),
@@ -449,152 +377,128 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildBudgetCard(
+  Widget _buildOverviewCard(
     BuildContext context,
-    MenudoBudget budget, {
-    required double primaryAmount,
-    required WalletAccount? defaultWallet,
-    required bool hasIncomePlan,
-    required String periodLabel,
+    {
+    required String accountLabel,
+    required double availableThisMonth,
+    required double incomeThisMonth,
+    required double spentThisMonth,
   }) {
-    final accountLabel = defaultWallet?.nombre ?? budget.nombre;
-
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        showModalBottomSheet(
-          context: context,
-          useRootNavigator: true,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => BudgetDetailSheet(budget: budget),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.e8,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.e8.withValues(alpha: 0.16),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Flexible(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          LucideIcons.wallet,
-                          size: 12,
-                          color: Colors.white.withValues(alpha: 0.82),
-                        ),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            accountLabel,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.e8,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.e8.withValues(alpha: 0.16),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        LucideIcons.wallet,
+                        size: 12,
+                        color: Colors.white.withValues(alpha: 0.82),
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          accountLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    showModalBottomSheet(
-                      context: context,
-                      useRootNavigator: true,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (_) => BudgetDetailSheet(budget: budget),
-                    );
-                  },
-                  child: Icon(
-                    LucideIcons.moreHorizontal,
-                    color: Colors.white.withValues(alpha: 0.86),
-                    size: 18,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'Disponible de $periodLabel',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Colors.white.withValues(alpha: 0.76),
-              ),
-            ),
-            const SizedBox(height: 6),
-            SizedBox(
-              height: 52,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  _fmt(primaryAmount),
-                  style: const TextStyle(
-                    fontSize: 42,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: -1.6,
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 14),
-            Divider(color: Colors.white.withValues(alpha: 0.12), height: 1),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: _BudgetMetaPill(
-                    label: hasIncomePlan ? 'Presupuesto' : 'Ingresos',
-                    value: _fmt(
-                      hasIncomePlan
-                          ? budget.ingresos
-                          : budget.actualIncomeTotal,
-                    ),
-                  ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  context.push('/wallet');
+                },
+                child: Icon(
+                  LucideIcons.moreHorizontal,
+                  color: Colors.white.withValues(alpha: 0.86),
+                  size: 18,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _BudgetMetaPill(
-                    label: 'Gastado',
-                    value: _fmt(budget.totalSpent),
-                  ),
-                ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            'Disponible de este mes',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Colors.white.withValues(alpha: 0.76),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            height: 52,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _fmt(availableThisMonth),
+                style: const TextStyle(
+                  fontSize: 42,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -1.6,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Divider(color: Colors.white.withValues(alpha: 0.12), height: 1),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _BudgetMetaPill(
+                  label: 'Ingresos',
+                  value: _fmt(incomeThisMonth),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _BudgetMetaPill(
+                  label: 'Gastado',
+                  value: _fmt(spentThisMonth),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -650,19 +554,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildSummaryCard({
-    required double amount,
-    required bool hasIncomePlan,
-    required String periodLabel,
+    required double income,
+    required double spent,
+    required double balance,
+    required bool hasTransactions,
   }) {
-    final positive = amount >= 0;
+    final positive = balance >= 0;
     final statusColor = positive ? AppColors.e6 : AppColors.o5;
-    final message = hasIncomePlan
-        ? positive
-              ? 'Te quedan ${_fmt(amount)} del plan.'
-              : 'Vas ${_fmt(amount.abs())} por encima del plan.'
+    final message = !hasTransactions
+        ? 'Todavía no has registrado movimientos este mes.'
         : positive
-        ? 'Cierre neto de ${_fmt(amount)} en $periodLabel.'
-        : 'Balance de ${_fmt(amount.abs())} en rojo.';
+        ? 'Entraron ${_fmt(income)} y salieron ${_fmt(spent)} este mes.'
+        : 'Tus gastos superan los ingresos del mes por ${_fmt(balance.abs())}.';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -734,7 +637,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildRecentTransactions(
-    MenudoBudget budget,
     List<MenudoTransaction> recent,
   ) {
     if (recent.isEmpty) {
@@ -746,7 +648,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           border: Border.all(color: AppColors.g2),
         ),
         child: const Text(
-          'Todavía no hay movimientos en este periodo.',
+          'Todavía no hay movimientos recientes.',
           style: TextStyle(
             fontSize: 14,
             color: AppColors.g5,
@@ -765,11 +667,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Column(
         children: List.generate(recent.length, (i) {
           final t = recent[i];
-          final cat = budget.cats[t.catKey];
-          final color = cat?.color ?? AppColors.g4;
+          final color = _transactionColor(t);
           return _TransactionTile(
             transaction: t,
-            subtitle: _buildRecentSubtitle(t, cat?.label ?? t.catKey),
+            subtitle: _buildRecentSubtitle(t, _transactionCategoryLabel(t)),
             color: color,
             isLast: i == recent.length - 1,
             onTap: (context) {
@@ -786,6 +687,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         }),
       ),
     );
+  }
+
+  Color _transactionColor(MenudoTransaction transaction) {
+    return switch (transaction.tipo) {
+      'ingreso' => AppColors.e6,
+      'transferencia' => AppColors.b5,
+      _ => AppColors.e8,
+    };
+  }
+
+  String _transactionCategoryLabel(MenudoTransaction transaction) {
+    if (transaction.tipo == 'transferencia') return 'Transferencia';
+    if (transaction.catKey.trim().isEmpty) return 'Movimiento';
+
+    return transaction.catKey
+        .split(RegExp(r'[_-]+'))
+        .where((segment) => segment.isNotEmpty)
+        .map(
+          (segment) =>
+              '${segment.substring(0, 1).toUpperCase()}${segment.substring(1)}',
+        )
+        .join(' ');
   }
 
   String _buildRecentSubtitle(
@@ -1096,93 +1019,6 @@ class _BudgetMetaPill extends StatelessWidget {
   }
 }
 
-class _BudgetSetupTourSheet extends StatelessWidget {
-  const _BudgetSetupTourSheet();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        24,
-        16,
-        24,
-        24 + MediaQuery.of(context).padding.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 5,
-              decoration: BoxDecoration(
-                color: AppColors.g2,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Configura tu presupuesto base',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: AppColors.e8,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Tu cuenta ya tiene un presupuesto base, pero falta personalizarlo para que el dashboard y los gastos tengan sentido.',
-            style: TextStyle(fontSize: 14, color: AppColors.g4),
-          ),
-          const SizedBox(height: 20),
-          const _TourPoint(
-            icon: LucideIcons.wallet,
-            title: '1. Define tus ingresos',
-            body:
-                'Usa el monto real del periodo para que el resumen empiece correcto.',
-          ),
-          const SizedBox(height: 12),
-          const _TourPoint(
-            icon: LucideIcons.pieChart,
-            title: '2. Reparte tus categorías',
-            body:
-                'Asigna límites por categoría para ver gastos relevantes por presupuesto.',
-          ),
-          const SizedBox(height: 12),
-          const _TourPoint(
-            icon: LucideIcons.repeat2,
-            title: '3. Luego registra movimientos',
-            body:
-                'Las transacciones y automáticas quedarán ligadas a ese presupuesto.',
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Configurar ahora'),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Ahora no'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _WalletSetupTourSheet extends StatelessWidget {
   const _WalletSetupTourSheet();
 
@@ -1243,7 +1079,7 @@ class _WalletSetupTourSheet extends StatelessWidget {
           const SizedBox(height: 12),
           const _TourPoint(
             icon: LucideIcons.repeat2,
-            title: '3. Luego configuras el presupuesto',
+            title: '3. Luego registras movimientos',
             body:
                 'Con la cuenta lista, ya puedes registrar gastos, ingresos y transferencias.',
           ),

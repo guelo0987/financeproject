@@ -6,7 +6,6 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../budgets/budget_providers.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
 import '../../transactions/presentation/transaction_presentation_utils.dart';
 import '../../transactions/providers/transaction_providers.dart';
@@ -105,15 +104,8 @@ class _SpendingCategoriesScreenState
     return type == 'ingreso' ? 'ingresos' : 'gastos';
   }
 
-  String _periodLabel(MenudoBudget? budget) {
-    final period = budget?.periodo.toLowerCase();
-    return switch (period) {
-      'mensual' => 'este mes',
-      'quincenal' => 'esta quincena',
-      'semanal' => 'esta semana',
-      'unico' => 'este periodo',
-      _ => 'este periodo',
-    };
+  String _periodLabel() {
+    return 'este mes';
   }
 
   List<_ParentCategoryGroup> _buildGroups(
@@ -249,12 +241,9 @@ class _SpendingCategoriesScreenState
 
   @override
   Widget build(BuildContext context) {
-    final budget = ref.watch(selectedBudgetProvider);
     final categories = ref.watch(effectiveCategoriesProvider);
     final wallets = ref.watch(effectiveWalletsProvider);
-    final periodTransactions = ref.watch(
-      selectedBudgetPeriodTransactionsProvider,
-    );
+    final periodTransactions = ref.watch(currentMonthTransactionsProvider);
     final filtered = periodTransactions
         .where((transaction) => transaction.tipo == _selectedType)
         .toList();
@@ -268,7 +257,7 @@ class _SpendingCategoriesScreenState
       (sum, group) => sum + group.subcategories.length,
     );
     final topGroup = groups.isEmpty ? null : groups.first;
-    final periodLabel = _periodLabel(budget);
+    final periodLabel = _periodLabel();
     final accentColor = _accentColorFor(_selectedType);
     final sectionTitle = _sectionTitleFor(_selectedType);
     final sectionVerb = _sectionVerbFor(_selectedType);

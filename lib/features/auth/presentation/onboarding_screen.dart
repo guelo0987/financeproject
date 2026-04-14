@@ -47,7 +47,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 children: [
                   _buildPage(
                     title: 'Tu dinero,\nen un solo lugar.',
-                    subtitle: 'Cuentas, tarjetas y presupuesto diario.',
+                    subtitle: 'Cuentas, tarjetas y movimientos en un solo lugar.',
                     icon: Icons.account_balance_wallet_rounded,
                   ),
                   _buildPage(
@@ -56,8 +56,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     icon: Icons.pie_chart_rounded,
                   ),
                   _buildPage(
-                    title: 'Comparte un\npresupuesto si lo necesitas.',
-                    subtitle: 'Invita a otra persona y organicen sus gastos.',
+                    title: 'Usa presupuestos\nsolo si te ayudan.',
+                    subtitle:
+                        'Son opcionales. Puedes llevar tus gastos sin armar uno.',
                     icon: Icons.people_alt_rounded,
                   ),
                 ],

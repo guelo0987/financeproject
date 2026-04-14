@@ -118,19 +118,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
     }
     return budgets.isEmpty
-        ? 'Aún no tienes presupuestos'
-        : 'Elegir presupuesto';
+        ? 'No tienes presupuestos todavía'
+        : 'Elegir uno opcional';
   }
 
   Future<void> _pickDefaultBudget(UserProfile profile) async {
     final budgets = ref.read(effectiveBudgetsProvider);
     final budgetsState = ref.read(budgetNotifierProvider);
     if (budgetsState.isLoading && budgets.isEmpty) {
-      _showMessage('Todavía estamos cargando tus presupuestos.');
+      _showMessage('Todavía estamos cargando tus opciones.');
       return;
     }
     if (budgets.isEmpty) {
-      _showMessage('Cuando tengas un presupuesto, podrás dejarlo fijo aquí.');
+      _showMessage(
+        'Si luego creas un presupuesto, podrás dejar uno fijo aquí.',
+      );
       return;
     }
 
@@ -157,8 +159,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (!mounted) return;
       _showMessage(
         result.budgetId == null
-            ? 'Ya no tienes un presupuesto fijo al abrir la app.'
-            : 'Tu presupuesto fijo ya quedó actualizado.',
+            ? 'La app ya no abrirá con un presupuesto fijo.'
+            : 'Tu preferencia de presupuesto inicial ya quedó actualizada.',
       );
     } catch (error) {
       _showMessage(presentError(error));
@@ -468,7 +470,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ),
                       ),
                       const SizedBox(height: 16),
-                      _FieldLabel('Presupuesto predeterminado'),
+                      _FieldLabel('Presupuesto inicial opcional'),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Solo si quieres abrir primero uno de tus presupuestos.',
+                        style: MenudoTextStyles.bodySmall.copyWith(
+                          color: MenudoColors.textMuted,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       _ReadOnlyField(
                         value: _budgetLabel(
@@ -720,10 +729,10 @@ class _DefaultBudgetSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          Text('Presupuesto predeterminado', style: MenudoTextStyles.h3),
+          Text('Presupuesto inicial opcional', style: MenudoTextStyles.h3),
           const SizedBox(height: 6),
           Text(
-            'Será el presupuesto que verás primero al entrar.',
+            'Solo se usará si quieres abrir primero uno de tus presupuestos.',
             style: MenudoTextStyles.bodySmall.copyWith(
               color: MenudoColors.textMuted,
             ),
@@ -746,8 +755,8 @@ class _DefaultBudgetSheet extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: _BudgetSelectionTile(
-              label: 'No dejar uno fijo',
-              subtitle: 'Lo elegirás manualmente cuando lo necesites',
+              label: 'No usar uno fijo',
+              subtitle: 'Entrarás a la app sin priorizar ningún presupuesto',
               selected: selectedBudgetId == null,
               isNeutral: true,
               onTap: () => Navigator.of(

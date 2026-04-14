@@ -6,7 +6,6 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
 import '../../../core/utils/error_presenter.dart';
-import '../../budgets/budget_providers.dart';
 import '../../categories/providers/category_providers.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
 import '../../transactions/presentation/transaction_presentation_utils.dart';
@@ -353,9 +352,8 @@ class WalletDetailSheet extends ConsumerWidget {
       'deudas': 'Deuda',
     };
 
-    final activeBudget = ref.watch(selectedBudgetProvider);
     final categories = ref.watch(effectiveCategoriesProvider);
-    final txns = [...ref.watch(selectedBudgetPeriodTransactionsProvider)]
+    final txns = [...ref.watch(effectiveTransactionsProvider)]
       ..retainWhere((t) => t.fromAccountId == w.id || t.toAccountId == w.id)
       ..sort((a, b) => b.dateString.compareTo(a.dateString));
     final recentTxns = txns.take(5).toList();
@@ -761,15 +759,6 @@ class WalletDetailSheet extends ConsumerWidget {
                         color: AppColors.e8,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    if (activeBudget != null)
-                      Text(
-                        activeBudget.nombre,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.g4,
-                        ),
-                      ),
                     const SizedBox(height: 12),
 
                     if (recentTxns.isEmpty)
@@ -784,7 +773,7 @@ class WalletDetailSheet extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(22),
                         ),
                         child: const Text(
-                          "Todavía no hay movimientos en esta cuenta para este periodo.",
+                          "Todavía no hay movimientos en esta cuenta.",
                           style: TextStyle(fontSize: 13, color: AppColors.g4),
                           textAlign: TextAlign.center,
                         ),
@@ -802,7 +791,6 @@ class WalletDetailSheet extends ConsumerWidget {
                             child: Column(
                               children: List.generate(recentTxns.length, (i) {
                                 final t = recentTxns[i];
-                                final ci = activeBudget?.cats[t.catKey];
                                 final presentation =
                                     buildTransactionPresentation(
                                       t,
@@ -833,7 +821,7 @@ class WalletDetailSheet extends ConsumerWidget {
                                     months[int.tryParse(dayStr[1]) ?? 0];
                                 final subtitleText = t.tipo == 'transferencia'
                                     ? '${presentation.routeLabel} · ${dayStr[2]} $monthLabel'
-                                    : '${ci?.label ?? category?.nombre ?? t.catKey} · ${dayStr[2]} $monthLabel';
+                                    : '${category?.nombre ?? t.catKey} · ${dayStr[2]} $monthLabel';
                                 final amountText = presentation.prefix.isEmpty
                                     ? fmt(t.monto.abs(), currency: t.moneda)
                                     : '${presentation.prefix}${fmt(t.monto.abs(), currency: t.moneda)}';
@@ -874,8 +862,7 @@ class WalletDetailSheet extends ConsumerWidget {
                                               height: 40,
                                               decoration: BoxDecoration(
                                                 color:
-                                                    (ci?.color ??
-                                                            category?.color ??
+                                                    (category?.color ??
                                                             AppColors.g4)
                                                         .withValues(
                                                           alpha: 0.13,
@@ -885,12 +872,9 @@ class WalletDetailSheet extends ConsumerWidget {
                                               ),
                                               alignment: Alignment.center,
                                               child: Icon(
-                                                ci?.icono ??
-                                                    category?.icono ??
-                                                    t.icono,
+                                                category?.icono ?? t.icono,
                                                 size: 19,
                                                 color:
-                                                    ci?.color ??
                                                     category?.color ??
                                                     AppColors.g4,
                                               ),

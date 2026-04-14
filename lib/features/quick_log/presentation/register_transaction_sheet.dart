@@ -35,6 +35,7 @@ class _RegisterTransactionSheetState
     extends ConsumerState<RegisterTransactionSheet> {
   String _amount = "";
   int _selectedTypeIndex = 0; // 0: Gasto, 1: Ingreso, 2: Transferencia
+  int? _budgetId;
   String? _catKey;
   String? _nota;
   int? _fromAccountId;
@@ -79,6 +80,7 @@ class _RegisterTransactionSheetState
       _amount = txn.monto.abs().toStringAsFixed(
         txn.monto.abs() % 1 == 0 ? 0 : 2,
       );
+      _budgetId = txn.budgetId;
       _catKey = txn.catKey;
       _nota = txn.nota;
       _fromAccountId = txn.fromAccountId;
@@ -172,12 +174,6 @@ class _RegisterTransactionSheetState
       return;
     }
 
-    final budget = ref.read(selectedBudgetProvider);
-    if (budget == null) {
-      _showError('Elige un presupuesto para guardar este movimiento.');
-      return;
-    }
-
     final wallets = ref.read(effectiveWalletsProvider);
     final categories = ref.read(effectiveCategoriesProvider);
     final categoriesBySlug = {
@@ -224,7 +220,7 @@ class _RegisterTransactionSheetState
           DateTime.now().toIso8601String().split('T').first,
       desc: description,
       catKey: _selectedType == 'transferencia' ? '' : _catKey!,
-      budgetId: budget.id,
+      budgetId: _budgetId,
       categoryId: _selectedType == 'transferencia'
           ? null
           : selectedCategory?.id,
@@ -360,6 +356,14 @@ class _RegisterTransactionSheetState
     return wallet?.nombre ?? fallback?.nombre ?? "Elegir";
   }
 
+  String _budgetName(int? id, List<MenudoBudget> budgets) {
+    if (id == null) return 'Sin presupuesto';
+    for (final budget in budgets) {
+      if (budget.id == id) return budget.nombre;
+    }
+    return 'Presupuesto #$id';
+  }
+
   String _formattedAmountDisplay() {
     if (_amount.isEmpty) return '0';
     final parts = _amount.split('.');
@@ -419,6 +423,28 @@ class _RegisterTransactionSheetState
     }
   }
 
+  Future<void> _pickBudget(List<MenudoBudget> budgets) async {
+    if (budgets.isEmpty) return;
+
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BudgetPickerSheet(
+        budgets: budgets,
+        selectedId: _budgetId,
+      ),
+    );
+
+    if (selected != null && mounted) {
+      setState(() {
+        _budgetId = selected <= 0 ? null : selected;
+        _formMessage = null;
+      });
+    }
+  }
+
   void _pickAccount({
     required bool isFrom,
     required List<WalletAccount> wallets,
@@ -458,7 +484,7 @@ class _RegisterTransactionSheetState
     final isTransfer = _selectedTypeIndex == 2;
     final wallets = ref.watch(effectiveWalletsProvider);
     _maybeSeedFromAccount(wallets);
-    final selectedBudget = ref.watch(selectedBudgetProvider);
+    final budgets = ref.watch(effectiveBudgetsProvider);
     final categories = ref.watch(effectiveCategoriesProvider);
     final categoriesBySlug = {
       for (final category in categories) category.slug: category,
@@ -479,6 +505,7 @@ class _RegisterTransactionSheetState
         : selectedParent == null
         ? selectedCategory.nombre
         : "${selectedParent.nombre} / ${selectedCategory.nombre}";
+    final budgetLabel = _budgetName(_budgetId, budgets);
     final dateLabel = _dateLabel();
     final noteLabel = (_nota == null || _nota!.trim().isEmpty)
         ? 'Agregar nota'
@@ -716,8 +743,11 @@ class _RegisterTransactionSheetState
                   ],
                   const SizedBox(height: 12),
                   _InfoStrip(
-                    budgetName: selectedBudget?.nombre ?? 'Sin presupuesto',
+                    budgetName: budgetLabel,
                     dateLabel: dateLabel,
+                    onBudgetTap: budgets.isEmpty
+                        ? null
+                        : () => _pickBudget(budgets),
                   ),
                   const SizedBox(height: 12),
                   _SecondaryActionCard(
@@ -915,8 +945,13 @@ class _TypeSegment extends StatelessWidget {
 class _InfoStrip extends StatelessWidget {
   final String budgetName;
   final String dateLabel;
+  final VoidCallback? onBudgetTap;
 
-  const _InfoStrip({required this.budgetName, required this.dateLabel});
+  const _InfoStrip({
+    required this.budgetName,
+    required this.dateLabel,
+    this.onBudgetTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -934,7 +969,10 @@ class _InfoStrip extends StatelessWidget {
               label: 'Presupuesto',
               value: budgetName,
               icon: LucideIcons.layoutGrid,
-              color: AppColors.e8,
+              color: budgetName == 'Sin presupuesto'
+                  ? AppColors.g4
+                  : AppColors.e8,
+              onTap: onBudgetTap,
             ),
           ),
           const SizedBox(width: 12),
@@ -957,17 +995,19 @@ class _InfoStripItem extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
 
   const _InfoStripItem({
     required this.label,
     required this.value,
     required this.icon,
     required this.color,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final child = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
@@ -995,20 +1035,45 @@ class _InfoStripItem extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.e8,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: color == AppColors.g4 ? AppColors.g4 : AppColors.e8,
+                      ),
+                    ),
+                  ),
+                  if (onTap != null) ...[
+                    const SizedBox(width: 6),
+                    const Icon(
+                      LucideIcons.chevronRight,
+                      size: 14,
+                      color: AppColors.g3,
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
         ),
       ],
+    );
+
+    if (onTap == null) return child;
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap!();
+      },
+      behavior: HitTestBehavior.opaque,
+      child: child,
     );
   }
 }
@@ -1420,6 +1485,173 @@ class _AccountPickerSheet extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BudgetPickerSheet extends StatelessWidget {
+  final List<MenudoBudget> budgets;
+  final int? selectedId;
+
+  const _BudgetPickerSheet({
+    required this.budgets,
+    this.selectedId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sortedBudgets = [...budgets]..sort((a, b) {
+      if (a.activo != b.activo) {
+        return a.activo ? -1 : 1;
+      }
+      return a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase());
+    });
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.72,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: AppColors.g2,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                margin: const EdgeInsets.only(bottom: 24),
+              ),
+              const Text(
+                'Presupuesto opcional',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.e8,
+                ),
+              ),
+              const SizedBox(height: 24),
+              _BudgetChoiceTile(
+                label: 'Sin presupuesto',
+                subtitle: 'Guardar este movimiento como actividad general.',
+                selected: selectedId == null,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.pop(context, 0);
+                },
+              ),
+              const SizedBox(height: 12),
+              ...sortedBudgets.map(
+                (budget) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _BudgetChoiceTile(
+                    label: budget.nombre,
+                    subtitle: budget.activo
+                        ? 'Presupuesto activo'
+                        : 'Disponible',
+                    selected: budget.id == selectedId,
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.pop(context, budget.id);
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BudgetChoiceTile extends StatelessWidget {
+  final String label;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _BudgetChoiceTile({
+    required this.label,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.e8 : AppColors.g0,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: selected
+                    ? Colors.white.withValues(alpha: 0.14)
+                    : AppColors.e1,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                LucideIcons.layoutGrid,
+                size: 18,
+                color: selected ? Colors.white : AppColors.e8,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: selected ? Colors.white : AppColors.e8,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: selected
+                          ? Colors.white.withValues(alpha: 0.76)
+                          : AppColors.g4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (selected)
+              const Icon(
+                LucideIcons.check,
+                color: Colors.white,
+                size: 18,
+              ),
+          ],
+        ),
       ),
     );
   }

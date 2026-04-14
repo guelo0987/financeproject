@@ -131,7 +131,6 @@ class RecurringScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final recurringAsync = ref.watch(recurringNotifierProvider);
-    final selectedBudget = ref.watch(selectedBudgetProvider);
 
     if (recurringAsync.isLoading && recurringAsync.valueOrNull == null) {
       return const Scaffold(
@@ -282,59 +281,6 @@ class RecurringScreen extends ConsumerWidget {
           ),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           children: [
-            if (selectedBudget != null)
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFF3F4F6)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: AppColors.p5.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        LucideIcons.layoutGrid,
-                        color: AppColors.p5,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'En presupuesto',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.g4,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            selectedBudget.nombre,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.e8,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.03, end: 0),
-            if (selectedBudget != null) const SizedBox(height: 16),
             Row(
                   children: [
                     Expanded(
@@ -441,9 +387,7 @@ class RecurringScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      selectedBudget == null
-                          ? 'Todavía no tienes automáticas'
-                          : 'No hay automáticas en ${selectedBudget.nombre}.',
+                      'Todavía no tienes automáticas',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -785,14 +729,9 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
     }
 
     final wallets = ref.read(effectiveWalletsProvider);
-    final budgets = ref.read(effectiveBudgetsProvider);
     final defaultWalletId = ref.read(defaultWalletIdProvider);
-    final selectedBudgetId = ref.read(selectedBudgetIdProvider);
-
     _accountId =
         defaultWalletId ?? (wallets.isNotEmpty ? wallets.first.id : null);
-    _presupuestoId =
-        selectedBudgetId ?? (budgets.isNotEmpty ? budgets.first.id : null);
   }
 
   @override
@@ -890,11 +829,11 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   }
 
   String _budgetName(int? id, List<MenudoBudget> budgets) {
-    if (id == null) return "Seleccionar";
+    if (id == null) return "Sin presupuesto";
     for (final budget in budgets) {
       if (budget.id == id) return budget.nombre;
     }
-    return "Seleccionar";
+    return "Sin presupuesto";
   }
 
   Future<void> _pickCategory() async {
@@ -949,6 +888,12 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
       builder: (_) => _SimplePickerSheet(
         title: 'Presupuesto',
         items: [
+          const _PickerItem(
+            id: 0,
+            label: 'Sin presupuesto',
+            icon: LucideIcons.layoutGrid,
+            color: AppColors.g4,
+          ),
           for (final budget in budgets)
             _PickerItem(
               id: budget.id,
@@ -957,12 +902,12 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
               color: AppColors.p5,
             ),
         ],
-        selectedId: _presupuestoId,
+        selectedId: _presupuestoId ?? 0,
       ),
     );
 
     if (selected != null && mounted) {
-      setState(() => _presupuestoId = selected);
+      setState(() => _presupuestoId = selected <= 0 ? null : selected);
     }
   }
 
@@ -986,10 +931,6 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
     }
     if (_accountId == null) {
       _showError('Elige la cuenta donde se registrará.');
-      return;
-    }
-    if (_presupuestoId == null) {
-      _showError('Elige un presupuesto para esta automática.');
       return;
     }
     if (_descController.text.trim().isEmpty) {

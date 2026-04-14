@@ -79,9 +79,6 @@ class TransactionRepository {
   }
 
   Map<String, dynamic> _transactionBody(MenudoTransaction txn) {
-    if (txn.budgetId == null) {
-      throw StateError('Elige un presupuesto antes de continuar.');
-    }
     if (txn.fromAccountId == null) {
       throw StateError('Elige una cuenta antes de continuar.');
     }
