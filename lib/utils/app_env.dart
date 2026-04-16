@@ -70,6 +70,19 @@ class AppEnv {
     return Duration(seconds: seconds ?? 20);
   }
 
+  static String get authEmailRedirectUrl {
+    if (kIsWeb) {
+      final base = Uri.base;
+      if (base.scheme == 'http' || base.scheme == 'https') {
+        return base
+            .replace(path: '/login', queryParameters: null, fragment: null)
+            .toString();
+      }
+    }
+
+    return Uri(scheme: 'menudo', host: 'auth', path: '/callback').toString();
+  }
+
   static Uri uri(String path, {Map<String, dynamic>? queryParameters}) {
     final base = Uri.parse(apiBaseUrl);
     final normalizedBasePath = base.path.endsWith('/')

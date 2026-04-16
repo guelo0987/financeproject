@@ -10,6 +10,16 @@ import '../budget_providers.dart';
 import 'budget_detail_sheet.dart';
 import 'wizard/create_budget_wizard.dart';
 
+String _budgetPeriodLabel(String periodo) {
+  return switch (periodo.toLowerCase()) {
+    'mensual' => 'MENSUAL',
+    'quincenal' => 'QUINCENAL',
+    'semanal' => 'SEMANAL',
+    'unico' => 'PUNTUAL',
+    _ => periodo.toUpperCase(),
+  };
+}
+
 class BudgetsScreen extends ConsumerStatefulWidget {
   const BudgetsScreen({super.key});
 
@@ -19,13 +29,7 @@ class BudgetsScreen extends ConsumerStatefulWidget {
 
 class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   String _filtro = "Todos";
-  final List<String> _filtros = [
-    "Todos",
-    "Mensual",
-    "Quincenal",
-    "Semanal",
-    "Único",
-  ];
+  final List<String> _filtros = ["Todos", "Mensual", "Quincenal", "Semanal"];
 
   String _fmt(double val) =>
       "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
@@ -318,7 +322,9 @@ class _BudgetCard extends StatelessWidget {
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            _BudgetMetaTag(label: budget.periodo.toUpperCase()),
+                            _BudgetMetaTag(
+                              label: _budgetPeriodLabel(budget.periodo),
+                            ),
                             if (isShared)
                               _BudgetMetaTag(
                                 label: budget.miembros.isEmpty

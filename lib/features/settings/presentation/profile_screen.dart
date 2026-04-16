@@ -31,9 +31,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     'Invertir',
     'Otro',
   ];
+  static const _avatarSuggestions = <String>[
+    '🙂',
+    '😎',
+    '🧠',
+    '🚀',
+    '🌿',
+    '💸',
+    '📈',
+    '🪴',
+    '✨',
+    '🔥',
+    '🍊',
+    '🫶',
+  ];
 
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
+  final _avatarEmojiController = TextEditingController();
 
   String _currency = 'DOP';
   String? _financialGoal;
@@ -50,6 +65,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void dispose() {
     _nameController.dispose();
     _amountController.dispose();
+    _avatarEmojiController.dispose();
     super.dispose();
   }
 
@@ -60,8 +76,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _currency = profile.baseCurrency;
     _financialGoal = profile.financialGoal;
     _goalDate = profile.goalDate;
+    _avatarEmojiController.text = profile.avatarEmoji ?? '';
     _amountController.text = _formatMoney(profile.goalAmount);
     if (mounted) setState(() {});
+  }
+
+  String? _normalizeEmoji(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    return trimmed.characters.first;
   }
 
   String _formatMoney(double? value) {
@@ -193,6 +216,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  Future<void> _pickAvatarEmoji() async {
+    final result = await showModalBottomSheet<String?>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AvatarEmojiSheet(
+        initialEmoji: _normalizeEmoji(_avatarEmojiController.text),
+        suggestions: _avatarSuggestions,
+      ),
+    );
+
+    if (result == null || !mounted) return;
+    setState(() => _avatarEmojiController.text = result);
+  }
+
   Future<void> _saveProfile() async {
     final profile = ref.read(authProvider).profile;
     if (profile == null || _isSaving) return;
@@ -210,6 +249,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           .updateProfile(
             name: name,
             currency: _currency,
+            avatarEmoji: _normalizeEmoji(_avatarEmojiController.text),
             financialGoal: _financialGoal?.trim().isEmpty == true
                 ? null
                 : _financialGoal,
@@ -263,6 +303,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         .take(2)
         .map((part) => part[0].toUpperCase())
         .join();
+    final avatarEmoji =
+        _normalizeEmoji(_avatarEmojiController.text) ?? profile.avatarEmoji;
+    final avatarDisplay = avatarEmoji?.isNotEmpty == true
+        ? avatarEmoji!
+        : (initials.isEmpty ? 'M' : initials);
 
     return Scaffold(
       backgroundColor: MenudoColors.appBg,
@@ -303,12 +348,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           borderRadius: BorderRadius.circular(22),
                         ),
                         alignment: Alignment.center,
-                        child: Text(
-                          initials.isEmpty ? 'M' : initials,
-                          style: MenudoTextStyles.h2.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
+                        child: avatarEmoji?.isNotEmpty == true
+                            ? Text(
+                                avatarDisplay,
+                                style: const TextStyle(fontSize: 34),
+                              )
+                            : Text(
+                                avatarDisplay,
+                                style: MenudoTextStyles.h2.copyWith(
+                                  color: Colors.white,
+                                ),
+                              ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -366,6 +416,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _FieldLabel('Avatar'),
+                      const SizedBox(height: 8),
+                      _ReadOnlyField(
+                        value: avatarEmoji?.isNotEmpty == true
+                            ? 'Avatar $avatarEmoji'
+                            : 'Elegir emoji o usar iniciales',
+                        onTap: _pickAvatarEmoji,
+                        trailing: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.g1,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.center,
+                          child: avatarEmoji?.isNotEmpty == true
+                              ? Text(
+                                  avatarEmoji!,
+                                  style: const TextStyle(fontSize: 20),
+                                )
+                              : Text(
+                                  avatarDisplay,
+                                  style: MenudoTextStyles.bodyMedium.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       _FieldLabel('Nombre'),
                       const SizedBox(height: 8),
                       _PlainTextField(
@@ -508,7 +587,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Tu acceso se administra con tu Apple ID. Si necesitas cambiar algo sensible de tu sesión, hazlo desde los ajustes de Apple.',
+                        'Puedes entrar con Apple o con correo y contraseña. Mantén tu correo confirmado y usa una contraseña segura si eliges ese método.',
                         style: MenudoTextStyles.bodySmall.copyWith(
                           color: MenudoColors.textMuted,
                         ),
@@ -531,6 +610,165 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AvatarEmojiSheet extends StatefulWidget {
+  const _AvatarEmojiSheet({
+    required this.initialEmoji,
+    required this.suggestions,
+  });
+
+  final String? initialEmoji;
+  final List<String> suggestions;
+
+  @override
+  State<_AvatarEmojiSheet> createState() => _AvatarEmojiSheetState();
+}
+
+class _AvatarEmojiSheetState extends State<_AvatarEmojiSheet> {
+  late final TextEditingController _controller;
+  String? _selectedEmoji;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedEmoji = widget.initialEmoji;
+    _controller = TextEditingController(text: widget.initialEmoji ?? '');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String? _normalizeEmoji(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    return trimmed.characters.first;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final preview = _normalizeEmoji(_controller.text) ?? _selectedEmoji;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      padding: EdgeInsets.fromLTRB(20, 14, 20, 24 + safeBottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.g2,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text('Tu avatar', style: MenudoTextStyles.h3),
+          const SizedBox(height: 6),
+          Text(
+            'Elige uno rápido o escribe cualquier emoji.',
+            style: MenudoTextStyles.bodySmall.copyWith(
+              color: MenudoColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Center(
+            child: Container(
+              width: 84,
+              height: 84,
+              decoration: BoxDecoration(
+                color: AppColors.e1,
+                borderRadius: BorderRadius.circular(26),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                preview ?? 'M',
+                style: TextStyle(
+                  fontSize: preview == null ? 26 : 40,
+                  fontWeight: preview == null ? FontWeight.w900 : null,
+                  color: preview == null ? AppColors.e8 : null,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: widget.suggestions.map((emoji) {
+              final isSelected = emoji == preview;
+              return GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  setState(() {
+                    _selectedEmoji = emoji;
+                    _controller.text = emoji;
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.e1 : Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: isSelected ? AppColors.e8 : MenudoColors.border,
+                      width: isSelected ? 1.6 : 1,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 18),
+          _FieldLabel('Emoji personalizado'),
+          const SizedBox(height: 8),
+          _PlainTextField(
+            controller: _controller,
+            hintText: '🙂',
+            onChanged: (value) {
+              setState(() => _selectedEmoji = _normalizeEmoji(value));
+            },
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: MenudoSecondaryButton(
+                  label: 'Quitar',
+                  onTap: () => Navigator.of(context).pop(''),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: MenudoButton(
+                  label: 'Guardar',
+                  isFullWidth: true,
+                  onTap: () => Navigator.of(
+                    context,
+                  ).pop(_normalizeEmoji(_controller.text) ?? _selectedEmoji),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -357,7 +357,7 @@ class _RegisterTransactionSheetState
   }
 
   String _budgetName(int? id, List<MenudoBudget> budgets) {
-    if (id == null) return 'Sin presupuesto';
+    if (id == null) return 'General';
     for (final budget in budgets) {
       if (budget.id == id) return budget.nombre;
     }
@@ -431,10 +431,8 @@ class _RegisterTransactionSheetState
       isScrollControlled: true,
       useRootNavigator: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _BudgetPickerSheet(
-        budgets: budgets,
-        selectedId: _budgetId,
-      ),
+      builder: (_) =>
+          _BudgetPickerSheet(budgets: budgets, selectedId: _budgetId),
     );
 
     if (selected != null && mounted) {
@@ -743,6 +741,7 @@ class _RegisterTransactionSheetState
                   ],
                   const SizedBox(height: 12),
                   _InfoStrip(
+                    isGeneralMode: _budgetId == null,
                     budgetName: budgetLabel,
                     dateLabel: dateLabel,
                     onBudgetTap: budgets.isEmpty
@@ -943,11 +942,13 @@ class _TypeSegment extends StatelessWidget {
 }
 
 class _InfoStrip extends StatelessWidget {
+  final bool isGeneralMode;
   final String budgetName;
   final String dateLabel;
   final VoidCallback? onBudgetTap;
 
   const _InfoStrip({
+    required this.isGeneralMode,
     required this.budgetName,
     required this.dateLabel,
     this.onBudgetTap,
@@ -966,22 +967,23 @@ class _InfoStrip extends StatelessWidget {
         children: [
           Expanded(
             child: _InfoStripItem(
-              label: 'Presupuesto',
+              label: isGeneralMode ? 'Registro' : 'Presupuesto',
               value: budgetName,
-              icon: LucideIcons.layoutGrid,
-              color: budgetName == 'Sin presupuesto'
-                  ? AppColors.g4
-                  : AppColors.e8,
+              icon: isGeneralMode
+                  ? LucideIcons.fileText
+                  : LucideIcons.layoutGrid,
+              color: isGeneralMode ? AppColors.e6 : AppColors.e8,
               onTap: onBudgetTap,
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
+          SizedBox(
+            width: 112,
             child: _InfoStripItem(
               label: 'Fecha',
               value: dateLabel,
               icon: LucideIcons.calendar,
-              color: AppColors.g4,
+              color: AppColors.g5,
             ),
           ),
         ],
@@ -1045,7 +1047,7 @@ class _InfoStripItem extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: color == AppColors.g4 ? AppColors.g4 : AppColors.e8,
+                        color: color == AppColors.g5 ? AppColors.e8 : color,
                       ),
                     ),
                   ),
@@ -1494,19 +1496,17 @@ class _BudgetPickerSheet extends StatelessWidget {
   final List<MenudoBudget> budgets;
   final int? selectedId;
 
-  const _BudgetPickerSheet({
-    required this.budgets,
-    this.selectedId,
-  });
+  const _BudgetPickerSheet({required this.budgets, this.selectedId});
 
   @override
   Widget build(BuildContext context) {
-    final sortedBudgets = [...budgets]..sort((a, b) {
-      if (a.activo != b.activo) {
-        return a.activo ? -1 : 1;
-      }
-      return a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase());
-    });
+    final sortedBudgets = [...budgets]
+      ..sort((a, b) {
+        if (a.activo != b.activo) {
+          return a.activo ? -1 : 1;
+        }
+        return a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase());
+      });
 
     return Container(
       decoration: const BoxDecoration(
@@ -1541,7 +1541,7 @@ class _BudgetPickerSheet extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               _BudgetChoiceTile(
-                label: 'Sin presupuesto',
+                label: 'General',
                 subtitle: 'Guardar este movimiento como actividad general.',
                 selected: selectedId == null,
                 onTap: () {
@@ -1645,11 +1645,7 @@ class _BudgetChoiceTile extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             if (selected)
-              const Icon(
-                LucideIcons.check,
-                color: Colors.white,
-                size: 18,
-              ),
+              const Icon(LucideIcons.check, color: Colors.white, size: 18),
           ],
         ),
       ),

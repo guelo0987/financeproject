@@ -24,6 +24,10 @@ final effectiveTransactionsProvider = Provider<List<MenudoTransaction>>((ref) {
   return transactions ?? const [];
 });
 
+final transactionsReferenceDateProvider = Provider<DateTime>((ref) {
+  return DateTime.now();
+});
+
 bool _isTransactionWithinRange(
   MenudoTransaction transaction,
   DateTimeRange range,
@@ -91,11 +95,14 @@ final selectedBudgetPeriodTransactionsProvider =
     Provider<List<MenudoTransaction>>((ref) {
       final budget = ref.watch(selectedBudgetProvider);
       final txns = ref.watch(effectiveTransactionsProvider);
+      final referenceDate = ref.watch(transactionsReferenceDateProvider);
       final budgetScoped = budget == null
           ? txns
-          : txns.where((transaction) => transaction.budgetId == budget.id).toList();
+          : txns
+                .where((transaction) => transaction.budgetId == budget.id)
+                .toList();
 
-      final range = budgetRangeFor(budget);
+      final range = budgetRangeFor(budget, referenceDate: referenceDate);
       if (range == null) return budgetScoped;
 
       return budgetScoped
@@ -107,7 +114,7 @@ final currentMonthTransactionsProvider = Provider<List<MenudoTransaction>>((
   ref,
 ) {
   final txns = ref.watch(effectiveTransactionsProvider);
-  final now = DateTime.now();
+  final now = ref.watch(transactionsReferenceDateProvider);
   final range = DateTimeRange(
     start: DateTime(now.year, now.month, 1),
     end: DateTime(now.year, now.month + 1, 0, 23, 59, 59, 999),

@@ -10,5 +10,6 @@ abstract final class StorageKeys {
   static const userGoalAmount = 'menudo_user_goal_amount';
   static const userGoalDate = 'menudo_user_goal_date';
   static const userCreatedAt = 'menudo_user_created_at';
+  static const userAvatarEmoji = 'menudo_user_avatar_emoji';
   static const demoMode = 'menudo_demo_mode';
 }

@@ -11,6 +11,7 @@ import '../../../../shared/widgets/menudo_chip.dart';
 import '../../auth/auth_state.dart';
 import '../budget_providers.dart';
 import '../../categories/providers/category_providers.dart';
+import '../../transactions/providers/transaction_providers.dart';
 import 'wizard/create_budget_wizard.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
 
@@ -382,6 +383,211 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     }
   }
 
+  List<MenudoTransaction> _transactionsForBudgetPeriod(
+    MenudoBudget budget,
+    List<MenudoTransaction> transactions,
+    DateTime referenceDate,
+  ) {
+    final scoped = transactions
+        .where((transaction) => transaction.budgetId == budget.id)
+        .toList();
+    final range = budgetRangeFor(budget, referenceDate: referenceDate);
+    if (range == null) return scoped;
+
+    return scoped.where((transaction) {
+      final date = DateTime.tryParse(transaction.dateString);
+      if (date == null) return false;
+      return !date.isBefore(range.start) && !date.isAfter(range.end);
+    }).toList();
+  }
+
+  MenudoCategory? _resolveTransactionCategory(
+    MenudoTransaction transaction,
+    List<MenudoCategory> categories,
+    Map<int, MenudoCategory> categoriesById,
+  ) {
+    final categoryId = transaction.categoryId;
+    if (categoryId != null) {
+      return categoriesById[categoryId];
+    }
+
+    final slug = transaction.catKey.trim();
+    if (slug.isEmpty) return null;
+
+    for (final category in categories) {
+      if (category.slug == slug) return category;
+    }
+
+    return null;
+  }
+
+  List<_BudgetExpenseBreakdownItem> _expenseBreakdownForBudget(
+    List<MenudoTransaction> transactions,
+    List<MenudoCategory> categories,
+    Map<int, MenudoCategory> categoriesById,
+  ) {
+    final grouped = <String, _BudgetExpenseBreakdownSeed>{};
+
+    for (final transaction in transactions) {
+      if (transaction.tipo != 'gasto') continue;
+
+      final resolvedCategory = _resolveTransactionCategory(
+        transaction,
+        categories,
+        categoriesById,
+      );
+      final key = resolvedCategory?.id.toString() ?? transaction.catKey;
+      final parentLabel = resolvedCategory?.categoriaParadreId != null
+          ? categoriesById[resolvedCategory!.categoriaParadreId!]?.nombre ?? ''
+          : '';
+
+      final seed =
+          grouped[key] ??
+          _BudgetExpenseBreakdownSeed(
+            label: resolvedCategory?.nombre ?? 'Sin categoría',
+            parentLabel: parentLabel,
+            icon: resolvedCategory?.icono ?? transaction.icono,
+            color: resolvedCategory?.color ?? AppColors.g4,
+          );
+
+      seed.total += transaction.monto.abs();
+      seed.count += 1;
+      grouped[key] = seed;
+    }
+
+    final items =
+        grouped.values
+            .map(
+              (seed) => _BudgetExpenseBreakdownItem(
+                label: seed.label,
+                parentLabel: seed.parentLabel,
+                icon: seed.icon,
+                color: seed.color,
+                total: seed.total,
+                count: seed.count,
+              ),
+            )
+            .toList()
+          ..sort((a, b) => b.total.compareTo(a.total));
+
+    return items;
+  }
+
+  Widget _buildTransactionsByCategorySection(
+    List<_BudgetExpenseBreakdownItem> items,
+  ) {
+    if (items.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 18),
+        child: _InlineInfoCard(
+          text:
+              'Cuando registres gastos en este presupuesto, aquí verás cuáles categorías se están llevando más dinero.',
+        ),
+      );
+    }
+
+    final visibleItems = items.take(6).toList();
+    final totalSpent = items.fold(0.0, (sum, item) => sum + item.total);
+    final totalMovements = items.fold(0, (sum, item) => sum + item.count);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 18),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.g2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.o5.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  LucideIcons.pieChart,
+                  size: 16,
+                  color: AppColors.o5,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Gasto por categoría',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.e8,
+                      ),
+                    ),
+                    Text(
+                      '$totalMovements movimiento${totalMovements == 1 ? '' : 's'} en el ciclo actual',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.g4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                _fmt(totalSpent),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.o5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...visibleItems.asMap().entries.map((entry) {
+            final item = entry.value;
+            final share = totalSpent <= 0 ? 0.0 : item.total / totalSpent;
+            final subtitle = _joinDistinctSecondaryLabels([
+              _distinctSecondaryLabel(item.parentLabel, against: item.label),
+              '${item.count} mov.',
+            ]);
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: entry.key == visibleItems.length - 1 ? 0 : 14,
+              ),
+              child: _BudgetExpenseBreakdownRow(
+                item: item,
+                share: share,
+                subtitle: subtitle,
+                amountLabel: _fmt(item.total),
+              ),
+            );
+          }),
+          if (items.length > visibleItems.length) ...[
+            const SizedBox(height: 12),
+            Text(
+              '+${items.length - visibleItems.length} categoría${items.length - visibleItems.length == 1 ? '' : 's'} más',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.g4,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var displayBudget = widget.budget;
@@ -396,6 +602,17 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     final categoriesById = <int, MenudoCategory>{
       for (final category in categories) category.id: category,
     };
+    final referenceDate = ref.watch(transactionsReferenceDateProvider);
+    final periodTransactions = _transactionsForBudgetPeriod(
+      displayBudget,
+      ref.watch(effectiveTransactionsProvider),
+      referenceDate,
+    );
+    final expenseBreakdown = _expenseBreakdownForBudget(
+      periodTransactions,
+      categories,
+      categoriesById,
+    );
     final extraExpenseCategories = [...displayBudget.otherExpenses]
       ..sort((a, b) {
         final parentCompare = _parentLabelForExpense(
@@ -535,6 +752,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                           left,
                           displayBudget.actualIncomeTotal,
                         ),
+                        _buildTransactionsByCategorySection(expenseBreakdown),
                         _buildSharedBudgetSection(isShared: isShared),
                         _buildCategoriesSection(
                           displayBudget,
@@ -1101,7 +1319,7 @@ class _BudgetOverviewCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Disponible ahora',
+            'Disponible del plan',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -1127,7 +1345,7 @@ class _BudgetOverviewCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Gastado ${fmt(spent)} de ${fmt(budget.displayIncomeBase)}',
+            'Gastado ${fmt(spent)} de ${fmt(budget.displayIncomeBase)} planificados',
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -2183,6 +2401,10 @@ class _CategoryDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final visibleParentLabel = _distinctSecondaryLabel(
+      parentLabel,
+      against: cat.label,
+    );
     final double left = cat.limite - cat.gastado;
     final double pct = min(
       cat.gastado / (cat.limite > 0 ? cat.limite : 1),
@@ -2218,9 +2440,9 @@ class _CategoryDetailCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (parentLabel.isNotEmpty)
+                    if (visibleParentLabel.isNotEmpty)
                       Text(
-                        parentLabel,
+                        visibleParentLabel,
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -2310,6 +2532,10 @@ class _UnplannedExpenseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final visibleParentLabel = _distinctSecondaryLabel(
+      parentLabel,
+      against: cat.label,
+    );
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -2338,9 +2564,9 @@ class _UnplannedExpenseCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  parentLabel.isEmpty
+                  visibleParentLabel.isEmpty
                       ? 'Sin tope definido'
-                      : '$parentLabel · Sin tope definido',
+                      : '$visibleParentLabel · Sin tope definido',
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.g4,
@@ -2392,6 +2618,10 @@ class _PlanCategoryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final visibleParentLabel = _distinctSecondaryLabel(
+      parentLabel,
+      against: cat.label,
+    );
     final usage = cat.limite > 0 ? (cat.gastado / cat.limite) : 0.0;
     final over = usage > 1;
     final statusColor = over ? AppColors.o5 : AppColors.e6;
@@ -2429,9 +2659,9 @@ class _PlanCategoryRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      parentLabel.isEmpty
+                      visibleParentLabel.isEmpty
                           ? 'Límite ${fmt(cat.limite)}'
-                          : '$parentLabel · Límite ${fmt(cat.limite)}',
+                          : '$visibleParentLabel · Límite ${fmt(cat.limite)}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.g4,
@@ -2519,6 +2749,10 @@ class _IncomePlanRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final visibleParentLabel = _distinctSecondaryLabel(
+      parentLabel,
+      against: source.label,
+    );
     final isPositive = source.difference >= 0;
     final accent = isPositive ? AppColors.e6 : AppColors.o5;
     final plannedBase = source.planned > 0 ? source.planned : source.actual;
@@ -2555,13 +2789,13 @@ class _IncomePlanRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      parentLabel.isEmpty
+                      visibleParentLabel.isEmpty
                           ? (source.planned > 0
                                 ? 'Plan ${fmt(source.planned)}'
                                 : 'Sin plan configurado')
                           : source.planned > 0
-                          ? '$parentLabel · Plan ${fmt(source.planned)}'
-                          : '$parentLabel · Sin plan configurado',
+                          ? '$visibleParentLabel · Plan ${fmt(source.planned)}'
+                          : '$visibleParentLabel · Sin plan configurado',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.g4,
@@ -2962,6 +3196,56 @@ class _HistoryTag extends StatelessWidget {
   }
 }
 
+String _normalizedSecondaryLabel(String? value) {
+  return (value ?? '').trim().replaceAll(RegExp(r'\s+'), ' ');
+}
+
+String _distinctSecondaryLabel(String? value, {String? against}) {
+  final normalizedValue = _normalizedSecondaryLabel(value);
+  final normalizedAgainst = _normalizedSecondaryLabel(against);
+  if (normalizedValue.isEmpty) return '';
+  if (normalizedAgainst.isNotEmpty &&
+      normalizedValue.toLowerCase() == normalizedAgainst.toLowerCase()) {
+    return '';
+  }
+  return normalizedValue;
+}
+
+String _joinDistinctSecondaryLabels(Iterable<String?> values) {
+  final seen = <String>{};
+  final labels = <String>[];
+
+  for (final value in values) {
+    final normalized = _normalizedSecondaryLabel(value);
+    if (normalized.isEmpty) continue;
+    final key = normalized.toLowerCase();
+    if (seen.add(key)) {
+      labels.add(normalized);
+    }
+  }
+
+  return labels.join(' · ');
+}
+
+String _historyCompactDate(DateTime? value) {
+  if (value == null) return '';
+  const months = {
+    1: 'ene',
+    2: 'feb',
+    3: 'mar',
+    4: 'abr',
+    5: 'may',
+    6: 'jun',
+    7: 'jul',
+    8: 'ago',
+    9: 'sep',
+    10: 'oct',
+    11: 'nov',
+    12: 'dic',
+  };
+  return '${value.day} ${months[value.month] ?? value.month}';
+}
+
 class _HistoryTransactionRow extends StatelessWidget {
   const _HistoryTransactionRow({required this.transaction, required this.fmt});
 
@@ -2972,6 +3256,10 @@ class _HistoryTransactionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final amount = transaction.signedAmount;
     final amountColor = amount >= 0 ? AppColors.e6 : AppColors.o5;
+    final secondaryLabel = _joinDistinctSecondaryLabels([
+      _historyCompactDate(transaction.fecha),
+      transaction.usuarioNombre,
+    ]);
 
     return Row(
       children: [
@@ -3000,22 +3288,19 @@ class _HistoryTransactionRow extends StatelessWidget {
                   color: AppColors.e8,
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                [
-                  if ((transaction.categoriaNombre ?? '').isNotEmpty)
-                    transaction.categoriaNombre!,
-                  if ((transaction.usuarioNombre ?? '').isNotEmpty)
-                    transaction.usuarioNombre!,
-                ].join(' · '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.g4,
+              if (secondaryLabel.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  secondaryLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.g4,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -3031,6 +3316,126 @@ class _HistoryTransactionRow extends StatelessWidget {
       ],
     );
   }
+}
+
+class _BudgetExpenseBreakdownRow extends StatelessWidget {
+  const _BudgetExpenseBreakdownRow({
+    required this.item,
+    required this.share,
+    required this.subtitle,
+    required this.amountLabel,
+  });
+
+  final _BudgetExpenseBreakdownItem item;
+  final double share;
+  final String subtitle;
+  final String amountLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: item.color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.center,
+              child: Icon(item.icon, size: 16, color: item.color),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.e8,
+                    ),
+                  ),
+                  if (subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.g4,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              amountLabel,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                color: AppColors.o5,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            value: share.clamp(0, 1),
+            minHeight: 8,
+            backgroundColor: AppColors.g1,
+            valueColor: AlwaysStoppedAnimation<Color>(item.color),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BudgetExpenseBreakdownSeed {
+  _BudgetExpenseBreakdownSeed({
+    required this.label,
+    required this.parentLabel,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final String parentLabel;
+  final IconData icon;
+  final Color color;
+  double total = 0;
+  int count = 0;
+}
+
+class _BudgetExpenseBreakdownItem {
+  const _BudgetExpenseBreakdownItem({
+    required this.label,
+    required this.parentLabel,
+    required this.icon,
+    required this.color,
+    required this.total,
+    required this.count,
+  });
+
+  final String label;
+  final String parentLabel;
+  final IconData icon;
+  final Color color;
+  final double total;
+  final int count;
 }
 
 class _SmallActionButton extends StatelessWidget {

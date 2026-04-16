@@ -30,10 +30,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String _fmt(double val) =>
       "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
 
-  String? _firstName(String? fullName) {
+  String? _displayName(String? fullName) {
     final name = fullName?.trim();
     if (name == null || name.isEmpty) return null;
-    return name.split(RegExp(r'\s+')).first;
+    return name;
   }
 
   void _showError(Object error) {
@@ -49,9 +49,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Future<void> _refreshDashboard() async {
     try {
       ref.invalidate(unreadAlertsCountProvider);
-      await Future.wait([
-        ref.read(walletNotifierProvider.notifier).refresh(),
-      ]);
+      await Future.wait([ref.read(walletNotifierProvider.notifier).refresh()]);
       await ref.read(transactionNotifierProvider.notifier).refresh();
     } catch (error) {
       _showError(error);
@@ -185,11 +183,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final walletsState = ref.watch(walletNotifierProvider);
     final transactionsState = ref.watch(transactionNotifierProvider);
-    final currentMonthTransactions = ref.watch(currentMonthTransactionsProvider);
     final allTransactions = ref.watch(effectiveTransactionsProvider);
     final monthlyIncome = ref.watch(generalMonthlyIncomeProvider);
     final monthlySpent = ref.watch(generalMonthlySpentProvider);
     final monthlyBalance = ref.watch(generalMonthlyBalanceProvider);
+    final totalAvailable = ref.watch(totalBalanceProvider);
     final wallets = ref.watch(effectiveWalletsProvider);
     final defaultWallet = ref.watch(defaultWalletProvider);
     final demoMode = ref.watch(demoModeProvider);
@@ -197,7 +195,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final unreadAlerts = ref
         .watch(unreadAlertsCountProvider)
         .maybeWhen(data: (count) => count, orElse: () => 0);
-    final greetingName = _firstName(authState.profile?.name);
+    final displayName = _displayName(authState.profile?.name);
+    final avatarEmoji = authState.profile?.avatarEmoji?.trim();
     final isHydratingHome =
         authState.isBootstrapping ||
         (walletsState.isLoading && walletsState.valueOrNull == null) ||
@@ -225,15 +224,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         .where((t) => t.tipo != 'transferencia')
         .take(3)
         .toList();
-    final hour = TimeOfDay.now().hour;
-    final salutation = hour < 12
-        ? 'Buenos días,'
-        : hour < 18
-        ? 'Buenas tardes,'
-        : 'Buenas noches,';
-    final avatarLabel = greetingName?.trim().isNotEmpty == true
-        ? greetingName!.trim().substring(0, 1).toUpperCase()
+    final avatarLabel = displayName?.trim().isNotEmpty == true
+        ? displayName!.trim().substring(0, 1).toUpperCase()
         : 'M';
+    final headerTitle = displayName?.isNotEmpty == true
+        ? displayName!
+        : 'Mi perfil';
 
     return Scaffold(
       backgroundColor: AppColors.g0,
@@ -250,55 +246,71 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: const BoxDecoration(
-                              color: AppColors.e1,
-                              shape: BoxShape.circle,
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              avatarLabel,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.e8,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => context.push('/settings'),
+                          behavior: HitTestBehavior.opaque,
+                          child: Row(
                             children: [
-                              Text(
-                                salutation,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.g4,
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: AppColors.e1,
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: AppColors.e6.withValues(alpha: 0.12),
+                                  ),
                                 ),
+                                alignment: Alignment.center,
+                                child:
+                                    avatarEmoji != null &&
+                                        avatarEmoji.isNotEmpty
+                                    ? Text(
+                                        avatarEmoji,
+                                        style: const TextStyle(fontSize: 24),
+                                      )
+                                    : Text(
+                                        avatarLabel,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w900,
+                                          color: AppColors.e8,
+                                        ),
+                                      ),
                               ),
-                              Text(
-                                greetingName ?? 'Mi cuenta',
-                                style: const TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.e8,
-                                  letterSpacing: -0.8,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  headerTitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppColors.e8,
+                                    letterSpacing: -0.8,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
                       const SizedBox(width: 12),
-                      _HeaderCircleButton(
-                        icon: LucideIcons.bell,
-                        badgeCount: unreadAlerts,
-                        onTap: () => context.push('/alerts'),
+                      Row(
+                        children: [
+                          _HeaderCircleButton(
+                            icon: LucideIcons.bell,
+                            badgeCount: unreadAlerts,
+                            onTap: () => context.push('/alerts'),
+                          ),
+                          const SizedBox(width: 10),
+                          _HeaderCircleButton(
+                            icon: LucideIcons.settings,
+                            onTap: () => context.push('/settings'),
+                          ),
+                        ],
                       ),
                     ],
                   )
@@ -309,8 +321,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               const SizedBox(height: 22),
               _buildOverviewCard(
                     context,
-                    accountLabel: defaultWallet?.nombre ?? 'Resumen general',
-                    availableThisMonth: monthlyBalance,
+                    accountLabel: wallets.length == 1
+                        ? (defaultWallet?.nombre ?? 'Mi cuenta')
+                        : '${wallets.length} cuentas',
+                    availableNow: totalAvailable,
+                    monthBalance: monthlyBalance,
                     incomeThisMonth: monthlyIncome,
                     spentThisMonth: monthlySpent,
                   )
@@ -326,17 +341,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               _buildActionGrid(context)
                   .animate()
                   .fadeIn(duration: 400.ms, delay: 200.ms)
-                  .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
-
-              const SizedBox(height: 18),
-              _buildSummaryCard(
-                    income: monthlyIncome,
-                    spent: monthlySpent,
-                    balance: monthlyBalance,
-                    hasTransactions: currentMonthTransactions.isNotEmpty,
-                  )
-                  .animate()
-                  .fadeIn(duration: 400.ms, delay: 300.ms)
                   .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
 
               const SizedBox(height: 28),
@@ -378,13 +382,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildOverviewCard(
-    BuildContext context,
-    {
+    BuildContext context, {
     required String accountLabel,
-    required double availableThisMonth,
+    required double availableNow,
+    required double monthBalance,
     required double incomeThisMonth,
     required double spentThisMonth,
   }) {
+    final monthPositive = monthBalance >= 0;
+    final monthLabel = monthPositive
+        ? 'Balance del mes +${_fmt(monthBalance.abs())}'
+        : 'Balance del mes -${_fmt(monthBalance.abs())}';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -454,7 +463,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
           const SizedBox(height: 18),
           Text(
-            'Disponible de este mes',
+            'Disponible ahora',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
@@ -468,7 +477,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
-                _fmt(availableThisMonth),
+                _fmt(availableNow),
                 style: const TextStyle(
                   fontSize: 42,
                   fontWeight: FontWeight.w900,
@@ -478,6 +487,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 6),
+          Text(
+            monthLabel,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: monthPositive
+                  ? Colors.white.withValues(alpha: 0.84)
+                  : const Color(0xFFFFD8AE),
+            ),
+          ),
           const SizedBox(height: 14),
           Divider(color: Colors.white.withValues(alpha: 0.12), height: 1),
           const SizedBox(height: 14),
@@ -485,14 +505,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             children: [
               Expanded(
                 child: _BudgetMetaPill(
-                  label: 'Ingresos',
+                  label: 'Ingresos del mes',
                   value: _fmt(incomeThisMonth),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _BudgetMetaPill(
-                  label: 'Gastado',
+                  label: 'Gastos del mes',
                   value: _fmt(spentThisMonth),
                 ),
               ),
@@ -508,15 +528,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       (
         icon: LucideIcons.arrowDownLeft,
         label: 'Ingreso',
-        color: const Color(0xFFF59E0B),
-        bgColor: const Color(0xFFFEF3C7),
+        color: AppColors.e6,
+        bgColor: AppColors.e1,
         onTap: () => _openRegisterSheet(context, initialType: 'ingreso'),
       ),
       (
         icon: LucideIcons.arrowUpRight,
         label: 'Gasto',
-        color: const Color(0xFFEF4444),
-        bgColor: const Color(0xFFFFE4E6),
+        color: AppColors.o5,
+        bgColor: AppColors.o1,
         onTap: () => _openRegisterSheet(context),
       ),
       (
@@ -553,92 +573,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildSummaryCard({
-    required double income,
-    required double spent,
-    required double balance,
-    required bool hasTransactions,
-  }) {
-    final positive = balance >= 0;
-    final statusColor = positive ? AppColors.e6 : AppColors.o5;
-    final message = !hasTransactions
-        ? 'Todavía no has registrado movimientos este mes.'
-        : positive
-        ? 'Entraron ${_fmt(income)} y salieron ${_fmt(spent)} este mes.'
-        : 'Tus gastos superan los ingresos del mes por ${_fmt(balance.abs())}.';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.g2),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE0E7FF),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            alignment: Alignment.center,
-            child: const Icon(
-              LucideIcons.clock3,
-              size: 18,
-              color: Color(0xFF6366F1),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Resumen del periodo',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.e8,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  message,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.g5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              positive ? 'Al día' : 'Revisar',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: statusColor,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentTransactions(
-    List<MenudoTransaction> recent,
-  ) {
+  Widget _buildRecentTransactions(List<MenudoTransaction> recent) {
     if (recent.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(20),
@@ -905,6 +840,13 @@ class _TransactionTile extends StatelessWidget {
     required this.onTap,
   });
 
+  String _fmt(double value) {
+    return value.toInt().toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (match) => '${match[1]},',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -955,8 +897,8 @@ class _TransactionTile extends StatelessWidget {
                 const SizedBox(width: 12),
                 Text(
                   transaction.tipo == "ingreso"
-                      ? "+RD\$${transaction.monto.abs().toInt()}"
-                      : "-RD\$${transaction.monto.abs().toInt()}",
+                      ? "+RD\$${_fmt(transaction.monto.abs())}"
+                      : "-RD\$${_fmt(transaction.monto.abs())}",
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w900,

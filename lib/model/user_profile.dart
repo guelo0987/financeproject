@@ -4,6 +4,7 @@ class UserProfile {
     required this.name,
     required this.email,
     required this.baseCurrency,
+    this.avatarEmoji,
     this.financialGoal,
     this.goalAmount,
     this.goalDate,
@@ -15,6 +16,7 @@ class UserProfile {
   final String name;
   final String email;
   final String baseCurrency;
+  final String? avatarEmoji;
   final String? financialGoal;
   final double? goalAmount;
   final DateTime? goalDate;
@@ -39,6 +41,7 @@ class UserProfile {
       name: json['nombre']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       baseCurrency: json['moneda_base']?.toString() ?? 'DOP',
+      avatarEmoji: json['avatar_emoji']?.toString(),
       financialGoal: json['meta_financiera']?.toString(),
       goalAmount: switch (json['meta_monto']) {
         num value => value.toDouble(),
@@ -70,6 +73,7 @@ class UserProfile {
     String? name,
     String? email,
     String? baseCurrency,
+    String? avatarEmoji,
     String? financialGoal,
     double? goalAmount,
     DateTime? goalDate,
@@ -82,6 +86,7 @@ class UserProfile {
       name: name ?? this.name,
       email: email ?? this.email,
       baseCurrency: baseCurrency ?? this.baseCurrency,
+      avatarEmoji: avatarEmoji ?? this.avatarEmoji,
       financialGoal: financialGoal ?? this.financialGoal,
       goalAmount: goalAmount ?? this.goalAmount,
       goalDate: goalDate ?? this.goalDate,

@@ -334,7 +334,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
     return switch (_periodo) {
       'semanal' => 'Semanal',
       'quincenal' => 'Quincenal',
-      'unico' => 'Único',
+      'unico' => 'Puntual',
       _ => 'Mensual',
     };
   }
@@ -670,7 +670,8 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                     {"v": "semanal", "l": "Semanal"},
                     {"v": "quincenal", "l": "Quincenal"},
                     {"v": "mensual", "l": "Mensual"},
-                    {"v": "unico", "l": "Único"},
+                    if (_isEditing && _periodo == 'unico')
+                      {"v": "unico", "l": "Puntual"},
                   ]
                   .map(
                     (p) => GestureDetector(
@@ -1157,22 +1158,27 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  IntrinsicWidth(
-                    child: _BudgetAmountField(
-                      value: _savingsTarget,
-                      onChanged: (value) =>
-                          setState(() => _savingsTarget = value),
-                      textAlign: TextAlign.center,
-                      textStyle: const TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.a5,
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: IntrinsicWidth(
+                        child: _BudgetAmountField(
+                          value: _savingsTarget,
+                          onChanged: (value) =>
+                              setState(() => _savingsTarget = value),
+                          textAlign: TextAlign.center,
+                          textStyle: const TextStyle(
+                            fontSize: 40,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.a5,
+                          ),
+                          hintText: '0',
+                          fillColor: Colors.transparent,
+                          borderRadius: 0,
+                          borderless: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
                       ),
-                      hintText: '0',
-                      fillColor: Colors.transparent,
-                      borderRadius: 0,
-                      borderless: true,
-                      contentPadding: EdgeInsets.zero,
                     ),
                   ),
                 ],
@@ -2081,6 +2087,7 @@ class _BudgetAmountFieldState extends State<_BudgetAmountField> {
       controller: _controller,
       onChanged: _handleChanged,
       onTap: _ensureVisible,
+      showCursor: !widget.borderless,
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,]'))],
       textAlign: widget.textAlign,

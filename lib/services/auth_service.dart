@@ -39,6 +39,30 @@ class AuthService {
     return _repository.signInWithApple(currency: currency);
   }
 
+  Future<AuthBootstrapResult> signInWithEmailPassword({
+    required String email,
+    required String password,
+  }) {
+    return _repository.signInWithEmailPassword(
+      email: email,
+      password: password,
+    );
+  }
+
+  Future<EmailRegistrationResult> registerWithEmailPassword({
+    required String name,
+    required String email,
+    required String password,
+    String? currency,
+  }) {
+    return _repository.registerWithEmailPassword(
+      name: name,
+      email: email,
+      password: password,
+      currency: currency,
+    );
+  }
+
   Future<UserProfile> fetchProfile() {
     return _repository.fetchProfile();
   }
@@ -46,6 +70,7 @@ class AuthService {
   Future<UserProfile> updateProfile({
     required String name,
     required String currency,
+    String? avatarEmoji,
     String? financialGoal,
     double? goalAmount,
     DateTime? goalDate,
@@ -53,6 +78,7 @@ class AuthService {
     return _repository.updateProfile(
       name: name,
       currency: currency,
+      avatarEmoji: avatarEmoji,
       financialGoal: financialGoal,
       goalAmount: goalAmount,
       goalDate: goalDate,

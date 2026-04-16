@@ -186,6 +186,8 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
   Widget build(BuildContext context) {
     final amountValue = double.tryParse(_amount) ?? 0;
     final canSave = _nameController.text.trim().isNotEmpty && amountValue > 0;
+    final keyboardBottom = MediaQuery.viewInsetsOf(context).bottom;
+    final showCustomNumpad = keyboardBottom == 0;
 
     return DraggableScrollableSheet(
       initialChildSize: 0.95,
@@ -247,6 +249,8 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
               Expanded(
                 child: ListView(
                   controller: scrollController,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
                   children: [
                     Container(
@@ -395,6 +399,9 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
                           TextField(
                             controller: _nameController,
                             onChanged: (_) => setState(() {}),
+                            textInputAction: TextInputAction.done,
+                            onTapOutside: (_) =>
+                                FocusManager.instance.primaryFocus?.unfocus(),
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -407,72 +414,6 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
                               isDense: true,
                               contentPadding: EdgeInsets.zero,
                             ),
-                          ),
-                          const SizedBox(height: 14),
-                          const Text(
-                            'Moneda',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.g4,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              for (final currency in const ['DOP', 'USD'])
-                                Expanded(
-                                  child: Padding(
-                                    padding: EdgeInsets.only(
-                                      right: currency == 'DOP' ? 8 : 0,
-                                      left: currency == 'USD' ? 8 : 0,
-                                    ),
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        HapticFeedback.selectionClick();
-                                        setState(() => _currency = currency);
-                                      },
-                                      child: AnimatedContainer(
-                                        duration: const Duration(
-                                          milliseconds: 180,
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 12,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: _currency == currency
-                                              ? _selectedColor.withValues(
-                                                  alpha: 0.12,
-                                                )
-                                              : AppColors.g0,
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          border: Border.all(
-                                            color: _currency == currency
-                                                ? _selectedColor
-                                                : AppColors.g2,
-                                            width: _currency == currency
-                                                ? 1.8
-                                                : 1.2,
-                                          ),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          currency == 'USD' ? 'US\$' : 'RD\$',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w800,
-                                            color: _currency == currency
-                                                ? _selectedColor
-                                                : AppColors.g5,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
                           ),
                           const SizedBox(height: 14),
                           Container(
@@ -650,30 +591,7 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    GridView.count(
-                      crossAxisCount: 3,
-                      childAspectRatio: 2.1,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        _buildKey('1'),
-                        _buildKey('2'),
-                        _buildKey('3'),
-                        _buildKey('4'),
-                        _buildKey('5'),
-                        _buildKey('6'),
-                        _buildKey('7'),
-                        _buildKey('8'),
-                        _buildKey('9'),
-                        _buildKey('.'),
-                        _buildKey('0'),
-                        _buildKey('backspace', isIcon: true),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: showCustomNumpad ? 12 : 24),
                   ],
                 ),
               ),
@@ -681,38 +599,68 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
                 color: Colors.transparent,
                 padding: EdgeInsets.fromLTRB(
                   24,
-                  0,
+                  showCustomNumpad ? 12 : 0,
                   24,
                   24 + MediaQuery.of(context).padding.bottom,
                 ),
-                child: GestureDetector(
-                  onTap: canSave ? _save : null,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(
-                      color: canSave ? AppColors.o5 : AppColors.g2,
-                      borderRadius: BorderRadius.circular(100),
-                      boxShadow: canSave
-                          ? [
-                              const BoxShadow(
-                                color: Color(0x44F97316),
-                                blurRadius: 16,
-                                offset: Offset(0, 6),
-                              ),
-                            ]
-                          : const [],
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _isEditing ? 'Guardar cuenta' : 'Crear cuenta',
-                      style: TextStyle(
-                        color: canSave ? Colors.white : AppColors.g4,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (showCustomNumpad) ...[
+                      GridView.count(
+                        crossAxisCount: 3,
+                        childAspectRatio: 2.1,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          _buildKey('1'),
+                          _buildKey('2'),
+                          _buildKey('3'),
+                          _buildKey('4'),
+                          _buildKey('5'),
+                          _buildKey('6'),
+                          _buildKey('7'),
+                          _buildKey('8'),
+                          _buildKey('9'),
+                          _buildKey('.'),
+                          _buildKey('0'),
+                          _buildKey('backspace', isIcon: true),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    GestureDetector(
+                      onTap: canSave ? _save : null,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          color: canSave ? AppColors.o5 : AppColors.g2,
+                          borderRadius: BorderRadius.circular(100),
+                          boxShadow: canSave
+                              ? [
+                                  const BoxShadow(
+                                    color: Color(0x44F97316),
+                                    blurRadius: 16,
+                                    offset: Offset(0, 6),
+                                  ),
+                                ]
+                              : const [],
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          _isEditing ? 'Guardar cuenta' : 'Crear cuenta',
+                          style: TextStyle(
+                            color: canSave ? Colors.white : AppColors.g4,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ],

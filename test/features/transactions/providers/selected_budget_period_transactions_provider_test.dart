@@ -12,12 +12,13 @@ String _isoDate(DateTime value) {
   return '$year-$month-$day';
 }
 
-MenudoTransaction _txn(int id, DateTime date) {
+MenudoTransaction _txn(int id, DateTime date, {int? budgetId}) {
   return MenudoTransaction(
     id: id,
     dateString: _isoDate(date),
     desc: 'Movimiento $id',
     catKey: 'delivery',
+    budgetId: budgetId,
     monto: -250,
     tipo: 'gasto',
     icono: Icons.circle,
@@ -71,15 +72,22 @@ void main() {
 
       expect(range, isNotNull);
 
-      final insideStart = _txn(1, range!.start);
-      final insideEnd = _txn(2, range.end);
-      final outside = _txn(3, range.start.subtract(const Duration(days: 1)));
+      final insideStart = _txn(1, range!.start, budgetId: budget.id);
+      final insideEnd = _txn(2, range.end, budgetId: budget.id);
+      final outside = _txn(
+        3,
+        range.start.subtract(const Duration(days: 1)),
+        budgetId: budget.id,
+      );
 
       final container = ProviderContainer(
         overrides: [
           selectedBudgetProvider.overrideWith((ref) => budget),
           effectiveTransactionsProvider.overrideWith(
             (ref) => [insideStart, insideEnd, outside],
+          ),
+          transactionsReferenceDateProvider.overrideWith(
+            (ref) => DateTime(2026, 3, 14),
           ),
         ],
       );

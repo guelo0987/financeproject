@@ -17,7 +17,7 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
     {
       'isUser': false,
       'text':
-          '¡Hola! Soy Claude, tu asesor financiero personal en WealthOS. ¿En qué puedo ayudarte a optimizar tu portafolio hoy?',
+          '¡Hola! Soy Claude, tu asesor financiero personal en Menudo. ¿En qué puedo ayudarte a optimizar tu portafolio hoy?',
       'time': DateTime.now().subtract(const Duration(minutes: 1)),
     },
   ];
@@ -77,7 +77,7 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('WealthOS AI', style: AppTextStyles.labelLarge),
+                Text('Menudo AI', style: AppTextStyles.labelLarge),
                 Text('Asesor Financiero', style: AppTextStyles.bodySmall),
               ],
             ),

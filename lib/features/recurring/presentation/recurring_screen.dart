@@ -829,11 +829,11 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   }
 
   String _budgetName(int? id, List<MenudoBudget> budgets) {
-    if (id == null) return "Sin presupuesto";
+    if (id == null) return "General";
     for (final budget in budgets) {
       if (budget.id == id) return budget.nombre;
     }
-    return "Sin presupuesto";
+    return "General";
   }
 
   Future<void> _pickCategory() async {
@@ -890,7 +890,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
         items: [
           const _PickerItem(
             id: 0,
-            label: 'Sin presupuesto',
+            label: 'General',
             icon: LucideIcons.layoutGrid,
             color: AppColors.g4,
           ),

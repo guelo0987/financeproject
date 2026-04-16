@@ -81,15 +81,45 @@ class AuthController extends StateNotifier<AuthState> {
 
   Future<void> loginWithApple() async {
     final result = await _service.signInWithApple();
-    await _completeAppleSignIn(result);
+    await _completeAuthenticatedSignIn(result);
   }
 
   Future<void> registerWithApple({required String currency}) async {
     final result = await _service.signInWithApple(currency: currency);
-    await _completeAppleSignIn(result);
+    await _completeAuthenticatedSignIn(result);
   }
 
-  Future<void> _completeAppleSignIn(AuthBootstrapResult result) async {
+  Future<void> loginWithEmailPassword({
+    required String email,
+    required String password,
+  }) async {
+    final result = await _service.signInWithEmailPassword(
+      email: email,
+      password: password,
+    );
+    await _completeAuthenticatedSignIn(result);
+  }
+
+  Future<EmailRegistrationResult> registerWithEmailPassword({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    final result = await _service.registerWithEmailPassword(
+      name: name,
+      email: email,
+      password: password,
+      currency: 'DOP',
+    );
+
+    if (result.bootstrap != null) {
+      await _completeAuthenticatedSignIn(result.bootstrap!);
+    }
+
+    return result;
+  }
+
+  Future<void> _completeAuthenticatedSignIn(AuthBootstrapResult result) async {
     final session = result.session;
     await _service.saveSession(
       userId: session.userId,
@@ -155,6 +185,7 @@ class AuthController extends StateNotifier<AuthState> {
   Future<UserProfile> updateProfile({
     required String name,
     required String currency,
+    String? avatarEmoji,
     String? financialGoal,
     double? goalAmount,
     DateTime? goalDate,
@@ -162,6 +193,7 @@ class AuthController extends StateNotifier<AuthState> {
     final profile = await _service.updateProfile(
       name: name,
       currency: currency,
+      avatarEmoji: avatarEmoji,
       financialGoal: financialGoal,
       goalAmount: goalAmount,
       goalDate: goalDate,

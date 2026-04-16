@@ -33,14 +33,14 @@ class TransactionDetailSheet extends ConsumerWidget {
   MenudoBudget? _findBudget(
     List<MenudoBudget> budgets,
     MenudoTransaction transaction,
-    MenudoBudget? selectedBudget,
   ) {
-    if (transaction.budgetId != null) {
-      for (final budget in budgets) {
-        if (budget.id == transaction.budgetId) return budget;
-      }
+    if (transaction.budgetId == null) {
+      return null;
     }
-    return selectedBudget;
+    for (final budget in budgets) {
+      if (budget.id == transaction.budgetId) return budget;
+    }
+    return null;
   }
 
   MenudoCategory? _findCategoryBySlug(
@@ -70,12 +70,11 @@ class TransactionDetailSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = transaction;
     final budgets = ref.watch(effectiveBudgetsProvider);
-    final selectedBudget = ref.watch(selectedBudgetProvider);
     final categories = ref.watch(effectiveCategoriesProvider);
     final wallets = ref.watch(effectiveWalletsProvider);
     final authState = ref.watch(authProvider);
 
-    final activeBudget = _findBudget(budgets, t, selectedBudget);
+    final activeBudget = _findBudget(budgets, t);
     final budgetCat = activeBudget?.cats[t.catKey];
     final resolvedCategory =
         _findCategoryBySlug(categories, t.catKey) ??
@@ -208,7 +207,7 @@ class TransactionDetailSheet extends ConsumerWidget {
           label: 'Presupuesto',
           value: activeBudget.nombre,
         ),
-      if (performerLabel != null && (isSharedBudget || t.usuarioId != null))
+      if (performerLabel != null && isSharedBudget)
         _SimpleDetailRowData(
           icon: LucideIcons.user,
           iconColor: AppColors.o5,

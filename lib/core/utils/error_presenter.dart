@@ -48,6 +48,9 @@ String presentError(
   if (lower.contains('invite_pending')) {
     return 'Ya hay una invitación pendiente para ese correo.';
   }
+  if (lower.contains('email not confirmed')) {
+    return 'Primero confirma tu correo y luego intenta entrar otra vez.';
+  }
   if (lower.contains('email_error')) {
     return 'No pudimos enviar la invitación ahora mismo. Inténtalo otra vez.';
   }

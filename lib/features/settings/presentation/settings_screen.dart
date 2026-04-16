@@ -30,6 +30,7 @@ class SettingsScreen extends ConsumerWidget {
         .take(2)
         .map((part) => part[0].toUpperCase())
         .join();
+    final avatarEmoji = profile?.avatarEmoji?.trim();
 
     return Scaffold(
       backgroundColor: MenudoColors.appBg,
@@ -59,12 +60,17 @@ class SettingsScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(22),
                             ),
                             alignment: Alignment.center,
-                            child: Text(
-                              initials.isEmpty ? 'M' : initials,
-                              style: MenudoTextStyles.h2.copyWith(
-                                color: Colors.white,
-                              ),
-                            ),
+                            child: avatarEmoji != null && avatarEmoji.isNotEmpty
+                                ? Text(
+                                    avatarEmoji,
+                                    style: const TextStyle(fontSize: 32),
+                                  )
+                                : Text(
+                                    initials.isEmpty ? 'M' : initials,
+                                    style: MenudoTextStyles.h2.copyWith(
+                                      color: Colors.white,
+                                    ),
+                                  ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(

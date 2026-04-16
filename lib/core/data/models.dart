@@ -883,7 +883,7 @@ class MenudoBudget {
       ].fold(0.0, (sum, source) => sum + source.actual);
 
   double get displayIncomeBase =>
-      actualIncomeTotal > 0 ? actualIncomeTotal : ingresos;
+      ingresos > 0 ? ingresos : actualIncomeTotal;
 
   double get availableToSpend => displayIncomeBase - totalSpent;
 

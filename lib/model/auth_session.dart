@@ -61,3 +61,33 @@ class AuthBootstrapResult {
   final AuthSession session;
   final bool isNewUser;
 }
+
+class EmailRegistrationResult {
+  const EmailRegistrationResult._({
+    required this.email,
+    required this.requiresEmailVerification,
+    this.bootstrap,
+  });
+
+  final String email;
+  final bool requiresEmailVerification;
+  final AuthBootstrapResult? bootstrap;
+
+  factory EmailRegistrationResult.authenticated(
+    String email,
+    AuthBootstrapResult bootstrap,
+  ) {
+    return EmailRegistrationResult._(
+      email: email,
+      requiresEmailVerification: false,
+      bootstrap: bootstrap,
+    );
+  }
+
+  factory EmailRegistrationResult.pendingVerification(String email) {
+    return EmailRegistrationResult._(
+      email: email,
+      requiresEmailVerification: true,
+    );
+  }
+}

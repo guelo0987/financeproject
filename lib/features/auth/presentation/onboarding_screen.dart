@@ -47,7 +47,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 children: [
                   _buildPage(
                     title: 'Tu dinero,\nen un solo lugar.',
-                    subtitle: 'Cuentas, tarjetas y movimientos en un solo lugar.',
+                    subtitle:
+                        'Cuentas, tarjetas y movimientos en un solo lugar.',
                     icon: Icons.account_balance_wallet_rounded,
                   ),
                   _buildPage(
@@ -87,9 +88,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   const SizedBox(height: 24),
                   MenudoPrimaryButton(
-                    label: _currentPage < 2
-                        ? 'Siguiente'
-                        : 'Configurar con Apple',
+                    label: _currentPage < 2 ? 'Siguiente' : 'Crear cuenta',
                     onTap: _nextPage,
                   ),
                   const SizedBox(height: 12),

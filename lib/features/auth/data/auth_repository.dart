@@ -17,6 +17,7 @@ class AuthRepository {
 
   final ApiService _api;
   static const _storage = FlutterSecureStorage();
+
   SupabaseClient? get _supabaseOrNull {
     try {
       return Supabase.instance.client;
@@ -47,6 +48,9 @@ class AuthRepository {
     final userGoalAmount = await _storage.read(key: StorageKeys.userGoalAmount);
     final userGoalDate = await _storage.read(key: StorageKeys.userGoalDate);
     final userCreatedAt = await _storage.read(key: StorageKeys.userCreatedAt);
+    final userAvatarEmoji = await _storage.read(
+      key: StorageKeys.userAvatarEmoji,
+    );
     final userDefaultBudgetId = await _storage.read(
       key: StorageKeys.userDefaultBudgetId,
     );
@@ -70,6 +74,7 @@ class AuthRepository {
               name: userName ?? '',
               email: userEmail ?? '',
               baseCurrency: userCurrency ?? 'DOP',
+              avatarEmoji: userAvatarEmoji,
               financialGoal: userFinancialGoal,
               goalAmount: double.tryParse(userGoalAmount ?? ''),
               goalDate: userGoalDate == null
@@ -109,6 +114,7 @@ class AuthRepository {
       await _storage.delete(key: StorageKeys.userGoalAmount);
       await _storage.delete(key: StorageKeys.userGoalDate);
       await _storage.delete(key: StorageKeys.userCreatedAt);
+      await _storage.delete(key: StorageKeys.userAvatarEmoji);
       return;
     }
 
@@ -118,6 +124,14 @@ class AuthRepository {
       key: StorageKeys.userCurrency,
       value: profile.baseCurrency,
     );
+    if (profile.avatarEmoji != null && profile.avatarEmoji!.trim().isNotEmpty) {
+      await _storage.write(
+        key: StorageKeys.userAvatarEmoji,
+        value: profile.avatarEmoji,
+      );
+    } else {
+      await _storage.delete(key: StorageKeys.userAvatarEmoji);
+    }
     if (profile.financialGoal != null && profile.financialGoal!.isNotEmpty) {
       await _storage.write(
         key: StorageKeys.userFinancialGoal,
@@ -178,6 +192,132 @@ class AuthRepository {
     await _storage.delete(key: StorageKeys.userGoalAmount);
     await _storage.delete(key: StorageKeys.userGoalDate);
     await _storage.delete(key: StorageKeys.userCreatedAt);
+    await _storage.delete(key: StorageKeys.userAvatarEmoji);
+  }
+
+  String? _normalizeAvatarEmoji(Object? rawValue) {
+    final value = rawValue?.toString().trim();
+    if (value == null || value.isEmpty) return null;
+    return value;
+  }
+
+  String _normalizeDisplayName(String value) {
+    return value.trim().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  bool _isObfuscatedRepeatedSignup(User? user) {
+    final identities = user?.identities;
+    return identities != null && identities.isEmpty;
+  }
+
+  UserProfile _mergeSupabaseMetadata(UserProfile profile) {
+    final currentUser = _supabaseOrNull?.auth.currentUser;
+    final metadata = currentUser?.userMetadata ?? const <String, dynamic>{};
+    final avatarEmoji = _normalizeAvatarEmoji(metadata['avatar_emoji']);
+    if (avatarEmoji == profile.avatarEmoji) return profile;
+    return profile.copyWith(avatarEmoji: avatarEmoji);
+  }
+
+  Future<AuthBootstrapResult> _completeSupabaseBootstrap({
+    String? currency,
+  }) async {
+    final session = _supabase.auth.currentSession;
+    if (session == null) {
+      throw const ApiException(
+        'No pudimos recuperar tu sesión. Inténtalo otra vez.',
+      );
+    }
+
+    final response = await _api.post<Map<String, dynamic>>(
+      ApiPaths.authSession,
+      body: {
+        if (currency != null && currency.isNotEmpty) 'moneda_base': currency,
+      },
+      parser: asJsonMap,
+    );
+
+    final data = response.requireData();
+    final profilePayload = data['usuario'] ?? data['user'] ?? data;
+    final profileJson = profilePayload is Map
+        ? Map<String, dynamic>.from(profilePayload)
+        : const <String, dynamic>{};
+    final profile = _mergeSupabaseMetadata(UserProfile.fromJson(profileJson));
+
+    final appSession = AuthSession(
+      userId: profile.userId,
+      token: session.accessToken,
+      refreshToken: session.refreshToken,
+      profile: profile,
+    );
+
+    return AuthBootstrapResult(
+      session: appSession,
+      isNewUser: data['isNewUser'] == true || data['is_new_user'] == true,
+    );
+  }
+
+  Future<AuthBootstrapResult> signInWithEmailPassword({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final response = await _supabase.auth.signInWithPassword(
+        email: email.trim().toLowerCase(),
+        password: password,
+      );
+      final user = response.user ?? _supabase.auth.currentUser;
+      if (user?.emailConfirmedAt == null) {
+        await _supabase.auth.signOut();
+        throw const ApiException(
+          'Primero confirma tu correo y luego entra con tu contraseña.',
+        );
+      }
+      return _completeSupabaseBootstrap();
+    } on AuthException catch (error) {
+      throw ApiException(error.message);
+    }
+  }
+
+  Future<EmailRegistrationResult> registerWithEmailPassword({
+    required String name,
+    required String email,
+    required String password,
+    String? currency,
+  }) async {
+    final normalizedName = _normalizeDisplayName(name);
+    final normalizedEmail = email.trim().toLowerCase();
+
+    try {
+      final result = await _supabase.auth.signUp(
+        email: normalizedEmail,
+        password: password,
+        data: {'full_name': normalizedName},
+        emailRedirectTo: AppEnv.authEmailRedirectUrl,
+      );
+
+      final user = result.user ?? _supabase.auth.currentUser;
+      if (_isObfuscatedRepeatedSignup(user)) {
+        await _supabase.auth.signOut();
+        throw const ApiException(
+          'Ese correo ya tiene una cuenta. Entra con tu contraseña o recupera el acceso.',
+        );
+      }
+
+      if (user?.emailConfirmedAt == null) {
+        await _supabase.auth.signOut();
+        return EmailRegistrationResult.pendingVerification(normalizedEmail);
+      }
+
+      final session = result.session ?? _supabase.auth.currentSession;
+      if (session == null) {
+        return EmailRegistrationResult.pendingVerification(normalizedEmail);
+      }
+
+      final bootstrap = await _completeSupabaseBootstrap(currency: currency);
+      return EmailRegistrationResult.authenticated(normalizedEmail, bootstrap);
+    } on AuthException catch (error) {
+      throw ApiException(error.message);
+    }
   }
 
   Future<AuthBootstrapResult> signInWithApple({String? currency}) async {
@@ -236,39 +376,7 @@ class AuthRepository {
         }
       }
 
-      final session = _supabase.auth.currentSession;
-      if (session == null) {
-        throw const ApiException(
-          'No pudimos recuperar tu sesión de Supabase. Inténtalo otra vez.',
-        );
-      }
-
-      final response = await _api.post<Map<String, dynamic>>(
-        ApiPaths.authSession,
-        body: {
-          if (currency != null && currency.isNotEmpty) 'moneda_base': currency,
-        },
-        parser: asJsonMap,
-      );
-
-      final data = response.requireData();
-      final profilePayload = data['usuario'] ?? data['user'] ?? data;
-      final profileJson = profilePayload is Map
-          ? Map<String, dynamic>.from(profilePayload)
-          : const <String, dynamic>{};
-      final profile = UserProfile.fromJson(profileJson);
-
-      final appSession = AuthSession(
-        userId: profile.userId,
-        token: session.accessToken,
-        refreshToken: session.refreshToken,
-        profile: profile,
-      );
-
-      return AuthBootstrapResult(
-        session: appSession,
-        isNewUser: data['isNewUser'] == true || data['is_new_user'] == true,
-      );
+      return _completeSupabaseBootstrap(currency: currency);
     } on SignInWithAppleAuthorizationException catch (error) {
       if (error.code == AuthorizationErrorCode.canceled) {
         throw const ApiException('Cancelaste el inicio con Apple.');
@@ -286,20 +394,22 @@ class AuthRepository {
       ApiPaths.authMe,
       parser: asJsonMap,
     );
-    return UserProfile.fromJson(response.requireData());
+    return _mergeSupabaseMetadata(UserProfile.fromJson(response.requireData()));
   }
 
   Future<UserProfile> updateProfile({
     required String name,
     required String currency,
+    String? avatarEmoji,
     String? financialGoal,
     double? goalAmount,
     DateTime? goalDate,
   }) async {
+    final normalizedName = _normalizeDisplayName(name);
     final response = await _api.patch<Map<String, dynamic>>(
       ApiPaths.authMe,
       body: {
-        'nombre': name,
+        'nombre': normalizedName,
         'moneda_base': currency,
         'meta_financiera': financialGoal,
         'meta_monto': goalAmount,
@@ -307,7 +417,23 @@ class AuthRepository {
       },
       parser: asJsonMap,
     );
-    return UserProfile.fromJson(response.requireData());
+
+    try {
+      await _supabase.auth.updateUser(
+        UserAttributes(
+          data: {
+            'full_name': normalizedName,
+            'avatar_emoji': avatarEmoji?.trim().isEmpty == true
+                ? ''
+                : avatarEmoji?.trim(),
+          },
+        ),
+      );
+    } on AuthException catch (error) {
+      throw ApiException(error.message);
+    }
+
+    return _mergeSupabaseMetadata(UserProfile.fromJson(response.requireData()));
   }
 
   Future<int?> setDefaultBudget(int? budgetId) async {

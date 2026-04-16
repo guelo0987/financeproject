@@ -1,5 +1,6 @@
 import 'package:financeproject/features/auth/presentation/login_screen.dart';
 import 'package:financeproject/features/auth/presentation/register_screen.dart';
+import 'package:financeproject/shared/widgets/menudo_button.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:financeproject/main.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,7 +39,8 @@ void main() {
       await tester.tap(find.byIcon(Icons.arrow_back));
       await tester.pumpAndSettle();
 
-      expect(find.text('Entrar'), findsOneWidget);
+      expect(find.widgetWithText(TextButton, 'Crear cuenta'), findsOneWidget);
+      expect(find.widgetWithText(MenudoButton, 'Entrar'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
