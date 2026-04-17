@@ -118,6 +118,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final pendingVerificationEmail = authState.pendingVerificationEmail;
+
+    if (pendingVerificationEmail != null && _emailController.text.trim().isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _emailController.text.trim().isNotEmpty) return;
+        _emailController.text = pendingVerificationEmail;
+      });
+    }
+
     return Scaffold(
       backgroundColor: MenudoColors.appBg,
       body: SafeArea(
@@ -146,6 +156,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 260.ms),
+                if (pendingVerificationEmail != null) ...[
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: MenudoColors.warningLight,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: MenudoColors.warning),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 1),
+                          child: Icon(
+                            Icons.mark_email_unread_outlined,
+                            color: MenudoColors.warning,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Tu cuenta $pendingVerificationEmail todavía no ha sido verificada. Revisa tu correo, confirma el enlace y luego entra con tu contraseña.',
+                            style: MenudoTextStyles.bodyMedium.copyWith(
+                              color: MenudoColors.textMain,
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ).animate().fadeIn(delay: 280.ms).slideY(begin: 0.04),
+                ],
                 const SizedBox(height: 32),
                 Container(
                   padding: const EdgeInsets.all(20),

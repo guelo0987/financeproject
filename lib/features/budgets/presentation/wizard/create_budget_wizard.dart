@@ -785,6 +785,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
     required bool showPercent,
     required double totalBase,
   }) {
+    final isCompactAmountLayout = MediaQuery.of(context).size.width < 390;
     final sortedCategories = [...categories]
       ..sort((a, b) => a.nombre.compareTo(b.nombre));
     final groupTotal = sortedCategories.fold<double>(
@@ -880,85 +881,162 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   ? (amount / totalBase * 100).round()
                   : 0;
               final currentValue = values[category.id] ?? '';
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+              final amountEditor = Container(
+                width: isCompactAmountLayout ? double.infinity : 146,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.g0,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: category.color.withValues(alpha: 0.18),
+                    width: 1.4,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: category.color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.center,
-                      child: Icon(
-                        category.icono,
-                        color: category.color,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            category.nombre,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.e8,
-                            ),
+                    if (isCompactAmountLayout)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          'Monto',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.g4,
                           ),
-                          if (showPercent && amount > 0)
-                            Text(
-                              '$pct% del total',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.g4,
-                              ),
-                            ),
-                        ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: 118,
-                      child: _BudgetAmountField(
-                        value: currentValue,
-                        onChanged: (value) {
-                          setState(() => values[category.id] = value);
-                        },
-                        textAlign: TextAlign.center,
-                        textStyle: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.e8,
-                        ),
-                        prefixText: 'RD\$ ',
-                        prefixStyle: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.g4,
-                        ),
-                        hintText: '0',
-                        fillColor: AppColors.g0,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        borderRadius: 12,
-                        enabledBorderColor: category.color.withValues(
-                          alpha: 0.18,
-                        ),
-                        focusedBorderColor: category.color,
+                    _BudgetAmountField(
+                      value: currentValue,
+                      onChanged: (value) {
+                        setState(() => values[category.id] = value);
+                      },
+                      textAlign: isCompactAmountLayout
+                          ? TextAlign.start
+                          : TextAlign.end,
+                      textStyle: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.e8,
                       ),
+                      prefixText: 'RD\$ ',
+                      prefixStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.g4,
+                      ),
+                      hintText: 'Monto',
+                      fillColor: Colors.transparent,
+                      contentPadding: EdgeInsets.zero,
+                      borderRadius: 12,
+                      borderless: true,
                     ),
                   ],
                 ),
+              );
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: isCompactAmountLayout
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: category.color.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  category.icono,
+                                  color: category.color,
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      category.nombre,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.e8,
+                                      ),
+                                    ),
+                                    if (showPercent && amount > 0)
+                                      Text(
+                                        '$pct% del total',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.g4,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          amountEditor,
+                        ],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: category.color.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              category.icono,
+                              color: category.color,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  category.nombre,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.e8,
+                                  ),
+                                ),
+                                if (showPercent && amount > 0)
+                                  Text(
+                                    '$pct% del total',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.g4,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          amountEditor,
+                        ],
+                      ),
               );
             }),
           ],
@@ -1172,7 +1250,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                             fontWeight: FontWeight.w800,
                             color: AppColors.a5,
                           ),
-                          hintText: '0',
+                          hintText: '',
                           fillColor: Colors.transparent,
                           borderRadius: 0,
                           borderless: true,
@@ -1986,8 +2064,6 @@ class _BudgetAmountField extends StatefulWidget {
     this.prefixStyle,
     this.textAlign = TextAlign.start,
     this.borderRadius = 12,
-    this.enabledBorderColor = AppColors.g2,
-    this.focusedBorderColor = AppColors.e8,
     this.borderless = false,
   });
 
@@ -2001,8 +2077,6 @@ class _BudgetAmountField extends StatefulWidget {
   final TextStyle? prefixStyle;
   final TextAlign textAlign;
   final double borderRadius;
-  final Color enabledBorderColor;
-  final Color focusedBorderColor;
   final bool borderless;
 
   @override
@@ -2011,10 +2085,12 @@ class _BudgetAmountField extends StatefulWidget {
 
 class _BudgetAmountFieldState extends State<_BudgetAmountField> {
   late final TextEditingController _controller;
+  late final FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode();
     _controller = TextEditingController(
       text: _formatBudgetNumber(widget.value),
     );
@@ -2036,6 +2112,7 @@ class _BudgetAmountFieldState extends State<_BudgetAmountField> {
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -2065,31 +2142,45 @@ class _BudgetAmountFieldState extends State<_BudgetAmountField> {
     );
   }
 
+  Future<void> _focusAndShowKeyboard() async {
+    if (!_focusNode.hasFocus) {
+      _focusNode.requestFocus();
+    }
+    await _ensureVisible();
+    await SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+  }
+
   @override
   Widget build(BuildContext context) {
     final border = widget.borderless
         ? InputBorder.none
         : OutlineInputBorder(
             borderRadius: BorderRadius.circular(widget.borderRadius),
-            borderSide: BorderSide(
-              color: widget.enabledBorderColor,
-              width: 1.8,
-            ),
+            borderSide: const BorderSide(color: AppColors.g2, width: 1.8),
           );
     final focusedBorder = widget.borderless
         ? InputBorder.none
         : OutlineInputBorder(
             borderRadius: BorderRadius.circular(widget.borderRadius),
-            borderSide: BorderSide(color: widget.focusedBorderColor, width: 2),
+            borderSide: const BorderSide(color: AppColors.e8, width: 2),
           );
 
     return TextField(
+      focusNode: _focusNode,
       controller: _controller,
       onChanged: _handleChanged,
-      onTap: _ensureVisible,
-      showCursor: !widget.borderless,
-      keyboardType: TextInputType.number,
+      onTap: _focusAndShowKeyboard,
+      onTapOutside: (_) => _focusNode.unfocus(),
+      showCursor: true,
+      keyboardType: const TextInputType.numberWithOptions(
+        signed: false,
+        decimal: false,
+      ),
+      textInputAction: TextInputAction.done,
       inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,]'))],
+      enableSuggestions: false,
+      autocorrect: false,
+      scrollPadding: const EdgeInsets.only(bottom: 140),
       textAlign: widget.textAlign,
       style: widget.textStyle,
       decoration: InputDecoration(

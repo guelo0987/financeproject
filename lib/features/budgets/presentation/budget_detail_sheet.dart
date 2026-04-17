@@ -1,7 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -12,6 +15,7 @@ import '../../auth/auth_state.dart';
 import '../budget_providers.dart';
 import '../../categories/providers/category_providers.dart';
 import '../../transactions/providers/transaction_providers.dart';
+import '../../../utils/storage_keys.dart';
 import 'wizard/create_budget_wizard.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
 
@@ -1758,10 +1762,15 @@ class _InlineInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isError = tone == _InfoCardTone.error;
+    final isSuccess = tone == _InfoCardTone.success;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isError ? AppColors.r1 : AppColors.g1,
+        color: isError
+            ? AppColors.r1
+            : isSuccess
+            ? AppColors.e1
+            : AppColors.g1,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -1773,7 +1782,11 @@ class _InlineInfoCard extends StatelessWidget {
                 fontSize: 12,
                 height: 1.35,
                 fontWeight: FontWeight.w700,
-                color: isError ? AppColors.r5 : AppColors.g5,
+                color: isError
+                    ? AppColors.r5
+                    : isSuccess
+                    ? AppColors.e6
+                    : AppColors.g5,
               ),
             ),
           ),
@@ -1786,7 +1799,11 @@ class _InlineInfoCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  color: isError ? AppColors.r5 : AppColors.e8,
+                  color: isError
+                      ? AppColors.r5
+                      : isSuccess
+                      ? AppColors.e6
+                      : AppColors.e8,
                 ),
               ),
             ),
@@ -1797,7 +1814,7 @@ class _InlineInfoCard extends StatelessWidget {
   }
 }
 
-enum _InfoCardTone { neutral, error }
+enum _InfoCardTone { neutral, success, error }
 
 class _PlanStateCard extends StatelessWidget {
   const _PlanStateCard({
@@ -1908,18 +1925,166 @@ class _BudgetMembersSheet extends ConsumerStatefulWidget {
 }
 
 class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
+  static const _inviteCooldownStorage = FlutterSecureStorage();
+  static const _inviteCooldownResetAfter = Duration(hours: 12);
+  static const _inviteCooldownSchedule = <Duration>[
+    Duration(minutes: 2),
+    Duration(minutes: 5),
+    Duration(minutes: 10),
+    Duration(minutes: 15),
+  ];
+
   final TextEditingController _inviteController = TextEditingController();
   List<BudgetMember> _members = const [];
+  Map<String, _InviteCooldownEntry> _inviteCooldowns = const {};
   bool _isLoading = false;
   bool _isInviting = false;
   String? _error;
+  String? _inviteFeedback;
+  _InfoCardTone _inviteFeedbackTone = _InfoCardTone.neutral;
   int? _removingUserId;
+  Timer? _inviteCooldownTicker;
 
   @override
   void initState() {
     super.initState();
     _members = widget.initialMembers;
+    _inviteController.addListener(_handleInviteEmailChanged);
+    _restoreInviteCooldowns();
+    _startInviteCooldownTicker();
     _loadMembers();
+  }
+
+  String get _normalizedInviteEmail {
+    return _inviteController.text.trim().toLowerCase();
+  }
+
+  String _inviteCooldownKeyFor(String email) {
+    return '${widget.budgetId}:$email';
+  }
+
+  _InviteCooldownEntry? get _activeInviteCooldown {
+    final email = _normalizedInviteEmail;
+    if (email.isEmpty) return null;
+
+    final entry = _inviteCooldowns[_inviteCooldownKeyFor(email)];
+    if (entry == null) return null;
+    if (!entry.nextAllowedAt.isAfter(DateTime.now())) return null;
+    return entry;
+  }
+
+  Duration? get _activeInviteCooldownRemaining {
+    final entry = _activeInviteCooldown;
+    if (entry == null) return null;
+    final remaining = entry.nextAllowedAt.difference(DateTime.now());
+    return remaining.isNegative ? null : remaining;
+  }
+
+  Duration get _nextInviteCooldownStep {
+    final entry = _activeInviteCooldown;
+    final nextAttempt = (entry?.attempts ?? 0) + 1;
+    return _inviteCooldownDurationForAttempt(nextAttempt);
+  }
+
+  void _handleInviteEmailChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Future<void> _restoreInviteCooldowns() async {
+    final raw = await _inviteCooldownStorage.read(
+      key: StorageKeys.budgetInviteCooldowns,
+    );
+    if (raw == null || raw.trim().isEmpty) return;
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) return;
+
+      final now = DateTime.now();
+      final restored = <String, _InviteCooldownEntry>{};
+      decoded.forEach((key, value) {
+        if (value is! Map) return;
+        final entry = _InviteCooldownEntry.fromJson(
+          Map<String, dynamic>.from(value),
+        );
+        if (now.difference(entry.lastSentAt) <= _inviteCooldownResetAfter) {
+          restored[key] = entry;
+        }
+      });
+
+      if (!mounted) return;
+      setState(() => _inviteCooldowns = restored);
+    } catch (_) {
+      await _inviteCooldownStorage.delete(
+        key: StorageKeys.budgetInviteCooldowns,
+      );
+    }
+  }
+
+  Future<void> _persistInviteCooldowns() {
+    final payload = <String, dynamic>{
+      for (final entry in _inviteCooldowns.entries)
+        entry.key: entry.value.toJson(),
+    };
+    return _inviteCooldownStorage.write(
+      key: StorageKeys.budgetInviteCooldowns,
+      value: jsonEncode(payload),
+    );
+  }
+
+  void _startInviteCooldownTicker() {
+    _inviteCooldownTicker ??= Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      if (_inviteCooldowns.isEmpty) return;
+      setState(() {});
+    });
+  }
+
+  Duration _inviteCooldownDurationForAttempt(int attempt) {
+    final index = max(0, min(attempt - 1, _inviteCooldownSchedule.length - 1));
+    return _inviteCooldownSchedule[index];
+  }
+
+  Future<void> _recordInviteCooldown(String email) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail.isEmpty) return;
+
+    final key = _inviteCooldownKeyFor(normalizedEmail);
+    final now = DateTime.now();
+    final previous = _inviteCooldowns[key];
+    final previousAttempts =
+        previous != null &&
+            now.difference(previous.lastSentAt) <= _inviteCooldownResetAfter
+        ? previous.attempts
+        : 0;
+    final attempts = previousAttempts + 1;
+    final duration = _inviteCooldownDurationForAttempt(attempts);
+    final nextEntry = _InviteCooldownEntry(
+      attempts: attempts,
+      lastSentAt: now,
+      nextAllowedAt: now.add(duration),
+    );
+
+    setState(() {
+      _inviteCooldowns = {..._inviteCooldowns, key: nextEntry};
+    });
+
+    await _persistInviteCooldowns();
+  }
+
+  String _formatInviteCountdown(Duration value) {
+    final totalSeconds = max(0, value.inSeconds);
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  String _formatInviteCooldownLabel(Duration value) {
+    if (value.inMinutes >= 1) {
+      return '${value.inMinutes} min';
+    }
+    return '${value.inSeconds}s';
   }
 
   Future<void> _loadMembers() async {
@@ -2017,58 +2182,71 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
 
   @override
   void dispose() {
+    _inviteCooldownTicker?.cancel();
+    _inviteController.removeListener(_handleInviteEmailChanged);
     _inviteController.dispose();
     super.dispose();
   }
 
   Future<void> _inviteMember() async {
     final email = _inviteController.text.trim();
+    final activeCooldown = _activeInviteCooldownRemaining;
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Escribe un correo para poder invitar a alguien.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      setState(() {
+        _inviteFeedback = 'Escribe un correo para poder invitar a alguien.';
+        _inviteFeedbackTone = _InfoCardTone.error;
+      });
       return;
     }
 
     final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
     if (!emailPattern.hasMatch(email)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Ese correo no parece válido. Revísalo e inténtalo otra vez.',
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      setState(() {
+        _inviteFeedback =
+            'Ese correo no parece válido. Revísalo e inténtalo otra vez.';
+        _inviteFeedbackTone = _InfoCardTone.error;
+      });
       return;
     }
 
-    setState(() => _isInviting = true);
+    if (activeCooldown != null) {
+      setState(() {
+        _inviteFeedback =
+            'Todavía no puedes reenviar a ese correo. Espera ${_formatInviteCountdown(activeCooldown)}.';
+        _inviteFeedbackTone = _InfoCardTone.error;
+      });
+      return;
+    }
+
+    setState(() {
+      _isInviting = true;
+      _inviteFeedback = null;
+    });
     try {
       await ref
           .read(budgetControllerProvider.notifier)
           .inviteBudgetMember(widget.budgetId, email);
       if (!mounted) return;
+      await _recordInviteCooldown(email);
       _inviteController.clear();
       await _loadMembers();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Listo. Enviamos la invitación a $email.'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      final appliedCooldown = _inviteCooldownDurationForAttempt(
+        _inviteCooldowns[_inviteCooldownKeyFor(email.trim().toLowerCase())]
+                ?.attempts ??
+            1,
       );
+      setState(() {
+        _inviteFeedback =
+            'Listo. Enviamos la invitación a $email. Podrás reenviarla en ${_formatInviteCooldownLabel(appliedCooldown)}.';
+        _inviteFeedbackTone = _InfoCardTone.success;
+      });
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(presentError(error)),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      setState(() {
+        _inviteFeedback = presentError(error);
+        _inviteFeedbackTone = _InfoCardTone.error;
+      });
     } finally {
       if (mounted) {
         setState(() => _isInviting = false);
@@ -2078,6 +2256,13 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final activeInviteCooldown = _activeInviteCooldownRemaining;
+    final canTapInvite = !_isInviting && activeInviteCooldown == null;
+    final cooldownHelperText = activeInviteCooldown == null
+        ? null
+        : 'Puedes reenviar a este correo en ${_formatInviteCountdown(activeInviteCooldown)}. '
+              'Si vuelves a mandarla, el siguiente bloqueo sube a ${_formatInviteCooldownLabel(_nextInviteCooldownStep)}.';
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.82,
       decoration: const BoxDecoration(
@@ -2176,9 +2361,9 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                     controller: _inviteController,
                                     keyboardType: TextInputType.emailAddress,
                                     textInputAction: TextInputAction.send,
-                                    onSubmitted: _isInviting
-                                        ? null
-                                        : (_) => _inviteMember(),
+                                    onSubmitted: canTapInvite
+                                        ? (_) => _inviteMember()
+                                        : null,
                                     decoration: InputDecoration(
                                       hintText: 'correo@ejemplo.com',
                                       filled: true,
@@ -2209,9 +2394,9 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                 SizedBox(
                                   height: 52,
                                   child: FilledButton(
-                                    onPressed: _isInviting
-                                        ? null
-                                        : _inviteMember,
+                                    onPressed: canTapInvite
+                                        ? _inviteMember
+                                        : null,
                                     style: FilledButton.styleFrom(
                                       backgroundColor: AppColors.e6,
                                       foregroundColor: Colors.white,
@@ -2231,6 +2416,16 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                               color: Colors.white,
                                             ),
                                           )
+                                        : activeInviteCooldown != null
+                                        ? Text(
+                                            _formatInviteCountdown(
+                                              activeInviteCooldown,
+                                            ),
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          )
                                         : const Icon(
                                             LucideIcons.send,
                                             size: 18,
@@ -2239,6 +2434,17 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                 ),
                               ],
                             ),
+                            if (cooldownHelperText != null) ...[
+                              const SizedBox(height: 12),
+                              _InlineInfoCard(text: cooldownHelperText),
+                            ],
+                            if (_inviteFeedback != null) ...[
+                              const SizedBox(height: 12),
+                              _InlineInfoCard(
+                                text: _inviteFeedback!,
+                                tone: _inviteFeedbackTone,
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -2385,6 +2591,38 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
         ),
       ),
     );
+  }
+}
+
+class _InviteCooldownEntry {
+  const _InviteCooldownEntry({
+    required this.attempts,
+    required this.lastSentAt,
+    required this.nextAllowedAt,
+  });
+
+  final int attempts;
+  final DateTime lastSentAt;
+  final DateTime nextAllowedAt;
+
+  factory _InviteCooldownEntry.fromJson(Map<String, dynamic> json) {
+    return _InviteCooldownEntry(
+      attempts: (json['attempts'] as num?)?.toInt() ?? 0,
+      lastSentAt:
+          DateTime.tryParse(json['last_sent_at']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      nextAllowedAt:
+          DateTime.tryParse(json['next_allowed_at']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'attempts': attempts,
+      'last_sent_at': lastSentAt.toIso8601String(),
+      'next_allowed_at': nextAllowedAt.toIso8601String(),
+    };
   }
 }
 

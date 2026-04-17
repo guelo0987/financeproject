@@ -104,6 +104,21 @@ class AuthRepository {
     await saveProfile(profile);
   }
 
+  Future<String?> restorePendingVerificationEmail() {
+    return _storage.read(key: StorageKeys.pendingVerificationEmail);
+  }
+
+  Future<void> savePendingVerificationEmail(String email) async {
+    await _storage.write(
+      key: StorageKeys.pendingVerificationEmail,
+      value: email.trim().toLowerCase(),
+    );
+  }
+
+  Future<void> clearPendingVerificationEmail() async {
+    await _storage.delete(key: StorageKeys.pendingVerificationEmail);
+  }
+
   Future<void> saveProfile(UserProfile? profile) async {
     if (profile == null) {
       await _storage.delete(key: StorageKeys.userName);
@@ -181,6 +196,10 @@ class AuthRepository {
       // Local cleanup below is enough to avoid leaving the app in a bad state.
     }
 
+    await clearCachedSession();
+  }
+
+  Future<void> clearCachedSession() async {
     await _storage.delete(key: StorageKeys.authToken);
     await _storage.delete(key: StorageKeys.refreshToken);
     await _storage.delete(key: StorageKeys.userId);
@@ -250,10 +269,18 @@ class AuthRepository {
       profile: profile,
     );
 
+    await clearPendingVerificationEmail();
+
     return AuthBootstrapResult(
       session: appSession,
       isNewUser: data['isNewUser'] == true || data['is_new_user'] == true,
     );
+  }
+
+  Future<AuthBootstrapResult> bootstrapCurrentSupabaseSession({
+    String? currency,
+  }) {
+    return _completeSupabaseBootstrap(currency: currency);
   }
 
   Future<AuthBootstrapResult> signInWithEmailPassword({
@@ -267,6 +294,7 @@ class AuthRepository {
       );
       final user = response.user ?? _supabase.auth.currentUser;
       if (user?.emailConfirmedAt == null) {
+        await savePendingVerificationEmail(email);
         await _supabase.auth.signOut();
         throw const ApiException(
           'Primero confirma tu correo y luego entra con tu contraseña.',
@@ -304,6 +332,7 @@ class AuthRepository {
       }
 
       if (user?.emailConfirmedAt == null) {
+        await savePendingVerificationEmail(normalizedEmail);
         await _supabase.auth.signOut();
         return EmailRegistrationResult.pendingVerification(normalizedEmail);
       }

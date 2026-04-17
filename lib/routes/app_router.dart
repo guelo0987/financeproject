@@ -10,6 +10,7 @@ import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/auth/presentation/splash_screen.dart';
 import '../features/auth/presentation/onboarding_screen.dart';
+import '../features/auth/presentation/email_confirmation_screen.dart';
 import '../features/auth/auth_state.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/settings/presentation/profile_screen.dart';
@@ -41,7 +42,8 @@ final appRouter = Provider<GoRouter>((ref) {
           loc == '/login' ||
           loc == '/register' ||
           loc == '/splash' ||
-          loc == '/onboarding';
+          loc == '/onboarding' ||
+          loc == '/auth/confirm';
       final isAllowedWhileInactive =
           loc == '/paywall' ||
           loc == '/subscription' ||
@@ -53,7 +55,7 @@ final appRouter = Provider<GoRouter>((ref) {
           : '/paywall';
 
       if (authState.isBootstrapping) {
-        return loc == '/splash' ? null : '/splash';
+        return loc == '/splash' || loc == '/auth/confirm' ? null : '/splash';
       }
 
       if (staleFromReg) return '/paywall';
@@ -69,6 +71,10 @@ final appRouter = Provider<GoRouter>((ref) {
       }
 
       if (loc == '/splash') {
+        return hasVerifiedAccess ? '/' : paywallLocation;
+      }
+
+      if (loc == '/auth/confirm' && isAuth) {
         return hasVerifiedAccess ? '/' : paywallLocation;
       }
 
@@ -93,6 +99,10 @@ final appRouter = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/auth/confirm',
+        builder: (context, state) => const EmailConfirmationScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),

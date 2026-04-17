@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../../controllers/auth_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/error_presenter.dart';
 import '../../../services/subscription_service.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_logo.dart';
@@ -34,6 +36,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   bool _loadingOffering = true;
   bool _purchasing = false;
   String? _offeringError;
+  String? _purchaseFeedback;
+  bool _purchaseFeedbackIsError = true;
 
   @override
   void initState() {
@@ -45,6 +49,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     setState(() {
       _loadingOffering = true;
       _offeringError = null;
+      _purchaseFeedback = null;
     });
 
     try {
@@ -191,51 +196,188 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Future<void> _purchase() async {
     final pkg = _selectedPackage;
     if (pkg == null) {
-      _showSnack(
+      _showFeedback(
         _offeringError ?? 'Todavia no tenemos un plan disponible para ti.',
       );
       return;
     }
 
-    setState(() => _purchasing = true);
+    setState(() {
+      _purchasing = true;
+      _purchaseFeedback = null;
+    });
     try {
       await Purchases.purchase(PurchaseParams.package(pkg));
       await ref.read(subscriptionProvider.notifier).refresh();
     } on PurchasesError catch (e) {
-      if (mounted && e.code != PurchasesErrorCode.purchaseCancelledError) {
-        _showSnack('No pudimos procesar el pago. Intenta de nuevo.');
-      }
+      _showFeedback(_purchaseErrorMessage(e));
+    } on PlatformException catch (error) {
+      _showFeedback(_platformPurchaseErrorMessage(error));
+    } catch (error) {
+      _showFeedback(
+        presentError(
+          error,
+          fallback: 'No pudimos procesar la compra ahora mismo. Intenta de nuevo.',
+        ),
+      );
     } finally {
       if (mounted) setState(() => _purchasing = false);
     }
   }
 
   Future<void> _restore() async {
-    setState(() => _purchasing = true);
+    setState(() {
+      _purchasing = true;
+      _purchaseFeedback = null;
+    });
     try {
       final info = await Purchases.restorePurchases();
       await ref.read(subscriptionProvider.notifier).refresh();
       if (!mounted) return;
       final restored = info.entitlements.active.containsKey(kEntitlementId);
-      _showSnack(
+      _showFeedback(
         restored
             ? 'Recuperamos tu acceso de Menudo Pro.'
             : 'No encontramos compras para restaurar con esta cuenta.',
+        isError: !restored,
       );
-    } on PurchasesError {
-      if (mounted) {
-        _showSnack('No pudimos restaurar tus compras. Intenta de nuevo.');
-      }
+    } on PurchasesError catch (e) {
+      _showFeedback(_purchaseErrorMessage(e, isRestore: true));
+    } on PlatformException catch (error) {
+      _showFeedback(_platformPurchaseErrorMessage(error, isRestore: true));
+    } catch (error) {
+      _showFeedback(
+        presentError(
+          error,
+          fallback:
+              'No pudimos restaurar tus compras ahora mismo. Intenta de nuevo.',
+        ),
+      );
     } finally {
       if (mounted) setState(() => _purchasing = false);
     }
   }
 
-  void _showSnack(String message) {
+  String _purchaseErrorMessage(PurchasesError error, {bool isRestore = false}) {
+    final code = error.code.toString().split('.').last;
+
+    return switch (code) {
+      'purchaseCancelledError' =>
+        isRestore
+            ? 'La restauración fue cancelada.'
+            : 'La compra fue cancelada antes de completarse.',
+      'networkError' =>
+        'No pudimos conectarnos para completar la compra. Revisa tu conexión.',
+      'purchaseNotAllowedError' =>
+        'Este dispositivo no tiene compras habilitadas ahora mismo.',
+      'storeProblemError' =>
+        'La tienda no pudo procesar la compra. Intenta de nuevo en un momento.',
+      'productAlreadyPurchasedError' =>
+        'Ese plan ya está comprado con esta cuenta. Usa “Restaurar compras anteriores”.',
+      'purchaseInvalidError' =>
+        'La compra no es válida en este momento. Vuelve a intentarlo.',
+      'paymentPendingError' =>
+        'Tu compra quedó pendiente de aprobación. Te avisaremos cuando se confirme.',
+      'operationAlreadyInProgressError' =>
+        'Ya hay una compra en proceso. Espera un momento antes de intentar otra vez.',
+      _ => presentError(
+        error.message,
+        fallback: isRestore
+            ? 'No pudimos restaurar tus compras. Intenta de nuevo.'
+            : 'No pudimos procesar la compra. Intenta de nuevo.',
+      ),
+    };
+  }
+
+  String _platformPurchaseErrorMessage(
+    PlatformException error, {
+    bool isRestore = false,
+  }) {
+    final details = error.details;
+    final detailsMap = details is Map
+        ? Map<String, dynamic>.from(details.cast<Object?, Object?>())
+        : const <String, dynamic>{};
+
+    final rawValues = <String>[
+      error.code,
+      error.message ?? '',
+      detailsMap['readableErrorCode']?.toString() ?? '',
+      detailsMap['readable_error_code']?.toString() ?? '',
+      detailsMap['underlyingErrorMessage']?.toString() ?? '',
+      detailsMap['message']?.toString() ?? '',
+    ];
+
+    final normalized = rawValues
+        .map((value) => value.trim().toLowerCase())
+        .where((value) => value.isNotEmpty)
+        .join(' | ');
+
+    final userCancelled =
+        detailsMap['userCancelled'] == true ||
+        normalized.contains('cancel') ||
+        normalized.contains('purchasecancelled');
+
+    if (userCancelled) {
+      return isRestore
+          ? 'La restauración fue cancelada.'
+          : 'La compra fue cancelada antes de completarse.';
+    }
+
+    if (normalized.contains('test_store_simulated_purchase_error') ||
+        normalized.contains('purchase failure simulated successfully in test store')) {
+      return isRestore
+          ? 'Test Store simuló un fallo de restauración. El manejo del error sí respondió correctamente.'
+          : 'Test Store simuló un fallo de compra. El pago no se realizó; este mensaje confirma que la app ya detectó el error.';
+    }
+
+    if (normalized.contains('network')) {
+      return isRestore
+          ? 'No pudimos conectarnos para restaurar tus compras. Revisa tu conexión.'
+          : 'No pudimos conectarnos para completar la compra. Revisa tu conexión.';
+    }
+
+    if (normalized.contains('already purchased')) {
+      return 'Ese plan ya está comprado con esta cuenta. Usa “Restaurar compras anteriores”.';
+    }
+
+    if (normalized.contains('pending')) {
+      return isRestore
+          ? 'La restauración quedó pendiente de confirmación.'
+          : 'Tu compra quedó pendiente de aprobación. Te avisaremos cuando se confirme.';
+    }
+
+    if (normalized.contains('not allowed')) {
+      return 'Este dispositivo no tiene compras habilitadas ahora mismo.';
+    }
+
+    return presentError(
+      detailsMap['message'] ?? error.message ?? error,
+      fallback: isRestore
+          ? 'No pudimos restaurar tus compras. Intenta de nuevo.'
+          : 'No pudimos procesar la compra. Intenta de nuevo.',
+    );
+  }
+
+  void _showFeedback(String message, {bool isError = true}) {
+    if (!mounted) return;
+    setState(() {
+      _purchaseFeedback = message;
+      _purchaseFeedbackIsError = isError;
+    });
+    _showSnack(message, isError: isError);
+  }
+
+  void _showSnack(String message, {bool isError = true}) {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? null : AppColors.e8,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -610,6 +752,13 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
       child: Column(
         children: [
+          if (_purchaseFeedback != null) ...[
+            _InlinePurchaseFeedback(
+              message: _purchaseFeedback!,
+              isError: _purchaseFeedbackIsError,
+            ),
+            const SizedBox(height: 12),
+          ],
           MenudoPrimaryButton(
             label: label,
             onTap: canPurchase ? _purchase : null,
@@ -729,6 +878,51 @@ class _StatusCard extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _InlinePurchaseFeedback extends StatelessWidget {
+  const _InlinePurchaseFeedback({
+    required this.message,
+    required this.isError,
+  });
+
+  final String message;
+  final bool isError;
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = isError ? AppColors.r1 : AppColors.e1;
+    final borderColor = isError ? AppColors.r5 : AppColors.e6;
+    final icon = isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded;
+    final textColor = isError ? AppColors.r5 : AppColors.e8;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: textColor, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: MenudoTextStyles.bodySmall.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+          ),
         ],
       ),
     );

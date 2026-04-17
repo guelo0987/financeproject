@@ -29,11 +29,6 @@ class CategoriesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final grouped = ref.watch(groupedCategoriesProvider);
     final entries = grouped.entries.toList();
-    final parentsCount = entries.length;
-    final subcategoriesCount = entries.fold<int>(
-      0,
-      (total, entry) => total + entry.value.length,
-    );
 
     return Scaffold(
       backgroundColor: AppColors.g0,
@@ -74,11 +69,6 @@ class CategoriesScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         children: [
-          _CategoriesOverviewCard(
-            parentsCount: parentsCount,
-            subcategoriesCount: subcategoriesCount,
-          ).animate().fadeIn(duration: 320.ms).slideY(begin: 0.04, end: 0),
-          const SizedBox(height: 18),
           ...entries.asMap().entries.map((entry) {
             final groupIdx = entry.key;
             final parent = entry.value.key;
@@ -91,144 +81,6 @@ class CategoriesScreen extends ConsumerWidget {
               onAddSub: () => _showAddCategory(context, parent: parent),
             );
           }),
-        ],
-      ),
-    );
-  }
-}
-
-class _CategoriesOverviewCard extends StatelessWidget {
-  final int parentsCount;
-  final int subcategoriesCount;
-
-  const _CategoriesOverviewCard({
-    required this.parentsCount,
-    required this.subcategoriesCount,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final summary =
-        '$parentsCount grupo${parentsCount == 1 ? '' : 's'} · $subcategoriesCount categoría${subcategoriesCount == 1 ? '' : 's'}';
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.g2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Tus categorías',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: AppColors.e8,
-              letterSpacing: -0.3,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            summary,
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.g5,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _OverviewStat(
-                  label: 'Grupos padre',
-                  value: '$parentsCount',
-                  icon: LucideIcons.layoutGrid,
-                  color: AppColors.e6,
-                  bgColor: AppColors.e1,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _OverviewStat(
-                  label: 'Subcategorías',
-                  value: '$subcategoriesCount',
-                  icon: LucideIcons.tag,
-                  color: AppColors.o5,
-                  bgColor: AppColors.o1,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OverviewStat extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-  final Color bgColor;
-
-  const _OverviewStat({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-    required this.bgColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.g2),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            alignment: Alignment.center,
-            child: Icon(icon, size: 18, color: color),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.g4,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: AppColors.e8,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -271,21 +123,21 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final parents = ref.watch(groupedCategoriesProvider).keys.toList()
       ..sort((a, b) => a.nombre.compareTo(b.nombre));
+    final media = MediaQuery.of(context);
+    final bottomInset = media.viewInsets.bottom;
+    final bottomPadding = media.padding.bottom;
 
-    return SafeArea(
-      top: false,
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: bottomInset),
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.82,
+        height: media.size.height * 0.86,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
-        padding: EdgeInsets.fromLTRB(
-          24,
-          16,
-          24,
-          24 + MediaQuery.of(context).padding.bottom,
-        ),
+        padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + bottomPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -758,6 +610,31 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
     }
   }
 
+  IconData _typeIcon(String type) {
+    switch (type) {
+      case 'ingreso':
+        return LucideIcons.trendingUp;
+      case 'transferencia':
+        return LucideIcons.arrowLeftRight;
+      default:
+        return LucideIcons.tag;
+    }
+  }
+
+  String get _sheetTitle =>
+      widget.parent == null ? 'Nuevo grupo' : 'Nueva categoría';
+
+  String get _sheetSubtitle => widget.parent == null
+      ? 'Crea una categoría principal para organizar tus movimientos.'
+      : 'Se agregará dentro de ${widget.parent!.nombre}.';
+
+  String get _nameLabel =>
+      widget.parent == null ? 'Nombre del grupo' : 'Nombre de la categoría';
+
+  String get _nameHint => widget.parent == null
+      ? 'Ej. Hogar, Transporte o Salud'
+      : 'Ej. Supermercado, Uber o Farmacia';
+
   Future<void> _createCategory() async {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
@@ -799,190 +676,258 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+    final media = MediaQuery.of(context);
+    final viewInsets = media.viewInsets.bottom;
+    final bottomPadding = media.padding.bottom;
 
     return AnimatedPadding(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
       padding: EdgeInsets.only(bottom: viewInsets),
-      child: SafeArea(
-        top: false,
-        child: Container(
-          height: MediaQuery.of(context).size.height * 0.8,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: AppColors.g2,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                      margin: const EdgeInsets.only(bottom: 24),
+      child: Container(
+        height: media.size.height * 0.86,
+        decoration: const BoxDecoration(
+          color: AppColors.g0,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: AppColors.g2,
+                      borderRadius: BorderRadius.circular(3),
                     ),
-                    Text(
-                      widget.parent == null ? "Nuevo grupo" : "Nueva categoría",
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.e8,
+                    margin: const EdgeInsets.only(bottom: 24),
+                  ),
+                  Text(
+                    _sheetTitle,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.e8,
+                      letterSpacing: -0.6,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _sheetSubtitle,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.g5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 88,
+                        height: 88,
+                        decoration: BoxDecoration(
+                          color: _color.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(_icon, size: 36, color: _color),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: _color.withValues(alpha: 0.14),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              widget.parent?.icono ?? _typeIcon(_effectiveType),
+                              size: 15,
+                              color: _color,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              widget.parent == null
+                                  ? _typeLabel(_effectiveType)
+                                  : widget.parent!.nombre,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: _color,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    if (widget.parent == null) ...[
+                      const Text(
+                        'Tipo',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.g5,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          for (final type in _types)
+                            GestureDetector(
+                              onTap: widget.lockType
+                                  ? null
+                                  : () => _selectType(type),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _selectedType == type
+                                      ? _color.withValues(alpha: 0.1)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: _selectedType == type
+                                        ? _color
+                                        : AppColors.g2,
+                                    width: _selectedType == type ? 1.6 : 1.2,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _typeIcon(type),
+                                      size: 15,
+                                      color: _selectedType == type
+                                          ? _color
+                                          : AppColors.g4,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _typeLabel(type),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: _selectedType == type
+                                            ? _color
+                                            : AppColors.g5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: AppColors.g2),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _nameLabel,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.e8,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _nameCtrl,
+                            autofocus: true,
+                            textCapitalization: TextCapitalization.words,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.e8,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: _nameHint,
+                              prefixIcon: Icon(_icon, color: _color, size: 18),
+                              filled: true,
+                              fillColor: AppColors.g0,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 18,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                borderSide: const BorderSide(
+                                  color: AppColors.g1,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(18),
+                                borderSide: BorderSide(
+                                  color: _color,
+                                  width: 1.6,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    children: [
-                      if (widget.parent != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Text(
-                            'Dentro de ${widget.parent!.nombre}',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: widget.parent!.color,
-                            ),
-                          ),
-                        )
-                      else
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Text(
-                            'Tipo: ${_typeLabel(_effectiveType)}',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: _color,
-                            ),
-                          ),
-                        ),
-                      if (widget.parent == null) ...[
-                        Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: [
-                            for (final type in _types)
-                              GestureDetector(
-                                onTap: widget.lockType
-                                    ? null
-                                    : () => _selectType(type),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 180),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _selectedType == type
-                                        ? _color.withValues(alpha: 0.12)
-                                        : Colors.white,
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(
-                                      color: _selectedType == type
-                                          ? _color
-                                          : AppColors.g2,
-                                      width: _selectedType == type ? 1.8 : 1.2,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        switch (type) {
-                                          'ingreso' => LucideIcons.trendingUp,
-                                          'transferencia' =>
-                                            LucideIcons.arrowLeftRight,
-                                          _ => LucideIcons.tag,
-                                        },
-                                        size: 16,
-                                        color: _selectedType == type
-                                            ? _color
-                                            : AppColors.g4,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        _typeLabel(type),
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w800,
-                                          color: _selectedType == type
-                                              ? _color
-                                              : AppColors.g5,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-                      GestureDetector(
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                        },
-                        child: Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: _color.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(_icon, size: 32, color: _color),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      TextField(
-                        controller: _nameCtrl,
-                        autofocus: true,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: "Nombre",
-                          filled: true,
-                          fillColor: AppColors.g0,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + bottomPadding),
+              child: MenudoButton(
+                label: _isSaving
+                    ? "GUARDANDO..."
+                    : widget.parent == null
+                    ? "CREAR GRUPO"
+                    : "CREAR CATEGORÍA",
+                isFullWidth: true,
+                isDisabled: _isSaving,
+                onTap: _createCategory,
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                child: MenudoButton(
-                  label: _isSaving
-                      ? "GUARDANDO..."
-                      : widget.parent == null
-                      ? "CREAR GRUPO"
-                      : "CREAR CATEGORÍA",
-                  isFullWidth: true,
-                  isDisabled: _isSaving,
-                  onTap: _createCategory,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

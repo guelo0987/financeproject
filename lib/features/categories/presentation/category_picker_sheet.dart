@@ -91,9 +91,11 @@ class _CategoryPickerSheetState extends ConsumerState<CategoryPickerSheet> {
   Widget build(BuildContext context) {
     final categories = ref.watch(effectiveCategoriesProvider);
     final grouped = _resolvedGroups(categories);
+    final media = MediaQuery.of(context);
+    final bottomPadding = media.padding.bottom;
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
+      height: media.size.height * 0.88,
       decoration: const BoxDecoration(
         color: AppColors.g0,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
@@ -389,12 +391,7 @@ class _CategoryPickerSheetState extends ConsumerState<CategoryPickerSheet> {
                   ),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(
-              24,
-              16,
-              24,
-              24 + MediaQuery.of(context).padding.bottom,
-            ),
+            padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + bottomPadding),
             child: GestureDetector(
               onTap: _selectedKey == null
                   ? null
@@ -478,161 +475,171 @@ class _CategoryPickerCreateSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final parentsAsync = ref.watch(parentCategoriesProvider(allowedType));
+    final media = MediaQuery.of(context);
+    final bottomInset = media.viewInsets.bottom;
+    final bottomPadding = media.padding.bottom;
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        24,
-        16,
-        24,
-        24 + MediaQuery.of(context).padding.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 5,
-              decoration: BoxDecoration(
-                color: AppColors.g2,
-                borderRadius: BorderRadius.circular(3),
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: Container(
+        height: media.size.height * 0.86,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + bottomPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: AppColors.g2,
+                  borderRadius: BorderRadius.circular(3),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Nueva categoría',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: AppColors.e8,
+            const SizedBox(height: 20),
+            const Text(
+              'Nueva categoría',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: AppColors.e8,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            allowedType == null
-                ? 'Elige un grupo o crea uno nuevo.'
-                : 'Elige un grupo de ${allowedType == 'ingreso'
-                      ? 'ingresos'
-                      : allowedType == 'transferencia'
-                      ? 'transferencias'
-                      : 'gastos'}.',
-            style: const TextStyle(fontSize: 13, color: AppColors.g4),
-          ),
-          const SizedBox(height: 18),
-          parentsAsync.when(
-            data: (parents) {
-              if (parents.isEmpty) {
-                return Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.g0,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.g2),
-                  ),
-                  child: const Text(
-                    'Todavía no hay grupos para elegir.',
-                    style: TextStyle(fontSize: 13, color: AppColors.g4),
-                  ),
-                );
-              }
+            const SizedBox(height: 8),
+            Text(
+              allowedType == null
+                  ? 'Elige un grupo o crea uno nuevo.'
+                  : 'Elige un grupo de ${allowedType == 'ingreso'
+                        ? 'ingresos'
+                        : allowedType == 'transferencia'
+                        ? 'transferencias'
+                        : 'gastos'}.',
+              style: const TextStyle(fontSize: 13, color: AppColors.g4),
+            ),
+            const SizedBox(height: 18),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: parentsAsync.when(
+                  data: (parents) {
+                    if (parents.isEmpty) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.g0,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.g2),
+                        ),
+                        child: const Text(
+                          'Todavía no hay grupos para elegir.',
+                          style: TextStyle(fontSize: 13, color: AppColors.g4),
+                        ),
+                      );
+                    }
 
-              return Column(
-                children: [
-                  for (final parent in parents)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: InkWell(
-                        onTap: () => _openAddSubcategory(context, parent),
-                        borderRadius: BorderRadius.circular(18),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: parent.color.withValues(alpha: 0.18),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 42,
-                                height: 42,
+                    return Column(
+                      children: [
+                        for (final parent in parents)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: InkWell(
+                              onTap: () => _openAddSubcategory(context, parent),
+                              borderRadius: BorderRadius.circular(18),
+                              child: Container(
+                                padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
-                                  color: parent.color.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                alignment: Alignment.center,
-                                child: Icon(
-                                  parent.icono,
-                                  size: 20,
-                                  color: parent.color,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  parent.nombre,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.e8,
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: parent.color.withValues(alpha: 0.18),
                                   ),
                                 ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 42,
+                                      height: 42,
+                                      decoration: BoxDecoration(
+                                        color: parent.color.withValues(
+                                          alpha: 0.12,
+                                        ),
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Icon(
+                                        parent.icono,
+                                        size: 20,
+                                        color: parent.color,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        parent.nombre,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.e8,
+                                        ),
+                                      ),
+                                    ),
+                                    const Icon(
+                                      LucideIcons.chevronRight,
+                                      size: 18,
+                                      color: AppColors.g4,
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const Icon(
-                                LucideIcons.chevronRight,
-                                size: 18,
-                                color: AppColors.g4,
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
+                      ],
+                    );
+                  },
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (error, _) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      presentError(error),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.r5,
                       ),
                     ),
-                ],
-              );
-            },
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (error, _) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                presentError(error),
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.r5,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => _openAddParent(context),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.e8,
-                side: const BorderSide(color: AppColors.g2),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => _openAddParent(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.e8,
+                  side: const BorderSide(color: AppColors.g2),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
+                child: const Text('Nuevo grupo'),
               ),
-              child: const Text('Nuevo grupo'),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

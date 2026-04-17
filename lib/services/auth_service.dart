@@ -35,6 +35,22 @@ class AuthService {
     return _repository.clearSession();
   }
 
+  Future<void> clearCachedSession() {
+    return _repository.clearCachedSession();
+  }
+
+  Future<String?> restorePendingVerificationEmail() {
+    return _repository.restorePendingVerificationEmail();
+  }
+
+  Future<void> savePendingVerificationEmail(String email) {
+    return _repository.savePendingVerificationEmail(email);
+  }
+
+  Future<void> clearPendingVerificationEmail() {
+    return _repository.clearPendingVerificationEmail();
+  }
+
   Future<AuthBootstrapResult> signInWithApple({String? currency}) {
     return _repository.signInWithApple(currency: currency);
   }
@@ -65,6 +81,12 @@ class AuthService {
 
   Future<UserProfile> fetchProfile() {
     return _repository.fetchProfile();
+  }
+
+  Future<AuthBootstrapResult> bootstrapCurrentSupabaseSession({
+    String? currency,
+  }) {
+    return _repository.bootstrapCurrentSupabaseSession(currency: currency);
   }
 
   Future<UserProfile> updateProfile({

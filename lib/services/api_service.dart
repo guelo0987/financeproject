@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -150,6 +151,7 @@ class ApiService {
     } on ApiException {
       rethrow;
     } catch (error) {
+      debugPrint('[api] transport error $method $uri -> $error');
       throw ApiException(
         'No pudimos conectarnos en este momento. Revisa tu conexión e inténtalo otra vez.',
       );
