@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../controllers/transaction_controller.dart'
     as transaction_controller;
+import '../../../core/utils/formatters.dart';
 import '../../../controllers/demo_mode_controller.dart';
 import '../../../core/data/models.dart';
 import '../../budgets/budget_providers.dart';
@@ -32,15 +33,17 @@ bool _isTransactionWithinRange(
   MenudoTransaction transaction,
   DateTimeRange range,
 ) {
-  final date = DateTime.tryParse(transaction.dateString);
+  final date = parseDateOnly(transaction.dateString);
   if (date == null) return false;
-  return !date.isBefore(range.start) && !date.isAfter(range.end);
+  final normalizedRange = normalizeDateRange(range);
+  return !date.isBefore(normalizedRange.start) &&
+      !date.isAfter(normalizedRange.end);
 }
 
 DateTimeRange? budgetRangeFor(MenudoBudget? budget, {DateTime? referenceDate}) {
   if (budget == null) return null;
 
-  final now = referenceDate ?? DateTime.now();
+  final now = dateOnly(referenceDate ?? DateTime.now());
   final todayDay = now.day;
   final day = budget.diaInicio.clamp(1, 28);
   final period = budget.periodo.toLowerCase();
@@ -114,7 +117,7 @@ final currentMonthTransactionsProvider = Provider<List<MenudoTransaction>>((
   ref,
 ) {
   final txns = ref.watch(effectiveTransactionsProvider);
-  final now = ref.watch(transactionsReferenceDateProvider);
+  final now = dateOnly(ref.watch(transactionsReferenceDateProvider));
   final range = DateTimeRange(
     start: DateTime(now.year, now.month, 1),
     end: DateTime(now.year, now.month + 1, 0, 23, 59, 59, 999),

@@ -9,8 +9,21 @@ import '../../../core/utils/error_presenter.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../providers/category_providers.dart';
 
-class CategoriesScreen extends ConsumerWidget {
+class CategoriesScreen extends ConsumerStatefulWidget {
   const CategoriesScreen({super.key});
+
+  @override
+  ConsumerState<CategoriesScreen> createState() => _CategoriesScreenState();
+}
+
+class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   void _showAddCategory(BuildContext context, {MenudoCategory? parent}) {
     HapticFeedback.mediumImpact();
@@ -25,10 +38,33 @@ class CategoriesScreen extends ConsumerWidget {
     );
   }
 
+  List<MapEntry<MenudoCategory, List<MenudoCategory>>> _filteredEntries(
+    Map<MenudoCategory, List<MenudoCategory>> grouped,
+  ) {
+    final query = _searchCtrl.text.trim().toLowerCase();
+    if (query.isEmpty) return grouped.entries.toList();
+
+    return grouped.entries
+        .map((entry) {
+          final parentMatches = entry.key.nombre.toLowerCase().contains(query);
+          final matchingChildren = entry.value
+              .where((child) => child.nombre.toLowerCase().contains(query))
+              .toList();
+
+          if (!parentMatches && matchingChildren.isEmpty) return null;
+          return MapEntry(
+            entry.key,
+            parentMatches ? entry.value : matchingChildren,
+          );
+        })
+        .whereType<MapEntry<MenudoCategory, List<MenudoCategory>>>()
+        .toList();
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final grouped = ref.watch(groupedCategoriesProvider);
-    final entries = grouped.entries.toList();
+    final entries = _filteredEntries(grouped);
 
     return Scaffold(
       backgroundColor: AppColors.g0,
@@ -66,22 +102,100 @@ class CategoriesScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-        children: [
-          ...entries.asMap().entries.map((entry) {
-            final groupIdx = entry.key;
-            final parent = entry.value.key;
-            final subs = entry.value.value;
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        child: Column(
+          children: [
+            TextField(
+              controller: _searchCtrl,
+              onChanged: (_) => setState(() {}),
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: 'Buscar categoría o grupo',
+                prefixIcon: const Icon(
+                  LucideIcons.search,
+                  size: 18,
+                  color: AppColors.g4,
+                ),
+                suffixIcon: _searchCtrl.text.trim().isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          setState(() {});
+                        },
+                        icon: const Icon(
+                          LucideIcons.x,
+                          size: 16,
+                          color: AppColors.g4,
+                        ),
+                      ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: const BorderSide(color: AppColors.g2),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: const BorderSide(color: AppColors.g2),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: const BorderSide(color: AppColors.e6, width: 1.5),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: entries.isEmpty
+                  ? Center(
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.g2),
+                        ),
+                        child: Text(
+                          _searchCtrl.text.trim().isEmpty
+                              ? 'Todavía no hay categorías para mostrar.'
+                              : 'No encontramos categorías con ese nombre.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.g4,
+                          ),
+                        ),
+                      ),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.only(bottom: 100),
+                      children: [
+                        ...entries.asMap().entries.map((entry) {
+                          final groupIdx = entry.key;
+                          final parent = entry.value.key;
+                          final subs = entry.value.value;
 
-            return _CategoryGroup(
-              parent: parent,
-              subcategories: subs,
-              animDelay: groupIdx * 80,
-              onAddSub: () => _showAddCategory(context, parent: parent),
-            );
-          }),
-        ],
+                          return _CategoryGroup(
+                            parent: parent,
+                            subcategories: subs,
+                            animDelay: groupIdx * 80,
+                            onAddSub: () =>
+                                _showAddCategory(context, parent: parent),
+                          );
+                        }),
+                      ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -124,140 +238,134 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
     final parents = ref.watch(groupedCategoriesProvider).keys.toList()
       ..sort((a, b) => a.nombre.compareTo(b.nombre));
     final media = MediaQuery.of(context);
-    final bottomInset = media.viewInsets.bottom;
     final bottomPadding = media.padding.bottom;
 
-    return AnimatedPadding(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: Container(
-        height: media.size.height * 0.86,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + bottomPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: AppColors.g2,
-                  borderRadius: BorderRadius.circular(3),
-                ),
+    return Container(
+      height: media.size.height * 0.86,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + bottomPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.g2,
+                borderRadius: BorderRadius.circular(3),
               ),
             ),
-            const SizedBox(height: 20),
-            const Text(
-              'Nueva categoría',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                color: AppColors.e8,
-              ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Nueva categoría',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: AppColors.e8,
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Elige un grupo para crearla o crea uno nuevo.',
-              style: TextStyle(fontSize: 13, color: AppColors.g4),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: parents.isEmpty
-                  ? SingleChildScrollView(
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.g0,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.g2),
-                        ),
-                        child: const Text(
-                          'Todavía no hay grupos aquí. Crea uno para empezar.',
-                          style: TextStyle(fontSize: 13, color: AppColors.g4),
-                        ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Elige un grupo para crearla o crea uno nuevo.',
+            style: TextStyle(fontSize: 13, color: AppColors.g4),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: parents.isEmpty
+                ? SingleChildScrollView(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.g0,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.g2),
                       ),
-                    )
-                  : ListView.separated(
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: parents.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final parent = parents[index];
-                        return InkWell(
-                          onTap: () => _openSubcategoryCreator(context, parent),
-                          borderRadius: BorderRadius.circular(18),
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: parent.color.withValues(alpha: 0.18),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 42,
-                                  height: 42,
-                                  decoration: BoxDecoration(
-                                    color: parent.color.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Icon(
-                                    parent.icono,
-                                    size: 20,
-                                    color: parent.color,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    parent.nombre,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.e8,
-                                    ),
-                                  ),
-                                ),
-                                const Icon(
-                                  LucideIcons.chevronRight,
-                                  size: 18,
-                                  color: AppColors.g4,
-                                ),
-                              ],
+                      child: const Text(
+                        'Todavía no hay grupos aquí. Crea uno para empezar.',
+                        style: TextStyle(fontSize: 13, color: AppColors.g4),
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: parents.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final parent = parents[index];
+                      return InkWell(
+                        onTap: () => _openSubcategoryCreator(context, parent),
+                        borderRadius: BorderRadius.circular(18),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: parent.color.withValues(alpha: 0.18),
                             ),
                           ),
-                        );
-                      },
-                    ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => _openParentCreator(context),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.e8,
-                  side: const BorderSide(color: AppColors.g2),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: parent.color.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  parent.icono,
+                                  size: 20,
+                                  color: parent.color,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  parent.nombre,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.e8,
+                                  ),
+                                ),
+                              ),
+                              const Icon(
+                                LucideIcons.chevronRight,
+                                size: 18,
+                                color: AppColors.g4,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => _openParentCreator(context),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.e8,
+                side: const BorderSide(color: AppColors.g2),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Text('Nuevo grupo'),
               ),
+              child: const Text('Nuevo grupo'),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -536,10 +644,61 @@ class AddCategorySheet extends ConsumerStatefulWidget {
 
 class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
   final _nameCtrl = TextEditingController();
+  static const List<IconData> _iconOptions = [
+    LucideIcons.tag,
+    LucideIcons.shoppingCart,
+    LucideIcons.utensils,
+    LucideIcons.coffee,
+    LucideIcons.car,
+    LucideIcons.bus,
+    LucideIcons.plane,
+    LucideIcons.home,
+    LucideIcons.building2,
+    LucideIcons.wallet,
+    LucideIcons.banknote,
+    LucideIcons.walletCards,
+    LucideIcons.piggyBank,
+    LucideIcons.receipt,
+    LucideIcons.landmark,
+    LucideIcons.heart,
+    LucideIcons.heartPulse,
+    LucideIcons.pill,
+    LucideIcons.stethoscope,
+    LucideIcons.bookOpen,
+    LucideIcons.graduationCap,
+    LucideIcons.dumbbell,
+    LucideIcons.shirt,
+    LucideIcons.film,
+    LucideIcons.music,
+    LucideIcons.gamepad2,
+    LucideIcons.gift,
+    LucideIcons.tv,
+    LucideIcons.laptop,
+    LucideIcons.wifi,
+    LucideIcons.droplets,
+    LucideIcons.fuel,
+    LucideIcons.briefcase,
+    LucideIcons.trendingUp,
+    LucideIcons.arrowLeftRight,
+  ];
+  static const List<Color> _colorOptions = [
+    AppColors.e8,
+    AppColors.e6,
+    AppColors.o5,
+    AppColors.a5,
+    AppColors.b5,
+    AppColors.p5,
+    AppColors.pk,
+    AppColors.r5,
+    AppColors.g5,
+  ];
+
   IconData _icon = LucideIcons.tag;
   String _selectedType = 'gasto';
   Color _color = AppColors.e8;
   bool _isSaving = false;
+  bool _hasCustomIcon = false;
+  bool _hasCustomColor = false;
 
   static const List<String> _types = ['gasto', 'ingreso', 'transferencia'];
 
@@ -549,7 +708,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
   void initState() {
     super.initState();
     _selectedType = widget.parent?.tipo ?? widget.initialType ?? 'gasto';
-    _syncAppearance();
+    _syncAppearance(forceDefaultIcon: true);
   }
 
   @override
@@ -565,26 +724,42 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _syncAppearance() {
+  void _syncAppearance({bool forceDefaultIcon = false}) {
     final parent = widget.parent;
     if (parent != null) {
-      _color = parent.color;
-      _icon = parent.icono;
+      if (!_hasCustomColor || forceDefaultIcon) {
+        _color = parent.color;
+      }
+      if (!_hasCustomIcon || forceDefaultIcon) {
+        _icon = parent.icono;
+      }
       return;
     }
 
     switch (_selectedType) {
       case 'ingreso':
-        _color = AppColors.e6;
-        _icon = LucideIcons.trendingUp;
+        if (!_hasCustomColor || forceDefaultIcon) {
+          _color = AppColors.e6;
+        }
+        if (!_hasCustomIcon || forceDefaultIcon) {
+          _icon = LucideIcons.trendingUp;
+        }
         break;
       case 'transferencia':
-        _color = AppColors.b5;
-        _icon = LucideIcons.arrowLeftRight;
+        if (!_hasCustomColor || forceDefaultIcon) {
+          _color = AppColors.b5;
+        }
+        if (!_hasCustomIcon || forceDefaultIcon) {
+          _icon = LucideIcons.arrowLeftRight;
+        }
         break;
       default:
-        _color = AppColors.e8;
-        _icon = LucideIcons.tag;
+        if (!_hasCustomColor || forceDefaultIcon) {
+          _color = AppColors.e8;
+        }
+        if (!_hasCustomIcon || forceDefaultIcon) {
+          _icon = LucideIcons.tag;
+        }
         break;
     }
   }
@@ -596,6 +771,22 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
     setState(() {
       _selectedType = type;
       _syncAppearance();
+    });
+  }
+
+  void _selectIcon(IconData icon) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _hasCustomIcon = true;
+      _icon = icon;
+    });
+  }
+
+  void _selectColor(Color color) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _hasCustomColor = true;
+      _color = color;
     });
   }
 
@@ -631,10 +822,6 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
   String get _nameLabel =>
       widget.parent == null ? 'Nombre del grupo' : 'Nombre de la categoría';
 
-  String get _nameHint => widget.parent == null
-      ? 'Ej. Hogar, Transporte o Salud'
-      : 'Ej. Supermercado, Uber o Farmacia';
-
   Future<void> _createCategory() async {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
@@ -652,7 +839,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
         nombre: name,
         tipo: parent?.tipo ?? _effectiveType,
         icono: parent?.icono ?? _icon,
-        color: parent?.color ?? _color,
+        color: _color,
         esSistema: false,
         categoriaParadreId: parent?.id,
       );
@@ -679,256 +866,346 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
     final media = MediaQuery.of(context);
     final viewInsets = media.viewInsets.bottom;
     final bottomPadding = media.padding.bottom;
+    final footerBottomPadding = bottomPadding > 0 ? bottomPadding : 16.0;
 
-    return AnimatedPadding(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      padding: EdgeInsets.only(bottom: viewInsets),
-      child: Container(
-        height: media.size.height * 0.86,
-        decoration: const BoxDecoration(
-          color: AppColors.g0,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+    return Container(
+      height: media.size.height * 0.86,
+      clipBehavior: Clip.antiAlias,
+      decoration: const BoxDecoration(
+        color: AppColors.g0,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+            child: Column(
+              children: [
+                Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.g2,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  margin: const EdgeInsets.only(bottom: 24),
+                ),
+                Text(
+                  _sheetTitle,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.e8,
+                    letterSpacing: -0.6,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _sheetSubtitle,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.g5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 18),
+              physics: const BouncingScrollPhysics(),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Container(
-                    width: 40,
-                    height: 5,
+                    padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: AppColors.g2,
-                      borderRadius: BorderRadius.circular(3),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: AppColors.g2),
                     ),
-                    margin: const EdgeInsets.only(bottom: 24),
-                  ),
-                  Text(
-                    _sheetTitle,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.e8,
-                      letterSpacing: -0.6,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _nameLabel,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.e8,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _nameCtrl,
+                          autofocus: true,
+                          textCapitalization: TextCapitalization.words,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _createCategory(),
+                          onTapOutside: (_) => FocusScope.of(context).unfocus(),
+                          scrollPadding: EdgeInsets.only(
+                            bottom: viewInsets + 120,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.e8,
+                          ),
+                          decoration: InputDecoration(
+                            prefixIcon: Icon(_icon, color: _color, size: 18),
+                            filled: true,
+                            fillColor: AppColors.g0,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 18,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              borderSide: const BorderSide(color: AppColors.g1),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              borderSide: BorderSide(color: _color, width: 1.6),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _sheetSubtitle,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
+                  const SizedBox(height: 22),
+                  Center(
+                    child: Container(
+                      width: 88,
+                      height: 88,
+                      decoration: BoxDecoration(
+                        color: _color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(_icon, size: 36, color: _color),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: _color.withValues(alpha: 0.14),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            widget.parent?.icono ?? _typeIcon(_effectiveType),
+                            size: 15,
+                            color: _color,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            widget.parent == null
+                                ? _typeLabel(_effectiveType)
+                                : widget.parent!.nombre,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: _color,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (widget.parent == null) ...[
+                    const Text(
+                      'Tipo',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.g5,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        for (final type in _types)
+                          GestureDetector(
+                            onTap: widget.lockType
+                                ? null
+                                : () => _selectType(type),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _selectedType == type
+                                    ? _color.withValues(alpha: 0.1)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: _selectedType == type
+                                      ? _color
+                                      : AppColors.g2,
+                                  width: _selectedType == type ? 1.6 : 1.2,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _typeIcon(type),
+                                    size: 15,
+                                    color: _selectedType == type
+                                        ? _color
+                                        : AppColors.g4,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _typeLabel(type),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: _selectedType == type
+                                          ? _color
+                                          : AppColors.g5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  const Text(
+                    'Color',
+                    style: TextStyle(
                       fontSize: 13,
-                      height: 1.35,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.g5,
                     ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: _colorOptions.map((colorOption) {
+                      final isSelected = colorOption == _color;
+                      return GestureDetector(
+                        onTap: () => _selectColor(colorOption),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: colorOption,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected ? AppColors.e8 : AppColors.g2,
+                              width: isSelected ? 2.2 : 1.2,
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: colorOption.withValues(
+                                        alpha: 0.18,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: isSelected
+                              ? const Icon(
+                                  LucideIcons.check,
+                                  size: 16,
+                                  color: Colors.white,
+                                )
+                              : null,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Icono',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.g5,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: _iconOptions.map((icon) {
+                      final isSelected = icon == _icon;
+                      return GestureDetector(
+                        onTap: () => _selectIcon(icon),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? _color.withValues(alpha: 0.1)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected ? _color : AppColors.g2,
+                              width: isSelected ? 1.6 : 1.1,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            icon,
+                            size: 18,
+                            color: isSelected ? _color : AppColors.g4,
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ],
               ),
             ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 88,
-                        height: 88,
-                        decoration: BoxDecoration(
-                          color: _color.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(28),
-                        ),
-                        alignment: Alignment.center,
-                        child: Icon(_icon, size: 36, color: _color),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: _color.withValues(alpha: 0.14),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              widget.parent?.icono ?? _typeIcon(_effectiveType),
-                              size: 15,
-                              color: _color,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              widget.parent == null
-                                  ? _typeLabel(_effectiveType)
-                                  : widget.parent!.nombre,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: _color,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    if (widget.parent == null) ...[
-                      const Text(
-                        'Tipo',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.g5,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          for (final type in _types)
-                            GestureDetector(
-                              onTap: widget.lockType
-                                  ? null
-                                  : () => _selectType(type),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 180),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 12,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _selectedType == type
-                                      ? _color.withValues(alpha: 0.1)
-                                      : Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: _selectedType == type
-                                        ? _color
-                                        : AppColors.g2,
-                                    width: _selectedType == type ? 1.6 : 1.2,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      _typeIcon(type),
-                                      size: 15,
-                                      color: _selectedType == type
-                                          ? _color
-                                          : AppColors.g4,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      _typeLabel(type),
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w800,
-                                        color: _selectedType == type
-                                            ? _color
-                                            : AppColors.g5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                    Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: AppColors.g2),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _nameLabel,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.e8,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _nameCtrl,
-                            autofocus: true,
-                            textCapitalization: TextCapitalization.words,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.e8,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: _nameHint,
-                              prefixIcon: Icon(_icon, color: _color, size: 18),
-                              filled: true,
-                              fillColor: AppColors.g0,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                                vertical: 18,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: BorderSide.none,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: const BorderSide(
-                                  color: AppColors.g1,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: BorderSide(
-                                  color: _color,
-                                  width: 1.6,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(24, 12, 24, footerBottomPadding),
+            child: MenudoButton(
+              label: _isSaving
+                  ? "GUARDANDO..."
+                  : widget.parent == null
+                  ? "CREAR GRUPO"
+                  : "CREAR CATEGORÍA",
+              isFullWidth: true,
+              isDisabled: _isSaving,
+              onTap: _createCategory,
             ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + bottomPadding),
-              child: MenudoButton(
-                label: _isSaving
-                    ? "GUARDANDO..."
-                    : widget.parent == null
-                    ? "CREAR GRUPO"
-                    : "CREAR CATEGORÍA",
-                isFullWidth: true,
-                isDisabled: _isSaving,
-                onTap: _createCategory,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -116,12 +116,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _handleForgotPassword() async {
+    final email = await showModalBottomSheet<String>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) =>
+          _ForgotPasswordSheet(initialEmail: _emailController.text.trim()),
+    );
+
+    if (email != null && mounted) {
+      _emailController.text = email;
+      _showMessage(
+        'Te enviamos un enlace para cambiar tu contraseña si esa cuenta existe.',
+        success: true,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final pendingVerificationEmail = authState.pendingVerificationEmail;
 
-    if (pendingVerificationEmail != null && _emailController.text.trim().isEmpty) {
+    if (pendingVerificationEmail != null &&
+        _emailController.text.trim().isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || _emailController.text.trim().isNotEmpty) return;
         _emailController.text = pendingVerificationEmail;
@@ -230,7 +250,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         onSubmitted: (_) => _handleEmailLogin(),
                       ),
-                      const SizedBox(height: 20),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _isLoading ? null : _handleForgotPassword,
+                          style: TextButton.styleFrom(
+                            foregroundColor: MenudoColors.primary,
+                            padding: const EdgeInsets.only(top: 4),
+                          ),
+                          child: const Text(
+                            'Olvidé mi contraseña',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       MenudoPrimaryButton(
                         label: _isLoading ? 'Entrando...' : 'Entrar',
                         onTap: _handleEmailLogin,
@@ -298,6 +332,7 @@ class _AuthField extends StatelessWidget {
     this.autofillHints,
     this.suffixIcon,
     this.onSubmitted,
+    this.autofocus = false,
   });
 
   final TextEditingController controller;
@@ -309,6 +344,7 @@ class _AuthField extends StatelessWidget {
   final Iterable<String>? autofillHints;
   final Widget? suffixIcon;
   final ValueChanged<String>? onSubmitted;
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
@@ -325,6 +361,7 @@ class _AuthField extends StatelessWidget {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
+          autofocus: autofocus,
           keyboardType: keyboardType,
           textInputAction: textInputAction,
           obscureText: obscureText,
@@ -385,6 +422,127 @@ class _AuthDivider extends StatelessWidget {
         ),
         const Expanded(child: Divider(color: AppColors.g2, height: 1)),
       ],
+    );
+  }
+}
+
+class _ForgotPasswordSheet extends ConsumerStatefulWidget {
+  const _ForgotPasswordSheet({required this.initialEmail});
+
+  final String initialEmail;
+
+  @override
+  ConsumerState<_ForgotPasswordSheet> createState() =>
+      _ForgotPasswordSheetState();
+}
+
+class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
+  late final TextEditingController _emailController;
+  bool _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.initialEmail);
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_isSending) return;
+    final email = _emailController.text.trim().toLowerCase();
+    final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailPattern.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Escribe un correo válido.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSending = true);
+    try {
+      await ref.read(authProvider.notifier).requestPasswordReset(email);
+      if (!mounted) return;
+      Navigator.of(context).pop(email);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(presentError(error)),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final safeBottom = media.padding.bottom;
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        constraints: BoxConstraints(maxHeight: media.size.height * 0.52),
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.fromLTRB(20, 14, 20, 24 + safeBottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.g2,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text('Recuperar contraseña', style: MenudoTextStyles.h3),
+              const SizedBox(height: 6),
+              Text(
+                'Escribe tu correo y te mandamos el acceso para cambiar tu contraseña.',
+                style: MenudoTextStyles.bodySmall.copyWith(
+                  color: MenudoColors.textMuted,
+                ),
+              ),
+              const SizedBox(height: 18),
+              _AuthField(
+                controller: _emailController,
+                label: 'Correo',
+                hintText: 'correo@ejemplo.com',
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.done,
+                autofocus: true,
+                onSubmitted: (_) => _submit(),
+              ),
+              const SizedBox(height: 18),
+              MenudoPrimaryButton(
+                label: _isSending ? 'Enviando...' : 'Continuar',
+                onTap: _submit,
+                isDisabled: _isSending,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

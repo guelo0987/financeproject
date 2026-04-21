@@ -163,3 +163,34 @@ TransactionViewPresentation buildTransactionPresentation(
         : null,
   );
 }
+
+String normalizedUiLabel(String? value) {
+  return (value ?? '').trim().replaceAll(RegExp(r'\s+'), ' ');
+}
+
+String distinctUiLabel(String? value, {String? against}) {
+  final normalizedValue = normalizedUiLabel(value);
+  final normalizedAgainst = normalizedUiLabel(against);
+  if (normalizedValue.isEmpty) return '';
+  if (normalizedAgainst.isNotEmpty &&
+      normalizedValue.toLowerCase() == normalizedAgainst.toLowerCase()) {
+    return '';
+  }
+  return normalizedValue;
+}
+
+String joinDistinctUiLabels(Iterable<String?> values) {
+  final labels = <String>[];
+  final seen = <String>{};
+
+  for (final value in values) {
+    final normalized = normalizedUiLabel(value);
+    if (normalized.isEmpty) continue;
+    final key = normalized.toLowerCase();
+    if (seen.add(key)) {
+      labels.add(normalized);
+    }
+  }
+
+  return labels.join(' · ');
+}

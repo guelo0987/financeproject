@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../model/auth_session.dart';
 import '../model/user_profile.dart';
 import '../services/auth_service.dart';
+import '../services/subscription_service.dart';
 
 const _pendingVerificationUnchanged = Object();
 
@@ -19,6 +19,8 @@ class AuthState {
   final DateTime? expiration;
   final UserProfile? profile;
   final String? pendingVerificationEmail;
+  final String? pendingPasswordResetEmail;
+  final bool requiresPasswordReset;
 
   const AuthState({
     this.isAuthenticated = false,
@@ -29,6 +31,8 @@ class AuthState {
     this.expiration,
     this.profile,
     this.pendingVerificationEmail,
+    this.pendingPasswordResetEmail,
+    this.requiresPasswordReset = false,
   });
 
   AuthState copyWith({
@@ -40,6 +44,8 @@ class AuthState {
     DateTime? expiration,
     UserProfile? profile,
     Object? pendingVerificationEmail = _pendingVerificationUnchanged,
+    Object? pendingPasswordResetEmail = _pendingVerificationUnchanged,
+    bool? requiresPasswordReset,
   }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
@@ -53,12 +59,18 @@ class AuthState {
           identical(pendingVerificationEmail, _pendingVerificationUnchanged)
           ? this.pendingVerificationEmail
           : pendingVerificationEmail as String?,
+      pendingPasswordResetEmail:
+          identical(pendingPasswordResetEmail, _pendingVerificationUnchanged)
+          ? this.pendingPasswordResetEmail
+          : pendingPasswordResetEmail as String?,
+      requiresPasswordReset:
+          requiresPasswordReset ?? this.requiresPasswordReset,
     );
   }
 }
 
 class AuthController extends StateNotifier<AuthState> {
-  AuthController(this._service)
+  AuthController(this._service, this._subscriptionService)
     : super(const AuthState(isBootstrapping: true)) {
     try {
       _authStateSub = supabase.Supabase.instance.client.auth.onAuthStateChange
@@ -70,17 +82,35 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   final AuthService _service;
+  final SubscriptionService _subscriptionService;
   StreamSubscription<supabase.AuthState>? _authStateSub;
   bool _ignoringSupabaseAuthChanges = false;
   bool _syncingSupabaseSession = false;
 
   Future<void> _tryRestoreSession() async {
-    final pendingVerificationEmail =
-        await _service.restorePendingVerificationEmail();
-    if (await _service.restoreSession() == null) {
+    final pendingVerificationEmail = await _service
+        .restorePendingVerificationEmail();
+    final pendingPasswordResetEmail = await _service
+        .restorePendingPasswordResetEmail();
+    final restoredSession = await _service.restoreSession();
+    if (restoredSession == null) {
       state = AuthState(
         isBootstrapping: false,
         pendingVerificationEmail: pendingVerificationEmail,
+        pendingPasswordResetEmail: pendingPasswordResetEmail,
+      );
+      return;
+    }
+
+    if (_matchesPendingRecovery(
+      _service.currentSupabaseEmail() ?? restoredSession.profile?.email,
+      pendingPasswordResetEmail,
+    )) {
+      state = AuthState(
+        isBootstrapping: false,
+        pendingVerificationEmail: pendingVerificationEmail,
+        pendingPasswordResetEmail: pendingPasswordResetEmail,
+        requiresPasswordReset: true,
       );
       return;
     }
@@ -96,6 +126,7 @@ class AuthController extends StateNotifier<AuthState> {
       state = AuthState(
         isBootstrapping: false,
         pendingVerificationEmail: pendingVerificationEmail,
+        pendingPasswordResetEmail: pendingPasswordResetEmail,
       );
     }
   }
@@ -172,6 +203,7 @@ class AuthController extends StateNotifier<AuthState> {
       profile: session.profile,
     );
     await _service.clearPendingVerificationEmail();
+    await _service.clearPendingPasswordResetEmail();
     _setAuthenticated(session);
     state = state.copyWith(needsPaywall: result.isNewUser);
     await Future.wait([_hydrateProfile(), _rcLogIn(session.userId.toString())]);
@@ -186,6 +218,7 @@ class AuthController extends StateNotifier<AuthState> {
     try {
       await _rcLogOut();
       await _service.clearPendingVerificationEmail();
+      await _service.clearPendingPasswordResetEmail();
       await _service.clearSession();
       state = const AuthState(isBootstrapping: false);
     } finally {
@@ -195,7 +228,7 @@ class AuthController extends StateNotifier<AuthState> {
 
   Future<void> _rcLogIn(String userId) async {
     try {
-      await Purchases.logIn(userId);
+      await _subscriptionService.logIn(userId);
     } catch (_) {
       // RC login failure is non-fatal — app continues normally
     }
@@ -203,7 +236,7 @@ class AuthController extends StateNotifier<AuthState> {
 
   Future<void> _rcLogOut() async {
     try {
-      await Purchases.logOut();
+      await _subscriptionService.logOut();
     } catch (_) {}
   }
 
@@ -263,16 +296,57 @@ class AuthController extends StateNotifier<AuthState> {
       expiration: DateTime.now().add(const Duration(hours: 24)),
       profile: session.profile,
       pendingVerificationEmail: null,
+      pendingPasswordResetEmail: null,
+      requiresPasswordReset: false,
     );
   }
 
   Future<void> _syncPendingVerificationState() async {
-    final pendingVerificationEmail =
-        await _service.restorePendingVerificationEmail();
+    final pendingVerificationEmail = await _service
+        .restorePendingVerificationEmail();
+    final pendingPasswordResetEmail = await _service
+        .restorePendingPasswordResetEmail();
     state = state.copyWith(
       pendingVerificationEmail: pendingVerificationEmail,
+      pendingPasswordResetEmail: pendingPasswordResetEmail,
       isBootstrapping: false,
     );
+  }
+
+  Future<void> requestPasswordReset(String email) async {
+    await _service.requestPasswordReset(email);
+    state = state.copyWith(
+      pendingPasswordResetEmail: email.trim().toLowerCase(),
+    );
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) {
+    return _service.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+  }
+
+  Future<void> completePasswordRecovery(String newPassword) async {
+    await _service.updatePasswordFromRecovery(newPassword);
+    final bootstrap = await _service.bootstrapCurrentSupabaseSession(
+      currency: 'DOP',
+    );
+    await _completeAuthenticatedSignIn(bootstrap);
+  }
+
+  Future<void> deleteAccount() async {
+    _ignoringSupabaseAuthChanges = true;
+    try {
+      await _rcLogOut();
+      await _service.deleteAccount();
+      state = const AuthState(isBootstrapping: false);
+    } finally {
+      _ignoringSupabaseAuthChanges = false;
+    }
   }
 
   Future<void> _onSupabaseAuthStateChange(supabase.AuthState authState) async {
@@ -283,14 +357,43 @@ class AuthController extends StateNotifier<AuthState> {
       return;
     }
 
+    if (event == supabase.AuthChangeEvent.passwordRecovery) {
+      final recoveryEmail = authState.session?.user.email?.trim().toLowerCase();
+      if (recoveryEmail != null && recoveryEmail.isNotEmpty) {
+        await _service.savePendingPasswordResetEmail(recoveryEmail);
+      }
+      state = state.copyWith(
+        isBootstrapping: false,
+        pendingPasswordResetEmail: recoveryEmail,
+        requiresPasswordReset: true,
+      );
+      return;
+    }
+
     final session = authState.session;
     if (session == null) {
-      final pendingVerificationEmail =
-          await _service.restorePendingVerificationEmail();
+      final pendingVerificationEmail = await _service
+          .restorePendingVerificationEmail();
+      final pendingPasswordResetEmail = await _service
+          .restorePendingPasswordResetEmail();
       await _service.clearCachedSession();
       state = AuthState(
         isBootstrapping: false,
         pendingVerificationEmail: pendingVerificationEmail,
+        pendingPasswordResetEmail: pendingPasswordResetEmail,
+      );
+      return;
+    }
+
+    final pendingPasswordResetEmail = await _service
+        .restorePendingPasswordResetEmail();
+    final sessionEmail = session.user.email?.trim().toLowerCase();
+    if (_matchesPendingRecovery(sessionEmail, pendingPasswordResetEmail) ||
+        state.requiresPasswordReset) {
+      state = state.copyWith(
+        isBootstrapping: false,
+        pendingPasswordResetEmail: sessionEmail ?? pendingPasswordResetEmail,
+        requiresPasswordReset: true,
       );
       return;
     }
@@ -320,9 +423,20 @@ class AuthController extends StateNotifier<AuthState> {
     _authStateSub?.cancel();
     super.dispose();
   }
+
+  bool _matchesPendingRecovery(String? sessionEmail, String? pendingEmail) {
+    final normalizedSessionEmail = sessionEmail?.trim().toLowerCase();
+    final normalizedPendingEmail = pendingEmail?.trim().toLowerCase();
+    return normalizedSessionEmail != null &&
+        normalizedSessionEmail.isNotEmpty &&
+        normalizedPendingEmail != null &&
+        normalizedPendingEmail.isNotEmpty &&
+        normalizedSessionEmail == normalizedPendingEmail;
+  }
 }
 
 final authProvider = StateNotifierProvider<AuthController, AuthState>((ref) {
   final service = ref.read(authServiceProvider);
-  return AuthController(service);
+  final subscriptionService = ref.read(subscriptionServiceProvider);
+  return AuthController(service, subscriptionService);
 });

@@ -10,9 +10,11 @@ import '../../subscription/subscription_provider.dart';
 import '../../subscription/subscription_state.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/external_links.dart';
 import '../../../shared/widgets/menudo_card.dart';
 import '../../../shared/widgets/menudo_chip.dart';
 import '../../../shared/widgets/menudo_button.dart';
+import '../../../utils/app_env.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -233,6 +235,44 @@ class SettingsScreen extends ConsumerWidget {
                         onTap: () => context.push('/contact'),
                       ),
                     ).animate().fadeIn(delay: 260.ms).slideY(begin: 0.04),
+                    const SizedBox(height: 24),
+                    _SectionHeader('Ayuda y legal'),
+                    MenudoCard(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          _SettingsTile(
+                            icon: Icons.support_agent_rounded,
+                            title: 'Centro de ayuda',
+                            subtitle: 'Soporte, contacto y seguimiento',
+                            onTap: () => ExternalLinks.openUrlOrNotify(
+                              context,
+                              AppEnv.supportUrl,
+                            ),
+                          ),
+                          const Divider(height: 1, color: MenudoColors.divider),
+                          _SettingsTile(
+                            icon: Icons.privacy_tip_outlined,
+                            title: 'Política de privacidad',
+                            subtitle: 'Cómo manejamos tus datos',
+                            onTap: () => ExternalLinks.openUrlOrNotify(
+                              context,
+                              AppEnv.privacyPolicyUrl,
+                            ),
+                          ),
+                          const Divider(height: 1, color: MenudoColors.divider),
+                          _SettingsTile(
+                            icon: Icons.description_outlined,
+                            title: 'Términos de servicio',
+                            subtitle: 'Condiciones de uso de Menudo',
+                            onTap: () => ExternalLinks.openUrlOrNotify(
+                              context,
+                              AppEnv.termsUrl,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.04),
                     const SizedBox(height: 40),
                     MenudoSecondaryButton(
                       label: 'Cerrar sesión',
@@ -240,7 +280,7 @@ class SettingsScreen extends ConsumerWidget {
                         ref.read(authProvider.notifier).logout();
                         context.go('/login');
                       },
-                    ).animate().fadeIn(delay: 320.ms),
+                    ).animate().fadeIn(delay: 340.ms),
                     const SizedBox(height: 120),
                   ],
                 ),

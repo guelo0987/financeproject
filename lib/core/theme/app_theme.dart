@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
@@ -16,7 +15,6 @@ class AppTheme {
       surface: MenudoColors.appBg,
       error: MenudoColors.danger,
     ),
-    fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
     appBarTheme: const AppBarTheme(
       backgroundColor: Colors.white,
       elevation: 0,

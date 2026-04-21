@@ -2,6 +2,9 @@ abstract final class ApiPaths {
   static const authSession = '/auth/session';
   static const authMe = '/auth/me';
   static const authDefaultBudget = '$authMe/default-budget';
+  static const authPassword = '/auth/password';
+  static const authPasswordRecovery = '$authPassword/recovery';
+  static const authDeleteAccount = authMe;
 
   static const budgets = '/budgets';
   static const categories = '/categories';

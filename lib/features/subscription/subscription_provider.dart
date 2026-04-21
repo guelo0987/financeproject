@@ -66,37 +66,43 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
     var rcFailed = false;
     var rcReached = false;
     // ── Step 2: RC fallback (post-purchase before webhook arrives) ───
-    try {
-      final info = await _service.getCustomerInfo();
-      rcReached = true;
-      final entitlement = info.entitlements.active[kEntitlementId];
+    if (_service.isConfigured) {
+      try {
+        final info = await _service.getCustomerInfo();
+        if (info == null) {
+          rcFailed = true;
+        } else {
+          rcReached = true;
+          final entitlement = info.entitlements.active[kEntitlementId];
 
-      if (entitlement != null) {
-        if (!mounted) return;
-        final productId = entitlement.productIdentifier;
-        final plan = productId == 'yearly'
-            ? 'annual'
-            : productId == 'lifetime'
-            ? 'lifetime'
-            : 'monthly';
-        final expiresAt = entitlement.expirationDate != null
-            ? DateTime.tryParse(entitlement.expirationDate!)
-            : null;
-        final isTrial = entitlement.periodType == PeriodType.trial;
+          if (entitlement != null) {
+            if (!mounted) return;
+            final productId = entitlement.productIdentifier;
+            final plan = productId == 'yearly'
+                ? 'annual'
+                : productId == 'lifetime'
+                ? 'lifetime'
+                : 'monthly';
+            final expiresAt = entitlement.expirationDate != null
+                ? DateTime.tryParse(entitlement.expirationDate!)
+                : null;
+            final isTrial = entitlement.periodType == PeriodType.trial;
 
-        state = SubscriptionState(
-          isLoading: false,
-          isActive: true,
-          estado: isTrial ? 'prueba' : 'activa',
-          plan: plan,
-          expiresAt: expiresAt,
-          willRenew: entitlement.willRenew,
-          hasVerificationIssue: false,
-        );
-        return;
+            state = SubscriptionState(
+              isLoading: false,
+              isActive: true,
+              estado: isTrial ? 'prueba' : 'activa',
+              plan: plan,
+              expiresAt: expiresAt,
+              willRenew: entitlement.willRenew,
+              hasVerificationIssue: false,
+            );
+            return;
+          }
+        }
+      } catch (_) {
+        rcFailed = true;
       }
-    } catch (_) {
-      rcFailed = true;
     }
 
     if (backendFailed && (!rcReached || rcFailed)) {

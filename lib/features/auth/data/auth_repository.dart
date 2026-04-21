@@ -34,6 +34,12 @@ class AuthRepository {
     return client;
   }
 
+  String? currentSupabaseEmail() {
+    return _supabaseOrNull?.auth.currentSession?.user.email
+        ?.trim()
+        .toLowerCase();
+  }
+
   Future<AuthSession?> restoreSession() async {
     final session = _supabaseOrNull?.auth.currentSession;
     if (session == null) return null;
@@ -108,6 +114,10 @@ class AuthRepository {
     return _storage.read(key: StorageKeys.pendingVerificationEmail);
   }
 
+  Future<String?> restorePendingPasswordResetEmail() {
+    return _storage.read(key: StorageKeys.pendingPasswordResetEmail);
+  }
+
   Future<void> savePendingVerificationEmail(String email) async {
     await _storage.write(
       key: StorageKeys.pendingVerificationEmail,
@@ -117,6 +127,17 @@ class AuthRepository {
 
   Future<void> clearPendingVerificationEmail() async {
     await _storage.delete(key: StorageKeys.pendingVerificationEmail);
+  }
+
+  Future<void> savePendingPasswordResetEmail(String email) async {
+    await _storage.write(
+      key: StorageKeys.pendingPasswordResetEmail,
+      value: email.trim().toLowerCase(),
+    );
+  }
+
+  Future<void> clearPendingPasswordResetEmail() async {
+    await _storage.delete(key: StorageKeys.pendingPasswordResetEmail);
   }
 
   Future<void> saveProfile(UserProfile? profile) async {
@@ -480,6 +501,50 @@ class AuthRepository {
       num value => value.toInt(),
       _ => null,
     };
+  }
+
+  Future<void> requestPasswordReset(String email) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    await _api.post<Map<String, dynamic>>(
+      ApiPaths.authPasswordRecovery,
+      body: {'email': normalizedEmail, 'next': AppEnv.authPasswordResetNextUrl},
+      authenticated: false,
+      parser: asJsonMap,
+    );
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) {
+    return _api.put<Map<String, dynamic>>(
+      ApiPaths.authPassword,
+      body: {'currentPassword': currentPassword, 'newPassword': newPassword},
+      parser: asJsonMap,
+    );
+  }
+
+  Future<void> updatePasswordFromRecovery(String newPassword) async {
+    try {
+      await _supabase.auth.updateUser(UserAttributes(password: newPassword));
+      await clearPendingPasswordResetEmail();
+    } on AuthException catch (error) {
+      throw ApiException(error.message);
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    await _api.delete<void>(ApiPaths.authDeleteAccount);
+
+    try {
+      await _supabaseOrNull?.auth.signOut();
+    } catch (_) {
+      // Local cleanup below is enough if the auth session is already invalidated.
+    }
+
+    await clearPendingVerificationEmail();
+    await clearPendingPasswordResetEmail();
+    await clearCachedSession();
   }
 }
 

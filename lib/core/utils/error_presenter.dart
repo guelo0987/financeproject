@@ -42,6 +42,11 @@ String presentError(
   )) {
     return 'Solo quien administra este presupuesto puede hacer ese cambio.';
   }
+  if (lower.contains(
+    'solo admins pueden administrar este presupuesto compartido',
+  )) {
+    return 'Solo quien administra este presupuesto puede hacer ese cambio.';
+  }
   if (lower.contains('already_member')) {
     return 'Esa persona ya forma parte de este presupuesto.';
   }

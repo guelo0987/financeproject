@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/external_links.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_card.dart';
+import '../../../utils/app_env.dart';
 import '../../auth/auth_state.dart';
 
 class ContactScreen extends ConsumerStatefulWidget {
@@ -17,8 +19,6 @@ class ContactScreen extends ConsumerStatefulWidget {
 }
 
 class _ContactScreenState extends ConsumerState<ContactScreen> {
-  static const _supportEmail = 'notificaciones@bot.dlcsoft.dev';
-
   final _titleController = TextEditingController();
   final _messageController = TextEditingController();
   String _topic = 'Bug';
@@ -31,7 +31,7 @@ class _ContactScreenState extends ConsumerState<ContactScreen> {
   }
 
   void _copyEmail() {
-    Clipboard.setData(const ClipboardData(text: _supportEmail));
+    Clipboard.setData(ClipboardData(text: AppEnv.supportEmail));
     _showMessage('Listo. El correo ya está copiado.');
   }
 
@@ -153,6 +153,7 @@ ${details.join('\n')}
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(
                       child: _TopicCard(
@@ -257,7 +258,7 @@ ${details.join('\n')}
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _supportEmail,
+                              AppEnv.supportEmail,
                               style: MenudoTextStyles.bodyLarge.copyWith(
                                 fontWeight: FontWeight.w800,
                               ),
@@ -288,16 +289,27 @@ ${details.join('\n')}
                   children: [
                     Expanded(
                       child: MenudoSecondaryButton(
-                        label: 'Copiar email',
-                        onTap: _copyEmail,
+                        label: 'Abrir ayuda',
+                        onTap: () => ExternalLinks.openUrlOrNotify(
+                          context,
+                          AppEnv.supportUrl,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: MenudoButton(
-                        label: 'Copiar mensaje',
+                        label: 'Escribir correo',
                         isFullWidth: true,
-                        onTap: _copyMessage,
+                        onTap: () async {
+                          _copyMessage();
+                          await ExternalLinks.composeSupportOrNotify(
+                            context,
+                            subject: _titleController.text.trim().isEmpty
+                                ? 'Ayuda con Menudo'
+                                : _titleController.text.trim(),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -352,33 +364,36 @@ class _TopicCard extends StatelessWidget {
         HapticFeedback.selectionClick();
         onTap();
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.o1 : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? AppColors.o5 : AppColors.g2),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: selected ? AppColors.o5 : AppColors.e8),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              style: MenudoTextStyles.bodyMedium.copyWith(
-                fontWeight: FontWeight.w800,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 116),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.o1 : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: selected ? AppColors.o5 : AppColors.g2),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: selected ? AppColors.o5 : AppColors.e8),
+              const SizedBox(height: 12),
+              Text(
+                label,
+                style: MenudoTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: MenudoTextStyles.bodySmall.copyWith(
-                color: MenudoColors.textMuted,
+              const Spacer(),
+              Text(
+                subtitle,
+                style: MenudoTextStyles.bodySmall.copyWith(
+                  color: MenudoColors.textMuted,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,76 +1,90 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import 'app_colors.dart';
 
+TextStyle _textStyle({
+  required double fontSize,
+  required FontWeight fontWeight,
+  Color? color,
+  double? letterSpacing,
+}) {
+  return TextStyle(
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    color: color,
+    letterSpacing: letterSpacing,
+  );
+}
+
 abstract class MenudoTextStyles {
-  // Hero amount
-  static final TextStyle heroAmount = GoogleFonts.plusJakartaSans(
+  static final TextStyle heroAmount = _textStyle(
     fontSize: 40,
     fontWeight: FontWeight.w800,
     letterSpacing: -1.5,
     color: MenudoColors.textOnDark,
   );
 
-  // Headlines
-  static final TextStyle h1 = GoogleFonts.plusJakartaSans(
+  static final TextStyle h1 = _textStyle(
     fontSize: 28,
     fontWeight: FontWeight.w800,
     letterSpacing: -0.5,
     color: MenudoColors.textMain,
   );
-  static final TextStyle h2 = GoogleFonts.plusJakartaSans(
+
+  static final TextStyle h2 = _textStyle(
     fontSize: 24,
     fontWeight: FontWeight.w800,
     letterSpacing: -0.5,
     color: MenudoColors.textMain,
   );
-  static final TextStyle h3 = GoogleFonts.plusJakartaSans(
+
+  static final TextStyle h3 = _textStyle(
     fontSize: 17,
     fontWeight: FontWeight.w800,
     color: MenudoColors.textMain,
   );
 
-  // Body
-  static final TextStyle bodyLarge = GoogleFonts.plusJakartaSans(
+  static final TextStyle bodyLarge = _textStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
     color: MenudoColors.textMain,
   );
-  static final TextStyle bodyMedium = GoogleFonts.plusJakartaSans(
+
+  static final TextStyle bodyMedium = _textStyle(
     fontSize: 14,
     fontWeight: FontWeight.w600,
     color: MenudoColors.textMain,
   );
-  static final TextStyle bodySmall = GoogleFonts.plusJakartaSans(
+
+  static final TextStyle bodySmall = _textStyle(
     fontSize: 12,
     fontWeight: FontWeight.w500,
     color: MenudoColors.textMain,
   );
 
-  // Labels
-  static final TextStyle labelCaps = GoogleFonts.plusJakartaSans(
+  static final TextStyle labelCaps = _textStyle(
     fontSize: 11,
     fontWeight: FontWeight.w700,
     letterSpacing: 0.8,
   );
-  static final TextStyle labelBold = GoogleFonts.plusJakartaSans(
+
+  static final TextStyle labelBold = _textStyle(
     fontSize: 13,
     fontWeight: FontWeight.w700,
   );
 
-  // Amounts
-  static final TextStyle amountMedium = GoogleFonts.plusJakartaSans(
+  static final TextStyle amountMedium = _textStyle(
     fontSize: 18,
     fontWeight: FontWeight.w800,
     letterSpacing: -0.5,
   );
-  static final TextStyle amountSmall = GoogleFonts.plusJakartaSans(
+
+  static final TextStyle amountSmall = _textStyle(
     fontSize: 14,
     fontWeight: FontWeight.w700,
   );
 }
 
-// --- LEGACY SHIMS FOR UNREFACTORED SCREENS ---
 abstract class AppTextStyles {
   static TextStyle get displayLarge =>
       MenudoTextStyles.h1.copyWith(fontSize: 32);

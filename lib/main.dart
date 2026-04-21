@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -10,6 +12,11 @@ import 'utils/app_env.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (!kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android)) {
+    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  }
   await Supabase.initialize(
     url: AppEnv.supabaseUrl,
     anonKey: AppEnv.supabasePublishableKey,
@@ -37,6 +44,9 @@ class MenudoApp extends ConsumerWidget {
       title: 'Menudo',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      locale: const Locale('es'),
+      supportedLocales: const [Locale('es'), Locale('en')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: router,
     );
   }

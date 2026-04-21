@@ -175,9 +175,9 @@ class BudgetRepository {
       'activo': budget.activo,
       'categorias': [
         for (final entry in budget.cats.entries)
-          if (catSlugToId[entry.key] != null)
+          if ((entry.value.categoryId ?? catSlugToId[entry.key]) != null)
             {
-              'categoriaId': catSlugToId[entry.key],
+              'categoriaId': entry.value.categoryId ?? catSlugToId[entry.key],
               'limite': entry.value.limite,
             },
       ],

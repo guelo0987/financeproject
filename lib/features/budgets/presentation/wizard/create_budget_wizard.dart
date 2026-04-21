@@ -61,6 +61,24 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
     return double.tryParse(normalized) ?? 0;
   }
 
+  Map<int, BudgetCategory> _initialExpenseFallbacks() {
+    final budget = widget.initialBudget;
+    if (budget == null) return const {};
+    return {
+      for (final category in budget.cats.values)
+        if (category.categoryId != null) category.categoryId!: category,
+    };
+  }
+
+  Map<int, BudgetIncomeSource> _initialIncomeFallbacks() {
+    final budget = widget.initialBudget;
+    if (budget == null) return const {};
+    return {
+      for (final source in budget.incomeSources)
+        if (source.categoryId != null) source.categoryId!: source,
+    };
+  }
+
   String _formatEditableAmount(double value) {
     if (value == 0) return '';
     return value.round().toString();
@@ -217,6 +235,8 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
     final categoriesById = {
       for (final category in categories) category.id: category,
     };
+    final initialExpenseFallbacks = _initialExpenseFallbacks();
+    final initialIncomeFallbacks = _initialIncomeFallbacks();
 
     final configuredIncome = {
       for (final entry in _incomePlan.entries)
@@ -229,13 +249,19 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
 
     final missingIncomeCategories = configuredIncome.entries
         .where(
-          (entry) => entry.value > 0 && !categoriesById.containsKey(entry.key),
+          (entry) =>
+              entry.value > 0 &&
+              !categoriesById.containsKey(entry.key) &&
+              !initialIncomeFallbacks.containsKey(entry.key),
         )
         .map((entry) => '#${entry.key}')
         .toList();
     final missingExpenseCategories = configuredLimits.entries
         .where(
-          (entry) => entry.value > 0 && !categoriesById.containsKey(entry.key),
+          (entry) =>
+              entry.value > 0 &&
+              !categoriesById.containsKey(entry.key) &&
+              !initialExpenseFallbacks.containsKey(entry.key),
         )
         .map((entry) => '#${entry.key}')
         .toList();
@@ -250,14 +276,33 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
 
     final budgetCats = <String, BudgetCategory>{};
     for (final entry in configuredLimits.entries) {
-      final category = categoriesById[entry.key]!;
-      budgetCats[category.slug] = BudgetCategory(
-        categoryId: category.id,
-        label: category.nombre,
-        icono: category.icono,
-        color: category.color,
-        limite: entry.value,
-      );
+      final category = categoriesById[entry.key];
+      final fallback = initialExpenseFallbacks[entry.key];
+      if (category != null) {
+        budgetCats[category.slug] = BudgetCategory(
+          categoryId: category.id,
+          parentCategoryId: category.categoriaParadreId,
+          slug: category.slug,
+          tipo: category.tipo,
+          label: category.nombre,
+          icono: category.icono,
+          color: category.color,
+          limite: entry.value,
+        );
+        continue;
+      }
+      if (fallback?.slug != null && fallback!.slug!.isNotEmpty) {
+        budgetCats[fallback.slug!] = BudgetCategory(
+          categoryId: fallback.categoryId,
+          parentCategoryId: fallback.parentCategoryId,
+          slug: fallback.slug,
+          tipo: fallback.tipo,
+          label: fallback.label,
+          icono: fallback.icono,
+          color: fallback.color,
+          limite: entry.value,
+        );
+      }
     }
 
     final budget = MenudoBudget(
@@ -882,10 +927,11 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   : 0;
               final currentValue = values[category.id] ?? '';
               final amountEditor = Container(
-                width: isCompactAmountLayout ? double.infinity : 146,
+                width: isCompactAmountLayout ? double.infinity : 118,
+                constraints: const BoxConstraints(minHeight: 44),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
+                  horizontal: 10,
+                  vertical: 8,
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.g0,
@@ -898,18 +944,6 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (isCompactAmountLayout)
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          'Monto',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.g4,
-                          ),
-                        ),
-                      ),
                     _BudgetAmountField(
                       value: currentValue,
                       onChanged: (value) {
@@ -919,17 +953,17 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                           ? TextAlign.start
                           : TextAlign.end,
                       textStyle: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
                         color: AppColors.e8,
                       ),
                       prefixText: 'RD\$ ',
                       prefixStyle: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: AppColors.g4,
                       ),
-                      hintText: 'Monto',
+                      hintText: '',
                       fillColor: Colors.transparent,
                       contentPadding: EdgeInsets.zero,
                       borderRadius: 12,
@@ -1202,7 +1236,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
 
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+          padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 20),
           decoration: BoxDecoration(
             color: AppColors.a1,
             border: Border.all(
@@ -1212,9 +1246,10 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                "AHORRO DEL PERÍODO",
+                "META DE AHORRO",
                 style: TextStyle(
                   fontSize: 11,
                   color: AppColors.a5,
@@ -1223,43 +1258,81 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                 ),
               ),
               const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const Text(
-                    "RD\$",
-                    style: TextStyle(
-                      fontSize: 22,
-                      color: AppColors.a5,
-                      fontWeight: FontWeight.w600,
-                    ),
+              const Text(
+                'Escribe cuanto quieres reservar en este periodo.',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.a5,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: AppColors.warning.withValues(alpha: 0.18),
+                    width: 1.5,
                   ),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: IntrinsicWidth(
-                        child: _BudgetAmountField(
-                          value: _savingsTarget,
-                          onChanged: (value) =>
-                              setState(() => _savingsTarget = value),
-                          textAlign: TextAlign.center,
-                          textStyle: const TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.a5,
-                          ),
-                          hintText: '',
-                          fillColor: Colors.transparent,
-                          borderRadius: 0,
-                          borderless: true,
-                          contentPadding: EdgeInsets.zero,
-                        ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.a1,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        LucideIcons.wallet,
+                        size: 20,
+                        color: AppColors.a5,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _BudgetAmountField(
+                        value: _savingsTarget,
+                        onChanged: (value) =>
+                            setState(() => _savingsTarget = value),
+                        textAlign: TextAlign.start,
+                        textStyle: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.a5,
+                        ),
+                        prefixText: 'RD\$ ',
+                        prefixStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.a5,
+                        ),
+                        hintText: '',
+                        fillColor: Colors.transparent,
+                        borderRadius: 0,
+                        borderless: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Si lo dejas vacio, este periodo quedara sin meta de ahorro.',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.g4,
+                ),
               ),
             ],
           ),

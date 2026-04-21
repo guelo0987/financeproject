@@ -810,14 +810,44 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   String _frequencySummary() {
     switch (_frecuencia) {
       case 'mensual':
-        return 'Se registrará una vez cada mes.';
+        return 'Se registrará el dia $_dia de cada mes.';
       case 'quincenal':
-        return 'Se registrará cada 15 días.';
+        return 'Se registrará cada 15 dias.';
       case 'semanal':
         return 'Se registra cada ${_weekdayLabel(_dia).toLowerCase()}.';
       default:
         return '';
     }
+  }
+
+  String _weekdayShortLabel(int dia) {
+    const names = <int, String>{
+      1: 'Lun',
+      2: 'Mar',
+      3: 'Mie',
+      4: 'Jue',
+      5: 'Vie',
+      6: 'Sab',
+      7: 'Dom',
+    };
+    return names[dia] ?? '$dia';
+  }
+
+  void _selectFrequency(String frecuencia) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _frecuencia = frecuencia;
+      if (frecuencia == 'semanal' && _dia > 7) {
+        _dia = 1;
+      } else if (frecuencia == 'mensual' && _dia > 28) {
+        _dia = 28;
+      }
+    });
+  }
+
+  void _selectExecutionDay(int day) {
+    HapticFeedback.selectionClick();
+    setState(() => _dia = day);
   }
 
   String _walletName(int? id, List<WalletAccount> wallets) {
@@ -1232,12 +1262,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                                   final isSelected = _frecuencia == frecuencia;
                                   return Expanded(
                                     child: GestureDetector(
-                                      onTap: () {
-                                        HapticFeedback.selectionClick();
-                                        setState(
-                                          () => _frecuencia = frecuencia,
-                                        );
-                                      },
+                                      onTap: () => _selectFrequency(frecuencia),
                                       child: AnimatedContainer(
                                         duration: const Duration(
                                           milliseconds: 200,
@@ -1281,86 +1306,53 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          if (_frecuencia != 'quincenal') ...[
-                            const SizedBox(height: 16),
-                            Row(
+                          const SizedBox(height: 16),
+                          if (_frecuencia == 'quincenal')
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: AppColors.g0,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.g2),
+                              ),
+                              child: const Text(
+                                'No tienes que elegir un dia. La automatica se repetira cada 15 dias.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.g4,
+                                  height: 1.35,
+                                ),
+                              ),
+                            )
+                          else ...[
+                            Text(
+                              _frecuencia == 'mensual'
+                                  ? 'Dia del mes'
+                                  : 'Dia de la semana',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.e8,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
                               children: [
-                                Text(
-                                  _frecuencia == 'mensual'
-                                      ? "Día:"
-                                      : "Se repite:",
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.e8,
+                                for (final day in List<int>.generate(
+                                  _frecuencia == 'mensual' ? 28 : 7,
+                                  (index) => index + 1,
+                                ))
+                                  _RecurringDayChip(
+                                    label: _frecuencia == 'mensual'
+                                        ? '$day'
+                                        : _weekdayShortLabel(day),
+                                    selected: _dia == day,
+                                    onTap: () => _selectExecutionDay(day),
                                   ),
-                                ),
-                                const Spacer(),
-                                GestureDetector(
-                                  onTap: () {
-                                    HapticFeedback.selectionClick();
-                                    setState(
-                                      () => _dia = (_dia - 1).clamp(
-                                        1,
-                                        _frecuencia == 'mensual' ? 28 : 7,
-                                      ),
-                                    );
-                                  },
-                                  child: Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.g1,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: const Icon(
-                                      LucideIcons.minus,
-                                      size: 18,
-                                      color: AppColors.g5,
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                  ),
-                                  child: Text(
-                                    _frecuencia == 'mensual'
-                                        ? '$_dia'
-                                        : _weekdayLabel(_dia),
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w900,
-                                      color: AppColors.e8,
-                                    ),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    HapticFeedback.selectionClick();
-                                    setState(
-                                      () => _dia = (_dia + 1).clamp(
-                                        1,
-                                        _frecuencia == 'mensual' ? 28 : 7,
-                                      ),
-                                    );
-                                  },
-                                  child: Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.g1,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: const Icon(
-                                      LucideIcons.plus,
-                                      size: 18,
-                                      color: AppColors.g5,
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                           ],
@@ -1474,6 +1466,45 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
               fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
               color: isSelected ? AppColors.e8 : AppColors.g4,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecurringDayChip extends StatelessWidget {
+  const _RecurringDayChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.e8 : AppColors.g1,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? AppColors.e8 : AppColors.g2,
+            width: selected ? 1.6 : 1.2,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: selected ? Colors.white : AppColors.g5,
           ),
         ),
       ),

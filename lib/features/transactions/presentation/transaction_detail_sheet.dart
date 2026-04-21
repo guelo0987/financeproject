@@ -8,6 +8,7 @@ import '../../../controllers/transaction_controller.dart';
 import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/error_presenter.dart';
+import '../../../core/utils/formatters.dart';
 import '../../auth/auth_state.dart';
 import '../../budgets/budget_providers.dart';
 import '../../categories/providers/category_providers.dart';
@@ -24,11 +25,6 @@ class TransactionDetailSheet extends ConsumerWidget {
     required this.transaction,
     this.contextWalletId,
   });
-
-  String fmt(double val, {String currency = 'DOP'}) {
-    final prefix = currency == 'USD' ? 'US\$' : 'RD\$';
-    return "$prefix${val.toInt().toString().replaceAllMapped(RegExp(r'(\\d{1,3})(?=(\\d{3})+(?!\\d))'), (Match m) => '${m[1]},')}";
-  }
 
   MenudoBudget? _findBudget(
     List<MenudoBudget> budgets,
@@ -154,12 +150,14 @@ class TransactionDetailSheet extends ConsumerWidget {
         ? presentation.routeLabel
         : categoryPathLabel;
     final String? summaryDescription =
-        t.desc.trim().isEmpty || t.desc.trim() == summaryTitle
+        normalizedUiLabel(t.desc).isEmpty ||
+            normalizedUiLabel(t.desc).toLowerCase() ==
+                normalizedUiLabel(summaryTitle).toLowerCase()
         ? null
-        : t.desc.trim();
+        : normalizedUiLabel(t.desc);
     final String formattedAmount = amountPrefix.isEmpty
-        ? fmt(t.monto.abs(), currency: t.moneda)
-        : "$amountPrefix${fmt(t.monto.abs(), currency: t.moneda)}";
+        ? formatMoney(t.monto.abs(), currency: t.moneda)
+        : "$amountPrefix${formatMoney(t.monto.abs(), currency: t.moneda)}";
     final summaryColor = isTransfer
         ? AppColors.b5
         : _mix(amountColor, catColor, 0.4);

@@ -375,32 +375,6 @@ class _RegisterTransactionSheetState
     return '$whole.${parts.sublist(1).join()}';
   }
 
-  String _dateLabel() {
-    final rawDate = widget.transaction?.dateString;
-    if (rawDate == null || rawDate.isEmpty) return 'Hoy';
-
-    final today = DateTime.now().toIso8601String().split('T').first;
-    if (rawDate == today) return 'Hoy';
-
-    final parts = rawDate.split('-');
-    if (parts.length != 3) return rawDate;
-    const months = {
-      '01': 'ene',
-      '02': 'feb',
-      '03': 'mar',
-      '04': 'abr',
-      '05': 'may',
-      '06': 'jun',
-      '07': 'jul',
-      '08': 'ago',
-      '09': 'sep',
-      '10': 'oct',
-      '11': 'nov',
-      '12': 'dic',
-    };
-    return '${int.tryParse(parts[2]) ?? parts[2]} ${months[parts[1]] ?? parts[1]}';
-  }
-
   Future<void> _pickCategory() async {
     if (_selectedType == 'transferencia') return;
 
@@ -504,12 +478,13 @@ class _RegisterTransactionSheetState
         ? selectedCategory.nombre
         : "${selectedParent.nombre} / ${selectedCategory.nombre}";
     final budgetLabel = _budgetName(_budgetId, budgets);
-    final dateLabel = _dateLabel();
     final noteLabel = (_nota == null || _nota!.trim().isEmpty)
         ? 'Agregar nota'
         : _nota!.trim();
     final missingFields = _missingFields(wallets, amountValue);
     final canSubmit = missingFields.isEmpty && !_isSaving;
+    final keypadBottomPadding =
+        media.padding.bottom + (compactSheet ? 8.0 : 10.0);
 
     return Container(
       height: media.size.height * (compactSheet ? 0.95 : 0.92),
@@ -743,7 +718,6 @@ class _RegisterTransactionSheetState
                   _InfoStrip(
                     isGeneralMode: _budgetId == null,
                     budgetName: budgetLabel,
-                    dateLabel: dateLabel,
                     onBudgetTap: budgets.isEmpty
                         ? null
                         : () => _pickBudget(budgets),
@@ -764,9 +738,9 @@ class _RegisterTransactionSheetState
           Container(
             padding: EdgeInsets.fromLTRB(
               20,
-              compactSheet ? 10 : 12,
+              compactSheet ? 8 : 10,
               20,
-              (compactSheet ? 18 : 22) + media.padding.bottom,
+              keypadBottomPadding,
             ),
             decoration: BoxDecoration(
               color: AppColors.g0,
@@ -778,7 +752,7 @@ class _RegisterTransactionSheetState
               mainAxisSize: MainAxisSize.min,
               children: [
                 _Numpad(onKeyTap: _onKeyTap),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
                 if (_formMessage != null || missingFields.isNotEmpty) ...[
                   Container(
                     width: double.infinity,
@@ -944,49 +918,29 @@ class _TypeSegment extends StatelessWidget {
 class _InfoStrip extends StatelessWidget {
   final bool isGeneralMode;
   final String budgetName;
-  final String dateLabel;
   final VoidCallback? onBudgetTap;
 
   const _InfoStrip({
     required this.isGeneralMode,
     required this.budgetName,
-    required this.dateLabel,
     this.onBudgetTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.g2),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _InfoStripItem(
-              label: isGeneralMode ? 'Registro' : 'Presupuesto',
-              value: budgetName,
-              icon: isGeneralMode
-                  ? LucideIcons.fileText
-                  : LucideIcons.layoutGrid,
-              color: isGeneralMode ? AppColors.e6 : AppColors.e8,
-              onTap: onBudgetTap,
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 112,
-            child: _InfoStripItem(
-              label: 'Fecha',
-              value: dateLabel,
-              icon: LucideIcons.calendar,
-              color: AppColors.g5,
-            ),
-          ),
-        ],
+      child: _InfoStripItem(
+        label: isGeneralMode ? 'Registro' : 'Presupuesto',
+        value: budgetName,
+        icon: isGeneralMode ? LucideIcons.fileText : LucideIcons.layoutGrid,
+        color: isGeneralMode ? AppColors.e6 : AppColors.e8,
+        onTap: onBudgetTap,
       ),
     );
   }
@@ -1013,14 +967,14 @@ class _InfoStripItem extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 34,
-          height: 34,
+          width: 30,
+          height: 30,
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(9),
           ),
           alignment: Alignment.center,
-          child: Icon(icon, size: 16, color: color),
+          child: Icon(icon, size: 15, color: color),
         ),
         const SizedBox(width: 10),
         Flexible(
@@ -1030,7 +984,7 @@ class _InfoStripItem extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
-                  fontSize: 10,
+                  fontSize: 9,
                   fontWeight: FontWeight.w800,
                   color: AppColors.g4,
                   letterSpacing: 0.5,
@@ -1045,7 +999,7 @@ class _InfoStripItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w800,
                         color: color == AppColors.g5 ? AppColors.e8 : color,
                       ),
@@ -1105,10 +1059,10 @@ class _FieldCard extends StatelessWidget {
         onTap();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isPlaceholder
                 ? AppColors.o5.withValues(alpha: 0.28)
@@ -1119,16 +1073,16 @@ class _FieldCard extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
               alignment: Alignment.center,
-              child: Icon(icon, size: 18, color: color),
+              child: Icon(icon, size: 16, color: color),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1136,7 +1090,7 @@ class _FieldCard extends StatelessWidget {
                   Text(
                     label,
                     style: const TextStyle(
-                      fontSize: 10,
+                      fontSize: 9,
                       fontWeight: FontWeight.w800,
                       color: AppColors.g4,
                       letterSpacing: 0.5,
@@ -1145,10 +1099,10 @@ class _FieldCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     value,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 13,
                       fontWeight: FontWeight.w800,
                       color: isPlaceholder ? AppColors.g4 : AppColors.e8,
                     ),
@@ -1156,8 +1110,8 @@ class _FieldCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            Icon(LucideIcons.chevronRight, size: 16, color: AppColors.g3),
+            const SizedBox(width: 6),
+            Icon(LucideIcons.chevronRight, size: 15, color: AppColors.g3),
           ],
         ),
       ),
@@ -1188,25 +1142,25 @@ class _SecondaryActionCard extends StatelessWidget {
         onTap();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.g2),
         ),
         child: Row(
           children: [
             Container(
-              width: 34,
-              height: 34,
+              width: 30,
+              height: 30,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(9),
               ),
               alignment: Alignment.center,
-              child: Icon(icon, size: 16, color: color),
+              child: Icon(icon, size: 15, color: color),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1226,7 +1180,7 @@ class _SecondaryActionCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w700,
                       color: AppColors.e8,
                     ),
@@ -1263,9 +1217,9 @@ class _Numpad extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 3,
-      childAspectRatio: compact ? 2.32 : 1.9,
-      mainAxisSpacing: compact ? 8 : 10,
-      crossAxisSpacing: compact ? 8 : 10,
+      childAspectRatio: compact ? 2.7 : 2.2,
+      mainAxisSpacing: compact ? 8 : 9,
+      crossAxisSpacing: compact ? 8 : 9,
       children: [...'123456789.0'.split(''), 'backspace']
           .map((key) => _NumpadKey(value: key, onTap: () => onKeyTap(key)))
           .toList(),

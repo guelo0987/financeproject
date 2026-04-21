@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../core/data/models.dart';
 import '../../transactions/providers/transaction_providers.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
@@ -17,7 +18,7 @@ class CalendarScreen extends ConsumerStatefulWidget {
 }
 
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
-  int _selectedDay = DateTime.now().day;
+  DateTime _selectedDate = dateOnly(DateTime.now());
 
   String _fmt(double val) =>
       "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
@@ -51,13 +52,24 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final txns = ref.watch(selectedBudgetPeriodTransactionsProvider);
-    final now = DateTime.now();
+    final now = dateOnly(ref.watch(transactionsReferenceDateProvider));
+    final txns = ref.watch(currentMonthTransactionsProvider);
+
+    if (_selectedDate.year != now.year || _selectedDate.month != now.month) {
+      _selectedDate = DateTime(
+        now.year,
+        now.month,
+        _selectedDate.day.clamp(
+          1,
+          DateUtils.getDaysInMonth(now.year, now.month),
+        ),
+      );
+    }
 
     final Map<int, double> gastoPorDia = {};
     for (final t in txns) {
       if (t.tipo != "gasto") continue;
-      final date = DateTime.tryParse(t.dateString);
+      final date = parseDateOnly(t.dateString);
       if (date == null) continue;
       final d = date.day;
       gastoPorDia[d] = (gastoPorDia[d] ?? 0) + (t.monto).abs();
@@ -70,9 +82,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final double totalGasto = gastoPorDia.values.fold(0, (s, v) => s + v);
 
     // Day txns
-    final List<MenudoTransaction> dayTxns = txns
-        .where((t) => DateTime.tryParse(t.dateString)?.day == _selectedDay)
-        .toList();
+    final List<MenudoTransaction> dayTxns = txns.where((t) {
+      final date = parseDateOnly(t.dateString);
+      if (date == null) return false;
+      return date.year == _selectedDate.year &&
+          date.month == _selectedDate.month &&
+          date.day == _selectedDate.day;
+    }).toList();
     final double dayTotal = dayTxns
         .where((t) => t.tipo == "gasto")
         .fold(0, (s, t) => s + (t.monto).abs());
@@ -131,10 +147,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   _HeatmapCard(
                     gastoPorDia: gastoPorDia,
                     maxGasto: maxGasto,
-                    selectedDay: _selectedDay,
+                    selectedDay: _selectedDate.day,
                     onDaySelected: (day) {
                       HapticFeedback.selectionClick();
-                      setState(() => _selectedDay = day);
+                      setState(() {
+                        _selectedDate = DateTime(now.year, now.month, day);
+                      });
                     },
                   ).animate().fadeIn(duration: 500.ms, delay: 100.ms),
 
@@ -142,7 +160,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
                   // Day Details
                   _DayHeader(
-                    selectedDay: _selectedDay,
+                    selectedDay: _selectedDate.day,
                     dayTotal: dayTotal,
                     monthLabel: _monthName(now.month),
                     fmt: _fmt,

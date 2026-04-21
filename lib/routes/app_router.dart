@@ -11,6 +11,7 @@ import '../features/auth/presentation/register_screen.dart';
 import '../features/auth/presentation/splash_screen.dart';
 import '../features/auth/presentation/onboarding_screen.dart';
 import '../features/auth/presentation/email_confirmation_screen.dart';
+import '../features/auth/presentation/reset_password_screen.dart';
 import '../features/auth/auth_state.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/settings/presentation/profile_screen.dart';
@@ -29,6 +30,7 @@ final appRouter = Provider<GoRouter>((ref) {
   final subState = ref.watch(subscriptionProvider);
   final isAuth = authState.isAuthenticated;
   final hasVerifiedAccess = subState.isActive || subState.hasVerificationIssue;
+  final requiresPasswordReset = authState.requiresPasswordReset;
 
   return GoRouter(
     initialLocation: '/splash',
@@ -43,7 +45,10 @@ final appRouter = Provider<GoRouter>((ref) {
           loc == '/register' ||
           loc == '/splash' ||
           loc == '/onboarding' ||
-          loc == '/auth/confirm';
+          loc == '/auth/confirm' ||
+          loc == '/auth/reset-password' ||
+          loc == '/callback' ||
+          loc == '/reset-password';
       final isAllowedWhileInactive =
           loc == '/paywall' ||
           loc == '/subscription' ||
@@ -55,7 +60,15 @@ final appRouter = Provider<GoRouter>((ref) {
           : '/paywall';
 
       if (authState.isBootstrapping) {
-        return loc == '/splash' || loc == '/auth/confirm' ? null : '/splash';
+        return loc == '/splash' ||
+                loc == '/auth/confirm' ||
+                loc == '/auth/reset-password'
+            ? null
+            : '/splash';
+      }
+
+      if (requiresPasswordReset) {
+        return loc == '/auth/reset-password' ? null : '/auth/reset-password';
       }
 
       if (staleFromReg) return '/paywall';
@@ -103,6 +116,18 @@ final appRouter = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/auth/confirm',
         builder: (context, state) => const EmailConfirmationScreen(),
+      ),
+      GoRoute(
+        path: '/callback',
+        builder: (context, state) => const EmailConfirmationScreen(),
+      ),
+      GoRoute(
+        path: '/auth/reset-password',
+        builder: (context, state) => const ResetPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (context, state) => const ResetPasswordScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),

@@ -9,9 +9,11 @@ import '../../../controllers/auth_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/error_presenter.dart';
+import '../../../core/utils/external_links.dart';
 import '../../../services/subscription_service.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_logo.dart';
+import '../../../utils/app_env.dart';
 import '../subscription_provider.dart';
 import '../subscription_state.dart';
 
@@ -207,7 +209,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       _purchaseFeedback = null;
     });
     try {
-      await Purchases.purchase(PurchaseParams.package(pkg));
+      final service = ref.read(subscriptionServiceProvider);
+      final result = await service.purchasePackage(pkg);
+      if (result == null) {
+        _showFeedback(
+          'Las compras todavía no están configuradas en esta build.',
+        );
+        return;
+      }
       await ref.read(subscriptionProvider.notifier).refresh();
     } on PurchasesError catch (e) {
       _showFeedback(_purchaseErrorMessage(e));
@@ -217,7 +226,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       _showFeedback(
         presentError(
           error,
-          fallback: 'No pudimos procesar la compra ahora mismo. Intenta de nuevo.',
+          fallback:
+              'No pudimos procesar la compra ahora mismo. Intenta de nuevo.',
         ),
       );
     } finally {
@@ -231,7 +241,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       _purchaseFeedback = null;
     });
     try {
-      final info = await Purchases.restorePurchases();
+      final service = ref.read(subscriptionServiceProvider);
+      final info = await service.restorePurchases();
+      if (info == null) {
+        _showFeedback(
+          'Las compras todavía no están configuradas en esta build.',
+        );
+        return;
+      }
       await ref.read(subscriptionProvider.notifier).refresh();
       if (!mounted) return;
       final restored = info.entitlements.active.containsKey(kEntitlementId);
@@ -324,7 +341,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     }
 
     if (normalized.contains('test_store_simulated_purchase_error') ||
-        normalized.contains('purchase failure simulated successfully in test store')) {
+        normalized.contains(
+          'purchase failure simulated successfully in test store',
+        )) {
       return isRestore
           ? 'Test Store simuló un fallo de restauración. El manejo del error sí respondió correctamente.'
           : 'Test Store simuló un fallo de compra. El pago no se realizó; este mensaje confirma que la app ya detectó el error.';
@@ -369,9 +388,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   void _showSnack(String message, {bool isError = true}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: isError ? null : AppColors.e8,
@@ -792,14 +809,53 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            'Al continuar aceptas los Términos de Servicio\ny la Política de Privacidad de Menudo.',
-            style: MenudoTextStyles.labelCaps.copyWith(
-              color: AppColors.g4,
-              fontSize: 10,
-              letterSpacing: 0.3,
-            ),
-            textAlign: TextAlign.center,
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 2,
+            runSpacing: 2,
+            children: [
+              Text(
+                'Al continuar aceptas',
+                style: MenudoTextStyles.labelCaps.copyWith(
+                  color: AppColors.g4,
+                  fontSize: 10,
+                  letterSpacing: 0.3,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              TextButton(
+                onPressed: () =>
+                    ExternalLinks.openUrlOrNotify(context, AppEnv.termsUrl),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.g5,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('Términos'),
+              ),
+              Text(
+                'y',
+                style: MenudoTextStyles.labelCaps.copyWith(
+                  color: AppColors.g4,
+                  fontSize: 10,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              TextButton(
+                onPressed: () => ExternalLinks.openUrlOrNotify(
+                  context,
+                  AppEnv.privacyPolicyUrl,
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.g5,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('Privacidad'),
+              ),
+            ],
           ),
         ],
       ).animate().fadeIn(delay: 1300.ms),
@@ -885,10 +941,7 @@ class _StatusCard extends StatelessWidget {
 }
 
 class _InlinePurchaseFeedback extends StatelessWidget {
-  const _InlinePurchaseFeedback({
-    required this.message,
-    required this.isError,
-  });
+  const _InlinePurchaseFeedback({required this.message, required this.isError});
 
   final String message;
   final bool isError;
@@ -897,7 +950,9 @@ class _InlinePurchaseFeedback extends StatelessWidget {
   Widget build(BuildContext context) {
     final bgColor = isError ? AppColors.r1 : AppColors.e1;
     final borderColor = isError ? AppColors.r5 : AppColors.e6;
-    final icon = isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded;
+    final icon = isError
+        ? Icons.error_outline_rounded
+        : Icons.check_circle_outline_rounded;
     final textColor = isError ? AppColors.r5 : AppColors.e8;
 
     return Container(

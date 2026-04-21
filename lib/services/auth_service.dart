@@ -13,6 +13,10 @@ class AuthService {
     return _repository.restoreSession();
   }
 
+  String? currentSupabaseEmail() {
+    return _repository.currentSupabaseEmail();
+  }
+
   Future<void> saveSession({
     required int userId,
     required String token,
@@ -43,12 +47,24 @@ class AuthService {
     return _repository.restorePendingVerificationEmail();
   }
 
+  Future<String?> restorePendingPasswordResetEmail() {
+    return _repository.restorePendingPasswordResetEmail();
+  }
+
   Future<void> savePendingVerificationEmail(String email) {
     return _repository.savePendingVerificationEmail(email);
   }
 
   Future<void> clearPendingVerificationEmail() {
     return _repository.clearPendingVerificationEmail();
+  }
+
+  Future<void> savePendingPasswordResetEmail(String email) {
+    return _repository.savePendingPasswordResetEmail(email);
+  }
+
+  Future<void> clearPendingPasswordResetEmail() {
+    return _repository.clearPendingPasswordResetEmail();
   }
 
   Future<AuthBootstrapResult> signInWithApple({String? currency}) {
@@ -109,6 +125,28 @@ class AuthService {
 
   Future<int?> setDefaultBudget(int? budgetId) {
     return _repository.setDefaultBudget(budgetId);
+  }
+
+  Future<void> requestPasswordReset(String email) {
+    return _repository.requestPasswordReset(email);
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) {
+    return _repository.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+  }
+
+  Future<void> updatePasswordFromRecovery(String newPassword) {
+    return _repository.updatePasswordFromRecovery(newPassword);
+  }
+
+  Future<void> deleteAccount() {
+    return _repository.deleteAccount();
   }
 }
 

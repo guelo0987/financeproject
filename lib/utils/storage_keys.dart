@@ -12,6 +12,8 @@ abstract final class StorageKeys {
   static const userCreatedAt = 'menudo_user_created_at';
   static const userAvatarEmoji = 'menudo_user_avatar_emoji';
   static const pendingVerificationEmail = 'menudo_pending_verification_email';
+  static const pendingPasswordResetEmail =
+      'menudo_pending_password_reset_email';
   static const demoMode = 'menudo_demo_mode';
   static const budgetInviteCooldowns = 'menudo_budget_invite_cooldowns';
 }

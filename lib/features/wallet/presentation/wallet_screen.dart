@@ -165,7 +165,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           elevation: 0,
           flexibleSpace: FlexibleSpaceBar(
             titlePadding: const EdgeInsetsDirectional.only(
-              start: 20,
+              start: 28,
               bottom: 16,
             ),
             centerTitle: false,

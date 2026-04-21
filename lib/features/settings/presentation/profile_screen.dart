@@ -8,6 +8,7 @@ import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/error_presenter.dart';
+import '../../../core/utils/external_links.dart';
 import '../../../model/user_profile.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_card.dart';
@@ -15,6 +16,8 @@ import '../../../shared/widgets/menudo_chip.dart';
 import '../../../shared/widgets/menudo_loading_view.dart';
 import '../../budgets/budget_providers.dart';
 import '../../auth/auth_state.dart';
+import '../../subscription/subscription_provider.dart';
+import '../../../utils/app_env.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -44,6 +47,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     '🔥',
     '🍊',
     '🫶',
+    '😄',
+    '🤍',
+    '🎯',
+    '🦋',
+    '🌞',
+    '🍀',
+    '💼',
+    '📚',
+    '🪙',
+    '🏦',
+    '🧡',
+    '🌴',
+    '🥭',
+    '☀️',
+    '🫱🏻‍🫲🏽',
+    '💰',
   ];
 
   final _nameController = TextEditingController();
@@ -54,6 +73,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String? _financialGoal;
   DateTime? _goalDate;
   bool _isSaving = false;
+  bool _isDeletingAccount = false;
 
   @override
   void initState() {
@@ -232,6 +252,47 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     setState(() => _avatarEmojiController.text = result);
   }
 
+  Future<void> _openChangePasswordSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _ChangePasswordSheet(),
+    );
+  }
+
+  Future<void> _openDeleteAccountSheet({
+    required String email,
+    required bool hasActiveSubscription,
+  }) async {
+    if (_isDeletingAccount) return;
+
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _DeleteAccountSheet(
+        email: email,
+        hasActiveSubscription: hasActiveSubscription,
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isDeletingAccount = true);
+    try {
+      await ref.read(authProvider.notifier).deleteAccount();
+      if (!mounted) return;
+      context.go('/login');
+    } catch (error) {
+      _showMessage(presentError(error));
+    } finally {
+      if (mounted) setState(() => _isDeletingAccount = false);
+    }
+  }
+
   Future<void> _saveProfile() async {
     final profile = ref.read(authProvider).profile;
     if (profile == null || _isSaving) return;
@@ -284,6 +345,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final profile = ref.watch(authProvider).profile;
     final budgetsState = ref.watch(budgetNotifierProvider);
     final budgets = ref.watch(effectiveBudgetsProvider);
+    final subscription = ref.watch(subscriptionProvider);
+    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
 
     if (profile == null) {
       return const Scaffold(
@@ -308,11 +371,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final avatarDisplay = avatarEmoji?.isNotEmpty == true
         ? avatarEmoji!
         : (initials.isEmpty ? 'M' : initials);
+    final goalAmount = _parseMoney();
+    final goalSummary = [
+      if (_financialGoal != null && _financialGoal!.isNotEmpty) _financialGoal!,
+      if (goalAmount != null && goalAmount > 0)
+        '${_currency == 'USD' ? 'US\$' : 'RD\$'} ${_formatMoney(goalAmount)}',
+      if (_goalDate != null) _formatDate(_goalDate),
+    ].join(' · ');
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: MenudoColors.appBg,
       body: SafeArea(
         child: CustomScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
@@ -491,6 +563,64 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             SliverToBoxAdapter(
               child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                child: Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: AppColors.a1,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: AppColors.warning.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.82),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.flag_rounded,
+                          color: AppColors.a5,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _financialGoal ?? 'Define tu meta principal',
+                              style: MenudoTextStyles.bodyLarge.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.a5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              goalSummary.isEmpty
+                                  ? 'Añade monto y fecha para que Menudo te dé más contexto.'
+                                  : goalSummary,
+                              style: MenudoTextStyles.bodySmall.copyWith(
+                                color: AppColors.a5,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                 child: MenudoCard(
                   child: Column(
@@ -525,7 +655,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       const SizedBox(height: 8),
                       _PlainTextField(
                         controller: _amountController,
-                        hintText: '0',
+                        hintText: '',
                         keyboardType: TextInputType.number,
                         onChanged: _onAmountChanged,
                         prefixText: _currency == 'USD' ? 'US\$ ' : 'RD\$ ',
@@ -587,10 +717,98 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Puedes entrar con Apple o con correo y contraseña. Mantén tu correo confirmado y usa una contraseña segura si eliges ese método.',
+                        'Si usas correo y contraseña, aquí puedes actualizarla sin salir de la app.',
                         style: MenudoTextStyles.bodySmall.copyWith(
                           color: MenudoColors.textMuted,
                         ),
+                      ),
+                      const SizedBox(height: 16),
+                      MenudoSecondaryButton(
+                        label: 'Cambiar contraseña',
+                        onTap: _openChangePasswordSheet,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                child: _SectionTitle('Cuenta'),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                child: MenudoCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Si decides cerrar tu cuenta, borraremos tu acceso y tus datos personales de Menudo. Este paso no se puede deshacer.',
+                        style: MenudoTextStyles.bodySmall.copyWith(
+                          color: MenudoColors.textMuted,
+                          height: 1.35,
+                        ),
+                      ),
+                      if (subscription.isActive) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppColors.a1,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: AppColors.warning.withValues(alpha: 0.24),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tu suscripción se gestiona aparte.',
+                                style: MenudoTextStyles.bodyMedium.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.a5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Si tienes un plan activo, Apple puede seguir facturando hasta que lo canceles desde la gestión de suscripciones.',
+                                style: MenudoTextStyles.bodySmall.copyWith(
+                                  color: AppColors.a5,
+                                  height: 1.35,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              TextButton(
+                                onPressed: () => ExternalLinks.openUrlOrNotify(
+                                  context,
+                                  AppEnv.manageSubscriptionsUrl,
+                                ),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.a5,
+                                  padding: EdgeInsets.zero,
+                                ),
+                                child: const Text(
+                                  'Abrir gestión de suscripciones',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      MenudoSecondaryButton(
+                        label: _isDeletingAccount
+                            ? 'Eliminando cuenta...'
+                            : 'Eliminar cuenta',
+                        onTap: () => _openDeleteAccountSheet(
+                          email: profile.email,
+                          hasActiveSubscription: subscription.isActive,
+                        ),
+                        isDisabled: _isDeletingAccount,
                       ),
                     ],
                   ),
@@ -608,6 +826,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
             ),
+            SliverToBoxAdapter(child: SizedBox(height: keyboardInset + 24)),
           ],
         ),
       ),
@@ -653,122 +872,274 @@ class _AvatarEmojiSheetState extends State<_AvatarEmojiSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final media = MediaQuery.of(context);
+    final safeBottom = media.padding.bottom;
     final preview = _normalizeEmoji(_controller.text) ?? _selectedEmoji;
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      padding: EdgeInsets.fromLTRB(20, 14, 20, 24 + safeBottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 5,
-              decoration: BoxDecoration(
-                color: AppColors.g2,
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          Text('Tu avatar', style: MenudoTextStyles.h3),
-          const SizedBox(height: 6),
-          Text(
-            'Elige uno rápido o escribe cualquier emoji.',
-            style: MenudoTextStyles.bodySmall.copyWith(
-              color: MenudoColors.textMuted,
-            ),
-          ),
-          const SizedBox(height: 18),
-          Center(
-            child: Container(
-              width: 84,
-              height: 84,
-              decoration: BoxDecoration(
-                color: AppColors.e1,
-                borderRadius: BorderRadius.circular(26),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                preview ?? 'M',
-                style: TextStyle(
-                  fontSize: preview == null ? 26 : 40,
-                  fontWeight: preview == null ? FontWeight.w900 : null,
-                  color: preview == null ? AppColors.e8 : null,
+    return SafeArea(
+      top: false,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        constraints: BoxConstraints(maxHeight: media.size.height * 0.84),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(20, 14, 20, 24 + safeBottom),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.g2,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: widget.suggestions.map((emoji) {
-              final isSelected = emoji == preview;
-              return GestureDetector(
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  setState(() {
-                    _selectedEmoji = emoji;
-                    _controller.text = emoji;
-                  });
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  width: 52,
-                  height: 52,
+              const SizedBox(height: 18),
+              Text('Tu avatar', style: MenudoTextStyles.h3),
+              const SizedBox(height: 6),
+              Text(
+                'Elige uno rápido o escribe otro. Si tu teclado no muestra emojis, usa estas opciones.',
+                style: MenudoTextStyles.bodySmall.copyWith(
+                  color: MenudoColors.textMuted,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Center(
+                child: Container(
+                  width: 84,
+                  height: 84,
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.e1 : Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: isSelected ? AppColors.e8 : MenudoColors.border,
-                      width: isSelected ? 1.6 : 1,
-                    ),
+                    color: AppColors.e1,
+                    borderRadius: BorderRadius.circular(26),
                   ),
                   alignment: Alignment.center,
-                  child: Text(emoji, style: const TextStyle(fontSize: 24)),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 18),
-          _FieldLabel('Emoji personalizado'),
-          const SizedBox(height: 8),
-          _PlainTextField(
-            controller: _controller,
-            hintText: '🙂',
-            onChanged: (value) {
-              setState(() => _selectedEmoji = _normalizeEmoji(value));
-            },
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: MenudoSecondaryButton(
-                  label: 'Quitar',
-                  onTap: () => Navigator.of(context).pop(''),
+                  child: Text(
+                    preview ?? 'M',
+                    style: TextStyle(
+                      fontSize: preview == null ? 26 : 40,
+                      fontWeight: preview == null ? FontWeight.w900 : null,
+                      color: preview == null ? AppColors.e8 : null,
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: MenudoButton(
-                  label: 'Guardar',
-                  isFullWidth: true,
-                  onTap: () => Navigator.of(
-                    context,
-                  ).pop(_normalizeEmoji(_controller.text) ?? _selectedEmoji),
-                ),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: widget.suggestions.map((emoji) {
+                  final isSelected = emoji == preview;
+                  return GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        _selectedEmoji = emoji;
+                        _controller.text = emoji;
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.e1 : Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.e8
+                              : MenudoColors.border,
+                          width: isSelected ? 1.6 : 1,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 18),
+              _FieldLabel('Emoji personalizado'),
+              const SizedBox(height: 8),
+              _PlainTextField(
+                controller: _controller,
+                hintText: '🙂',
+                keyboardType: TextInputType.text,
+                textInputAction: TextInputAction.done,
+                autofocus: true,
+                onChanged: (value) {
+                  setState(() => _selectedEmoji = _normalizeEmoji(value));
+                },
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: MenudoSecondaryButton(
+                      label: 'Quitar',
+                      onTap: () => Navigator.of(context).pop(''),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: MenudoButton(
+                      label: 'Guardar',
+                      isFullWidth: true,
+                      onTap: () => Navigator.of(context).pop(
+                        _normalizeEmoji(_controller.text) ?? _selectedEmoji,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DeleteAccountSheet extends StatefulWidget {
+  const _DeleteAccountSheet({
+    required this.email,
+    required this.hasActiveSubscription,
+  });
+
+  final String email;
+  final bool hasActiveSubscription;
+
+  @override
+  State<_DeleteAccountSheet> createState() => _DeleteAccountSheetState();
+}
+
+class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
+  final _confirmationController = TextEditingController();
+
+  @override
+  void dispose() {
+    _confirmationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final confirmed =
+        _confirmationController.text.trim().toUpperCase() == 'ELIMINAR';
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        padding: EdgeInsets.fromLTRB(20, 14, 20, 24 + safeBottom),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.g2,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text('Eliminar cuenta', style: MenudoTextStyles.h3),
+              const SizedBox(height: 8),
+              Text(
+                'Este paso borra tu acceso a Menudo y no se puede deshacer.',
+                style: MenudoTextStyles.bodySmall.copyWith(
+                  color: MenudoColors.textMuted,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.o1,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: AppColors.o5.withValues(alpha: 0.18),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Se eliminará',
+                      style: MenudoTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Cuenta: ${widget.email}\nPerfil y preferencias guardadas\nDatos personales asociados a tu acceso',
+                      style: MenudoTextStyles.bodySmall.copyWith(
+                        color: MenudoColors.textMuted,
+                        height: 1.45,
+                      ),
+                    ),
+                    if (widget.hasActiveSubscription) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        'Tu suscripción de Apple no se cancela sola. Si quieres evitar cargos futuros, cancélala primero desde la gestión de suscripciones.',
+                        style: MenudoTextStyles.bodySmall.copyWith(
+                          color: AppColors.a5,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              _FieldLabel('Escribe ELIMINAR para confirmar'),
+              const SizedBox(height: 8),
+              _PlainTextField(
+                controller: _confirmationController,
+                hintText: 'ELIMINAR',
+                autofocus: true,
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: MenudoSecondaryButton(
+                      label: 'Cancelar',
+                      onTap: () => Navigator.of(context).pop(false),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: MenudoButton(
+                      label: 'Borrar cuenta',
+                      isFullWidth: true,
+                      isDisabled: !confirmed,
+                      onTap: () => Navigator.of(context).pop(true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1094,6 +1465,11 @@ class _PlainTextField extends StatelessWidget {
     this.onChanged,
     this.textCapitalization = TextCapitalization.none,
     this.prefixText,
+    this.textInputAction,
+    this.autofocus = false,
+    this.obscureText = false,
+    this.suffixIcon,
+    this.onSubmitted,
   });
 
   final TextEditingController controller;
@@ -1102,18 +1478,28 @@ class _PlainTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final TextCapitalization textCapitalization;
   final String? prefixText;
+  final TextInputAction? textInputAction;
+  final bool autofocus;
+  final bool obscureText;
+  final Widget? suffixIcon;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      autofocus: autofocus,
       keyboardType: keyboardType,
       onChanged: onChanged,
+      onSubmitted: onSubmitted,
+      obscureText: obscureText,
       textCapitalization: textCapitalization,
+      textInputAction: textInputAction,
       style: MenudoTextStyles.bodyLarge,
       decoration: InputDecoration(
         hintText: hintText,
         prefixText: prefixText,
+        suffixIcon: suffixIcon,
         hintStyle: MenudoTextStyles.bodyLarge.copyWith(
           color: MenudoColors.textMuted,
         ),
@@ -1163,6 +1549,183 @@ class _CircleActionButton extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: Icon(icon, size: 18, color: MenudoColors.textMain),
+      ),
+    );
+  }
+}
+
+class _ChangePasswordSheet extends ConsumerStatefulWidget {
+  const _ChangePasswordSheet();
+
+  @override
+  ConsumerState<_ChangePasswordSheet> createState() =>
+      _ChangePasswordSheetState();
+}
+
+class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
+  final _currentController = TextEditingController();
+  final _nextController = TextEditingController();
+  final _confirmController = TextEditingController();
+  bool _isSaving = false;
+  bool _obscureCurrent = true;
+  bool _obscureNext = true;
+  bool _obscureConfirm = true;
+
+  @override
+  void dispose() {
+    _currentController.dispose();
+    _nextController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  Future<void> _submit() async {
+    if (_isSaving) return;
+    final currentPassword = _currentController.text;
+    final newPassword = _nextController.text;
+    final confirmPassword = _confirmController.text;
+
+    if (currentPassword.isEmpty ||
+        newPassword.isEmpty ||
+        confirmPassword.isEmpty) {
+      _showMessage('Completa los tres campos.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      _showMessage('Usa una contraseña nueva de al menos 6 caracteres.');
+      return;
+    }
+    if (newPassword != confirmPassword) {
+      _showMessage('La nueva contraseña y la confirmación no coinciden.');
+      return;
+    }
+    if (currentPassword == newPassword) {
+      _showMessage('La nueva contraseña debe ser distinta a la actual.');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await ref
+          .read(authProvider.notifier)
+          .changePassword(
+            currentPassword: currentPassword,
+            newPassword: newPassword,
+          );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tu contraseña ya fue actualizada.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (error) {
+      _showMessage(presentError(error));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      padding: EdgeInsets.fromLTRB(20, 14, 20, 24 + safeBottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.g2,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text('Cambiar contraseña', style: MenudoTextStyles.h3),
+          const SizedBox(height: 6),
+          Text(
+            'Usa tu contraseña actual y define una nueva.',
+            style: MenudoTextStyles.bodySmall.copyWith(
+              color: MenudoColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 18),
+          _PlainTextField(
+            controller: _currentController,
+            hintText: 'Contraseña actual',
+            textInputAction: TextInputAction.next,
+            obscureText: _obscureCurrent,
+            suffixIcon: IconButton(
+              onPressed: () =>
+                  setState(() => _obscureCurrent = !_obscureCurrent),
+              icon: Icon(
+                _obscureCurrent
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                color: MenudoColors.textMuted,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _PlainTextField(
+            controller: _nextController,
+            hintText: 'Nueva contraseña',
+            textInputAction: TextInputAction.next,
+            obscureText: _obscureNext,
+            suffixIcon: IconButton(
+              onPressed: () => setState(() => _obscureNext = !_obscureNext),
+              icon: Icon(
+                _obscureNext
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                color: MenudoColors.textMuted,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _PlainTextField(
+            controller: _confirmController,
+            hintText: 'Confirmar nueva contraseña',
+            textInputAction: TextInputAction.done,
+            obscureText: _obscureConfirm,
+            onSubmitted: (_) => _submit(),
+            suffixIcon: IconButton(
+              onPressed: () =>
+                  setState(() => _obscureConfirm = !_obscureConfirm),
+              icon: Icon(
+                _obscureConfirm
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                color: MenudoColors.textMuted,
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          MenudoButton(
+            label: _isSaving ? 'Guardando...' : 'Guardar contraseña',
+            isFullWidth: true,
+            isDisabled: _isSaving,
+            onTap: _submit,
+          ),
+        ],
       ),
     );
   }

@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 class AppEnv {
   static const _apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://financeapp-backend-eight.vercel.app',
+    defaultValue: 'https://api.menudoapp.com',
   );
   static const _supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
@@ -43,15 +43,39 @@ class AppEnv {
   );
   static const _authRedirectBridgeUrl = String.fromEnvironment(
     'AUTH_REDIRECT_BRIDGE_URL',
-    defaultValue: 'https://financeapp-backend-eight.vercel.app/auth/confirm-email',
+    defaultValue: 'https://api.menudoapp.com/auth/confirm-email',
+  );
+  static const _authPasswordResetBridgeUrl = String.fromEnvironment(
+    'AUTH_PASSWORD_RESET_BRIDGE_URL',
+    defaultValue: 'https://api.menudoapp.com/auth/reset-password',
   );
   static const _authWebPublicUrl = String.fromEnvironment(
     'AUTH_WEB_PUBLIC_URL',
     defaultValue: '',
   );
+  static const _publicWebBaseUrl = String.fromEnvironment(
+    'PUBLIC_WEB_BASE_URL',
+    defaultValue: 'https://menudoapp.com',
+  );
+  static const _supportEmail = String.fromEnvironment(
+    'SUPPORT_EMAIL',
+    defaultValue: 'notificaciones@menudoapp.com',
+  );
+  static const _revenueCatApiKey = String.fromEnvironment(
+    'REVENUECAT_API_KEY',
+    defaultValue: '',
+  );
+  static const _allowTestStoreRevenueCatRaw = String.fromEnvironment(
+    'ALLOW_TEST_STORE_REVENUECAT',
+    defaultValue: 'false',
+  );
   static const _authMobileCallbackUrl = String.fromEnvironment(
     'AUTH_MOBILE_CALLBACK_URL',
     defaultValue: 'menudo://auth/callback',
+  );
+  static const _authMobileResetPasswordUrl = String.fromEnvironment(
+    'AUTH_MOBILE_RESET_PASSWORD_URL',
+    defaultValue: 'menudo://auth/reset-password',
   );
 
   static String get apiBaseUrl {
@@ -117,29 +141,89 @@ class AppEnv {
 
   static String get authEmailRedirectUrl {
     final bridgeUri = Uri.parse(_authRedirectBridgeUrl);
-    final nextUrl = _authEmailFinalUrl;
+    final nextUrl = _resolveAuthFinalUrl(
+      webPath: '/auth/confirm',
+      mobileUrl: _authMobileCallbackUrl,
+    );
 
-    return bridgeUri.replace(
-      queryParameters: {
-        if (nextUrl.isNotEmpty) 'next': nextUrl,
-      },
-    ).toString();
+    return bridgeUri
+        .replace(queryParameters: {if (nextUrl.isNotEmpty) 'next': nextUrl})
+        .toString();
   }
 
-  static String get _authEmailFinalUrl {
+  static String get authPasswordResetRedirectUrl {
+    final bridgeUri = Uri.parse(_authPasswordResetBridgeUrl);
+    final nextUrl = authPasswordResetNextUrl;
+
+    return bridgeUri
+        .replace(queryParameters: {if (nextUrl.isNotEmpty) 'next': nextUrl})
+        .toString();
+  }
+
+  static String get authPasswordResetNextUrl {
+    return _resolveAuthFinalUrl(
+      webPath: '/auth/reset-password',
+      mobileUrl: _authMobileResetPasswordUrl,
+    );
+  }
+
+  static String get publicWebBaseUrl {
+    final preferredBase = _publicWebBaseUrl.trim();
+    if (preferredBase.isNotEmpty) return preferredBase;
+
+    final authWebBase = _authWebPublicUrl.trim();
+    if (authWebBase.isNotEmpty) return authWebBase;
+
+    return _apiBaseUrl.trim();
+  }
+
+  static String get supportEmail => _supportEmail.trim();
+
+  static String get revenueCatApiKey => _revenueCatApiKey.trim();
+
+  static bool get allowTestStoreRevenueCat {
+    final normalized = _allowTestStoreRevenueCatRaw.trim().toLowerCase();
+    return normalized == 'true' || normalized == '1' || normalized == 'yes';
+  }
+
+  static String get supportUrl => _buildPublicUrl('/support');
+
+  static String get privacyPolicyUrl => _buildPublicUrl('/privacy-policy');
+
+  static String get termsUrl => _buildPublicUrl('/terms');
+
+  static String get privacyChoicesUrl => _buildPublicUrl('/privacy-choices');
+
+  static String get manageSubscriptionsUrl =>
+      'https://apps.apple.com/account/subscriptions';
+
+  static String get refundRequestsUrl =>
+      'https://support.apple.com/en-us/HT204084';
+
+  static String _resolveAuthFinalUrl({
+    required String webPath,
+    required String mobileUrl,
+  }) {
     if (kIsWeb) {
       final base = Uri.base;
       final isWebUrl = base.scheme == 'http' || base.scheme == 'https';
       if (isWebUrl && !_isLocalDevelopmentHost(base.host)) {
         return base
-            .replace(path: '/auth/confirm', queryParameters: null, fragment: null)
+            .replace(path: webPath, queryParameters: null, fragment: null)
             .toString();
       }
 
       return _authWebPublicUrl.trim();
     }
 
-    return _authMobileCallbackUrl;
+    return mobileUrl;
+  }
+
+  static String _buildPublicUrl(String path) {
+    final base = Uri.parse(publicWebBaseUrl);
+    return base
+        .replace(path: path, queryParameters: null, fragment: null)
+        .toString();
   }
 
   static bool _isLocalDevelopmentHost(String host) {
