@@ -21,6 +21,7 @@ import '../features/categories/presentation/categories_screen.dart';
 import '../features/categories/presentation/spending_categories_screen.dart';
 import '../features/tools/presentation/tools_screen.dart';
 import '../features/recurring/presentation/recurring_screen.dart';
+import '../features/shortcuts/presentation/ios_shortcuts_setup_screen.dart';
 import '../features/subscription/presentation/paywall_screen.dart';
 import '../features/subscription/presentation/subscription_detail_screen.dart';
 import '../features/subscription/subscription_provider.dart';
@@ -183,6 +184,10 @@ final appRouter = Provider<GoRouter>((ref) {
         builder: (context, state) => const SpendingCategoriesScreen(),
       ),
       GoRoute(path: '/tools', builder: (context, state) => const ToolsScreen()),
+      GoRoute(
+        path: '/shortcuts',
+        builder: (context, state) => const IosShortcutsSetupScreen(),
+      ),
       GoRoute(
         path: '/recurring',
         builder: (context, state) => const RecurringScreen(),

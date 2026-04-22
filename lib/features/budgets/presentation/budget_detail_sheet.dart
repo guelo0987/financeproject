@@ -15,10 +15,8 @@ import '../../../../shared/widgets/menudo_chip.dart';
 import '../../auth/auth_state.dart';
 import '../budget_providers.dart';
 import '../../categories/providers/category_providers.dart';
-import '../../transactions/presentation/transaction_detail_sheet.dart';
 import '../../transactions/presentation/transaction_presentation_utils.dart';
 import '../../transactions/providers/transaction_providers.dart';
-import '../../wallet/providers/wallet_providers.dart';
 import '../../../utils/storage_keys.dart';
 import 'wizard/create_budget_wizard.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
@@ -34,7 +32,6 @@ class BudgetDetailSheet extends ConsumerStatefulWidget {
 
 class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   String _tab = "resumen"; // plan, resumen, insights
-  String _movementFilter = 'todos';
   List<BudgetMember> _members = const [];
   bool _isLoadingMembers = false;
   String? _membersError;
@@ -472,278 +469,6 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     return items;
   }
 
-  List<MenudoTransaction> _filteredBudgetTransactions(
-    List<MenudoTransaction> transactions,
-  ) {
-    final filtered = switch (_movementFilter) {
-      'gasto' => transactions.where(
-        (transaction) => transaction.tipo == 'gasto',
-      ),
-      'ingreso' => transactions.where(
-        (transaction) => transaction.tipo == 'ingreso',
-      ),
-      'transferencia' => transactions.where(
-        (transaction) => transaction.tipo == 'transferencia',
-      ),
-      _ => transactions.where(
-        (transaction) =>
-            transaction.tipo == 'gasto' ||
-            transaction.tipo == 'ingreso' ||
-            transaction.tipo == 'transferencia',
-      ),
-    }.toList()..sort((a, b) => b.dateString.compareTo(a.dateString));
-
-    return filtered;
-  }
-
-  String _budgetTransactionCategoryPath(
-    MenudoTransaction transaction,
-    MenudoCategory? resolvedCategory,
-    Map<int, MenudoCategory> categoriesById,
-  ) {
-    final parentCategory = resolvedCategory?.categoriaParadreId != null
-        ? categoriesById[resolvedCategory!.categoriaParadreId!]
-        : null;
-
-    return _joinDistinctSecondaryLabels([
-      _distinctSecondaryLabel(
-        parentCategory?.nombre,
-        against: resolvedCategory?.nombre,
-      ),
-      resolvedCategory?.nombre,
-      if (resolvedCategory == null && transaction.catKey.trim().isNotEmpty)
-        transaction.catKey,
-    ]);
-  }
-
-  Widget _buildBudgetTransactionsSection(
-    List<MenudoTransaction> transactions,
-    List<MenudoCategory> categories,
-    Map<int, MenudoCategory> categoriesById,
-  ) {
-    final filteredTransactions = _filteredBudgetTransactions(transactions);
-    final wallets = ref.watch(effectiveWalletsProvider);
-    final incomeTotal = filteredTransactions
-        .where((transaction) => transaction.tipo == 'ingreso')
-        .fold(0.0, (sum, transaction) => sum + transaction.monto.abs());
-    final expenseTotal = filteredTransactions
-        .where((transaction) => transaction.tipo == 'gasto')
-        .fold(0.0, (sum, transaction) => sum + transaction.monto.abs());
-
-    return Container(
-      margin: const EdgeInsets.only(top: 18),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.g2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.e8.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  LucideIcons.receipt,
-                  size: 16,
-                  color: AppColors.e8,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Movimientos del ciclo',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.e8,
-                      ),
-                    ),
-                    Text(
-                      '${filteredTransactions.length} movimiento${filteredTransactions.length == 1 ? '' : 's'}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.g4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _MovementFilterChip(
-                label: 'Todo',
-                selected: _movementFilter == 'todos',
-                onTap: () => setState(() => _movementFilter = 'todos'),
-              ),
-              _MovementFilterChip(
-                label: 'Gastos',
-                selected: _movementFilter == 'gasto',
-                color: AppColors.o5,
-                onTap: () => setState(() => _movementFilter = 'gasto'),
-              ),
-              _MovementFilterChip(
-                label: 'Ingresos',
-                selected: _movementFilter == 'ingreso',
-                color: AppColors.e6,
-                onTap: () => setState(() => _movementFilter = 'ingreso'),
-              ),
-              if (transactions.any(
-                (transaction) => transaction.tipo == 'transferencia',
-              ))
-                _MovementFilterChip(
-                  label: 'Transferencias',
-                  selected: _movementFilter == 'transferencia',
-                  color: AppColors.b5,
-                  onTap: () =>
-                      setState(() => _movementFilter = 'transferencia'),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _BudgetCompactStat(
-                label: 'Ingresó',
-                value: _fmt(incomeTotal),
-                color: AppColors.e6,
-              ),
-              _BudgetCompactStat(
-                label: 'Gastó',
-                value: _fmt(expenseTotal),
-                color: AppColors.o5,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (filteredTransactions.isEmpty)
-            const _InlineInfoCard(
-              text:
-                  'No hay movimientos en esta vista del ciclo actual. Cambia el filtro para ver ingresos, gastos o transferencias.',
-            )
-          else ...[
-            ...filteredTransactions.take(6).toList().asMap().entries.map((
-              entry,
-            ) {
-              final transaction = entry.value;
-              final resolvedCategory = _resolveTransactionCategory(
-                transaction,
-                categories,
-                categoriesById,
-              );
-              final presentation = buildTransactionPresentation(
-                transaction,
-                wallets,
-              );
-              final categoryPath = _budgetTransactionCategoryPath(
-                transaction,
-                resolvedCategory,
-                categoriesById,
-              );
-              final parentLabel = resolvedCategory?.categoriaParadreId == null
-                  ? ''
-                  : _distinctSecondaryLabel(
-                      categoriesById[resolvedCategory!.categoriaParadreId!]
-                          ?.nombre,
-                      against: resolvedCategory.nombre,
-                    );
-              final title = distinctUiLabel(
-                transaction.desc,
-                against: categoryPath,
-              );
-              final secondaryLabel = joinDistinctUiLabels([
-                distinctUiLabel(parentLabel, against: title),
-                _historyCompactDate(DateTime.tryParse(transaction.dateString)),
-                transaction.userName,
-              ]);
-
-              return Padding(
-                padding: EdgeInsets.only(
-                  bottom: entry.key == min(filteredTransactions.length, 6) - 1
-                      ? 0
-                      : 12,
-                ),
-                child: _BudgetMovementRow(
-                  icon: resolvedCategory?.icono ?? transaction.icono,
-                  color: transaction.tipo == 'ingreso'
-                      ? AppColors.e6
-                      : transaction.tipo == 'transferencia'
-                      ? AppColors.b5
-                      : (resolvedCategory?.color ?? AppColors.o5),
-                  title: title.isEmpty
-                      ? (categoryPath.isEmpty
-                            ? 'Movimiento sin detalle'
-                            : categoryPath)
-                      : title,
-                  subtitle: transaction.tipo == 'transferencia'
-                      ? joinDistinctUiLabels([
-                          presentation.routeLabel,
-                          _historyCompactDate(
-                            DateTime.tryParse(transaction.dateString),
-                          ),
-                          transaction.userName,
-                        ])
-                      : secondaryLabel,
-                  amount: formatMoney(
-                    transaction.monto.abs(),
-                    currency: transaction.moneda,
-                  ),
-                  amountColor: transaction.tipo == 'ingreso'
-                      ? AppColors.e6
-                      : transaction.tipo == 'transferencia'
-                      ? AppColors.b5
-                      : AppColors.e8,
-                  prefix: presentation.prefix,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    showModalBottomSheet(
-                      context: context,
-                      useRootNavigator: true,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (_) =>
-                          TransactionDetailSheet(transaction: transaction),
-                    );
-                  },
-                ),
-              );
-            }),
-            if (filteredTransactions.length > 6) ...[
-              const SizedBox(height: 12),
-              Text(
-                '+${filteredTransactions.length - 6} movimiento${filteredTransactions.length - 6 == 1 ? '' : 's'} más en este ciclo',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.g4,
-                ),
-              ),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
-
   Widget _buildTransactionsByCategorySection(
     List<_BudgetExpenseBreakdownItem> items,
   ) {
@@ -1145,20 +870,9 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                     key: ValueKey(_tab),
                     children: [
                       if (_tab == "resumen") ...[
-                        _buildSummaryMetrics(
-                          displayBudget,
-                          spent,
-                          left,
-                          displayBudget.actualIncomeTotal,
-                        ),
                         _buildTransactionsByCategorySection(expenseBreakdown),
                         _buildIncomeByCategorySection(
                           incomeBreakdown,
-                          categoriesById,
-                        ),
-                        _buildBudgetTransactionsSection(
-                          periodTransactions,
-                          categories,
                           categoriesById,
                         ),
                         _buildSharedBudgetSection(isShared: isShared),
@@ -1186,67 +900,6 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         ],
       ),
     );
-  }
-
-  Widget _buildSummaryMetrics(
-    MenudoBudget budget,
-    double spent,
-    double left,
-    double incomeActual,
-  ) {
-    return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _MetricCard(
-                    label: "Gastado",
-                    amount: _fmt(spent),
-                    color: AppColors.o5,
-                    icon: LucideIcons.trendingDown,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _MetricCard(
-                    label: "Disponible",
-                    amount: _fmt(left),
-                    color: left < 0 ? AppColors.r5 : AppColors.e6,
-                    icon: LucideIcons.wallet,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _MetricCard(
-                    label: "Ingresos reales",
-                    amount: _fmt(incomeActual),
-                    color: AppColors.e6,
-                    icon: LucideIcons.trendingUp,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _MetricCard(
-                    label: "Meta de ahorro",
-                    amount: budget.ahorroObjetivo > 0
-                        ? _fmt(budget.ahorroObjetivo)
-                        : 'Sin meta',
-                    color: AppColors.a5,
-                    icon: LucideIcons.target,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        )
-        .animate()
-        .fadeIn(duration: 400.ms)
-        .slideY(begin: 0.1, end: 0, curve: Curves.easeOut);
   }
 
   Widget _buildSharedBudgetSection({required bool isShared}) {
@@ -1706,11 +1359,13 @@ class _BudgetOverviewCard extends StatelessWidget {
     final planBase = budget.displayIncomeBase;
     final usage = planBase > 0 ? (spent / planBase).clamp(0.0, 1.0) : 0.0;
     final accentColor = left < 0 ? AppColors.r5 : AppColors.e8;
+    final spentSummary = planBase > 0
+        ? '${fmt(spent)} de ${fmt(planBase)} usados'
+        : '${fmt(spent)} usados';
     final metrics = [
       _OverviewMetric(label: 'Plan', value: fmt(planBase)),
-      _OverviewMetric(label: 'Gastado', value: fmt(spent)),
       _OverviewMetric(
-        label: 'Ingresos reales',
+        label: 'Ingresos',
         value: fmt(budget.actualIncomeTotal),
       ),
       _OverviewMetric(
@@ -1743,22 +1398,13 @@ class _BudgetOverviewCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: const Text(
-                  'RESUMEN ACTUAL',
+                  'PRESUPUESTO',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
                     color: AppColors.e6,
                     letterSpacing: 0.4,
                   ),
-                ),
-              ),
-              const Spacer(),
-              Text(
-                left < 0 ? 'Fuera del plan' : 'Dentro del plan',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: accentColor,
                 ),
               ),
             ],
@@ -1791,7 +1437,7 @@ class _BudgetOverviewCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Gastado ${fmt(spent)} de ${fmt(planBase)} planificados',
+            spentSummary,
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -1811,20 +1457,13 @@ class _BudgetOverviewCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth > 540;
-              final cardWidth = isWide
-                  ? (constraints.maxWidth - 30) / 4
-                  : (constraints.maxWidth - 10) / 2;
-              return Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: metrics
-                    .map((metric) => SizedBox(width: cardWidth, child: metric))
-                    .toList(),
-              );
-            },
+          Row(
+            children: [
+              for (var i = 0; i < metrics.length; i++) ...[
+                Expanded(child: metrics[i]),
+                if (i != metrics.length - 1) const SizedBox(width: 10),
+              ],
+            ],
           ),
         ],
       ),
@@ -1861,14 +1500,19 @@ class _OverviewMetric extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: AppColors.e8,
+          SizedBox(
+            height: 18,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.e8,
+                ),
+              ),
             ),
           ),
         ],
@@ -2057,66 +1701,6 @@ class _TabItem extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  final String label, amount;
-  final Color color;
-  final IconData icon;
-
-  const _MetricCard({
-    required this.label,
-    required this.amount,
-    required this.color,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.g2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.g1,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 14, color: color),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppColors.g4,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            amount,
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -3625,11 +3209,9 @@ class _HistorySnapshotCard extends StatelessWidget {
         ? snapshot.sobroPresupuesto
         : snapshot.balance;
     final headlineColor = headlineValue >= 0 ? AppColors.e6 : AppColors.r5;
-    final headlineLabel = usesPlannedIncome
-        ? 'Disponible del plan'
-        : 'Balance del cierre';
+    final headlineLabel = usesPlannedIncome ? 'Disponible' : 'Balance';
     final subtitle =
-        '${_periodLabel(snapshot.periodo)} · ${snapshot.totalTransacciones} movimiento${snapshot.totalTransacciones == 1 ? '' : 's'}';
+        '${_periodLabel(snapshot.periodo)} · ${snapshot.totalTransacciones} mov.';
     final expenseItems = [...snapshot.categoriasGastos, ...snapshot.otrosGastos]
       ..sort((a, b) => b.gastado.compareTo(a.gastado));
     final incomeItems = [...snapshot.ingresosDetalle, ...snapshot.otrosIngresos]
@@ -3691,7 +3273,7 @@ class _HistorySnapshotCard extends StatelessWidget {
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
-              fmt(headlineValue.abs()),
+              fmt(headlineValue),
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.w900,
@@ -3723,12 +3305,14 @@ class _HistorySnapshotCard extends StatelessWidget {
             value: fmt(snapshot.totalGastos),
             color: AppColors.o5,
           ),
-          const SizedBox(height: 12),
-          _HistoryValue(
-            label: 'Balance',
-            value: fmt(snapshot.balance),
-            color: snapshot.balance >= 0 ? AppColors.e8 : AppColors.r5,
-          ),
+          if (!usesPlannedIncome) ...[
+            const SizedBox(height: 12),
+            _HistoryValue(
+              label: 'Balance',
+              value: fmt(snapshot.balance),
+              color: snapshot.balance >= 0 ? AppColors.e8 : AppColors.r5,
+            ),
+          ],
           if (topCategory != null && topCategory.label.trim().isNotEmpty) ...[
             const SizedBox(height: 14),
             Container(
@@ -3743,7 +3327,7 @@ class _HistorySnapshotCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
-                      'Mayor gasto: ${topCategory.label}',
+                      topCategory.label,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 12,
@@ -3862,7 +3446,7 @@ class _HistorySnapshotCard extends StatelessWidget {
             const Divider(height: 1, color: AppColors.g2),
             const SizedBox(height: 14),
             const Text(
-              'Últimos movimientos de ese cierre',
+              'Últimos movimientos',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
@@ -3944,187 +3528,6 @@ class _HistoryValue extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _BudgetCompactStat extends StatelessWidget {
-  const _BudgetCompactStat({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: AppColors.g5,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MovementFilterChip extends StatelessWidget {
-  const _MovementFilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.color = AppColors.e8,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-        decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.12) : AppColors.g0,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: selected ? color : AppColors.g2),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
-            color: selected ? color : AppColors.g5,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BudgetMovementRow extends StatelessWidget {
-  const _BudgetMovementRow({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.subtitle,
-    required this.amount,
-    required this.amountColor,
-    required this.prefix,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String subtitle;
-  final String amount;
-  final Color amountColor;
-  final String prefix;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColors.g0,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.g2.withValues(alpha: 0.8)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.center,
-              child: Icon(icon, size: 16, color: color),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.e8,
-                    ),
-                  ),
-                  if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.g4,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerRight,
-                child: Text(
-                  prefix.isEmpty ? amount : '$prefix$amount',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    color: amountColor,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

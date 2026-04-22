@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -42,6 +43,8 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
   double get _cdpRendimiento => _cdpMonto * (_cdpTasa / 100) * (_cdpMeses / 12);
   double get _cdpTotal => _cdpMonto + _cdpRendimiento;
+  bool get _showsIosShortcuts =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
   String _fmt(double val) =>
       "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
@@ -138,6 +141,13 @@ class _ToolsScreenState extends State<ToolsScreen> {
               ),
             ],
           ).animate().fadeIn(duration: 380.ms, delay: 50.ms),
+
+          if (_showsIosShortcuts) ...[
+            const SizedBox(height: 14),
+            _shortcutLauncherCard(
+              context,
+            ).animate().fadeIn(duration: 380.ms, delay: 80.ms),
+          ],
 
           const SizedBox(height: 28),
 
@@ -576,6 +586,59 @@ class _ToolsScreenState extends State<ToolsScreen> {
           textAlign: TextAlign.center,
         ),
       ],
+    );
+  }
+
+  Widget _shortcutLauncherCard(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        context.push('/shortcuts');
+      },
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: AppColors.o1,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(LucideIcons.zap, color: AppColors.o5, size: 24),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Atajos de iPhone",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.e8,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    "Gasto rápido con Shortcuts, Back Tap y Action Button",
+                    style: TextStyle(fontSize: 13, color: AppColors.g4),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(LucideIcons.chevronRight, color: AppColors.g4, size: 18),
+          ],
+        ),
+      ),
     );
   }
 }
