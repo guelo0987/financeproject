@@ -41,14 +41,6 @@ class AppEnv {
     'ALLOW_LOCAL_PLATFORM_API_OVERRIDE',
     defaultValue: 'false',
   );
-  static const _authRedirectBridgeUrl = String.fromEnvironment(
-    'AUTH_REDIRECT_BRIDGE_URL',
-    defaultValue: 'https://api.menudoapp.com/auth/confirm-email',
-  );
-  static const _authPasswordResetBridgeUrl = String.fromEnvironment(
-    'AUTH_PASSWORD_RESET_BRIDGE_URL',
-    defaultValue: 'https://api.menudoapp.com/auth/reset-password',
-  );
   static const _authWebPublicUrl = String.fromEnvironment(
     'AUTH_WEB_PUBLIC_URL',
     defaultValue: '',
@@ -140,24 +132,14 @@ class AppEnv {
   }
 
   static String get authEmailRedirectUrl {
-    final bridgeUri = Uri.parse(_authRedirectBridgeUrl);
-    final nextUrl = _resolveAuthFinalUrl(
+    return _resolveAuthFinalUrl(
       webPath: '/auth/confirm',
       mobileUrl: _authMobileCallbackUrl,
     );
-
-    return bridgeUri
-        .replace(queryParameters: {if (nextUrl.isNotEmpty) 'next': nextUrl})
-        .toString();
   }
 
   static String get authPasswordResetRedirectUrl {
-    final bridgeUri = Uri.parse(_authPasswordResetBridgeUrl);
-    final nextUrl = authPasswordResetNextUrl;
-
-    return bridgeUri
-        .replace(queryParameters: {if (nextUrl.isNotEmpty) 'next': nextUrl})
-        .toString();
+    return authPasswordResetNextUrl;
   }
 
   static String get authPasswordResetNextUrl {

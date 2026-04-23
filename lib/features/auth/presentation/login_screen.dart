@@ -25,6 +25,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _appleAvailable = false;
+  bool _showEmailForm = false;
 
   @override
   void initState() {
@@ -43,7 +44,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final available = await SignInWithApple.isAvailable();
       if (mounted) {
-        setState(() => _appleAvailable = available);
+        setState(() {
+          _appleAvailable = available;
+          if (!available) {
+            _showEmailForm = true;
+          }
+        });
       }
     } catch (_) {}
   }
@@ -162,136 +168,129 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ).animate().scale(delay: 120.ms, duration: 360.ms),
                 const SizedBox(height: 24),
                 Text(
-                  'Entrar',
+                  'Entrar en Menudo',
                   style: MenudoTextStyles.h1,
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 200.ms),
                 const SizedBox(height: 8),
                 Text(
                   _appleAvailable
-                      ? 'Usa tu correo y contraseña. Si prefieres, también puedes entrar con Apple.'
-                      : 'Usa tu correo y contraseña para entrar en tu cuenta.',
+                      ? 'En iPhone, la forma más rápida es continuar con Apple.'
+                      : 'Usa tu correo y tu contraseña para entrar en tu cuenta.',
                   style: MenudoTextStyles.bodyMedium.copyWith(
                     color: MenudoColors.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 260.ms),
-                if (pendingVerificationEmail != null) ...[
+                const SizedBox(height: 28),
+                if (_appleAvailable) ...[
+                  IgnorePointer(
+                    ignoring: _isLoading,
+                    child: Opacity(
+                      opacity: _isLoading ? 0.7 : 1,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: SignInWithAppleButton(
+                          onPressed: _handleAppleLogin,
+                          style: SignInWithAppleButtonStyle.black,
+                          text: 'Continuar con Apple',
+                        ),
+                      ),
+                    ),
+                  ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.04),
+                  const SizedBox(height: 14),
+                  TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () =>
+                              setState(() => _showEmailForm = !_showEmailForm),
+                    style: TextButton.styleFrom(
+                      foregroundColor: MenudoColors.primary,
+                    ),
+                    child: Text(
+                      _showEmailForm
+                          ? 'Ocultar correo y contraseña'
+                          : 'Usar correo y contraseña',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ).animate().fadeIn(delay: 340.ms),
+                ],
+                if (!_appleAvailable || _showEmailForm) ...[
                   const SizedBox(height: 18),
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: MenudoColors.warningLight,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: MenudoColors.warning),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: MenudoColors.border),
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Padding(
-                          padding: EdgeInsets.only(top: 1),
-                          child: Icon(
-                            Icons.mark_email_unread_outlined,
-                            color: MenudoColors.warning,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Tu cuenta $pendingVerificationEmail todavía no ha sido verificada. Revisa tu correo, confirma el enlace y luego entra con tu contraseña.',
-                            style: MenudoTextStyles.bodyMedium.copyWith(
-                              color: MenudoColors.textMain,
-                              height: 1.35,
+                        if (_appleAvailable) ...[
+                          Text(
+                            'O entra con correo',
+                            style: MenudoTextStyles.bodyLarge.copyWith(
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
+                          const SizedBox(height: 14),
+                        ],
+                        _AuthField(
+                          controller: _emailController,
+                          label: 'Correo',
+                          hintText: 'correo@ejemplo.com',
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.email],
+                        ),
+                        const SizedBox(height: 14),
+                        _AuthField(
+                          controller: _passwordController,
+                          label: 'Contraseña',
+                          hintText: 'Tu contraseña',
+                          obscureText: _obscurePassword,
+                          textInputAction: TextInputAction.done,
+                          autofillHints: const [AutofillHints.password],
+                          suffixIcon: IconButton(
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: MenudoColors.textMuted,
+                            ),
+                          ),
+                          onSubmitted: (_) => _handleEmailLogin(),
+                        ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: _isLoading
+                                ? null
+                                : _handleForgotPassword,
+                            style: TextButton.styleFrom(
+                              foregroundColor: MenudoColors.primary,
+                              padding: const EdgeInsets.only(top: 4),
+                            ),
+                            child: const Text(
+                              'Olvidé mi contraseña',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        MenudoPrimaryButton(
+                          label: _isLoading ? 'Entrando...' : 'Entrar',
+                          onTap: _handleEmailLogin,
+                          isDisabled: _isLoading,
                         ),
                       ],
                     ),
-                  ).animate().fadeIn(delay: 280.ms).slideY(begin: 0.04),
+                  ).animate().fadeIn(delay: 380.ms).slideY(begin: 0.08),
                 ],
-                const SizedBox(height: 32),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: MenudoColors.border),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _AuthField(
-                        controller: _emailController,
-                        label: 'Correo',
-                        hintText: 'correo@ejemplo.com',
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        autofillHints: const [AutofillHints.email],
-                      ),
-                      const SizedBox(height: 14),
-                      _AuthField(
-                        controller: _passwordController,
-                        label: 'Contraseña',
-                        hintText: 'Tu contraseña',
-                        obscureText: _obscurePassword,
-                        textInputAction: TextInputAction.done,
-                        autofillHints: const [AutofillHints.password],
-                        suffixIcon: IconButton(
-                          onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword,
-                          ),
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            color: MenudoColors.textMuted,
-                          ),
-                        ),
-                        onSubmitted: (_) => _handleEmailLogin(),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: _isLoading ? null : _handleForgotPassword,
-                          style: TextButton.styleFrom(
-                            foregroundColor: MenudoColors.primary,
-                            padding: const EdgeInsets.only(top: 4),
-                          ),
-                          child: const Text(
-                            'Olvidé mi contraseña',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      MenudoPrimaryButton(
-                        label: _isLoading ? 'Entrando...' : 'Entrar',
-                        onTap: _handleEmailLogin,
-                        isDisabled: _isLoading,
-                      ),
-                      if (_appleAvailable) ...[
-                        const SizedBox(height: 18),
-                        const _AuthDivider(label: 'o'),
-                        const SizedBox(height: 18),
-                        IgnorePointer(
-                          ignoring: _isLoading,
-                          child: Opacity(
-                            opacity: _isLoading ? 0.7 : 1,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: SignInWithAppleButton(
-                                onPressed: _handleAppleLogin,
-                                style: SignInWithAppleButtonStyle.black,
-                                text: 'Continuar con Apple',
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ).animate().fadeIn(delay: 320.ms).slideY(begin: 0.08),
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -396,31 +395,6 @@ class _AuthField extends StatelessWidget {
             ),
           ),
         ),
-      ],
-    );
-  }
-}
-
-class _AuthDivider extends StatelessWidget {
-  const _AuthDivider({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(child: Divider(color: AppColors.g2, height: 1)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            label,
-            style: MenudoTextStyles.bodySmall.copyWith(
-              color: MenudoColors.textMuted,
-            ),
-          ),
-        ),
-        const Expanded(child: Divider(color: AppColors.g2, height: 1)),
       ],
     );
   }

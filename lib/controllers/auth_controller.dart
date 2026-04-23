@@ -15,6 +15,7 @@ class AuthState {
   final bool isAuthenticated;
   final bool isBootstrapping;
   final bool needsPaywall;
+  final bool isAppleAccount;
   final String? userId;
   final String? token;
   final DateTime? expiration;
@@ -27,6 +28,7 @@ class AuthState {
     this.isAuthenticated = false,
     this.isBootstrapping = false,
     this.needsPaywall = false,
+    this.isAppleAccount = false,
     this.userId,
     this.token,
     this.expiration,
@@ -40,6 +42,7 @@ class AuthState {
     bool? isAuthenticated,
     bool? isBootstrapping,
     bool? needsPaywall,
+    bool? isAppleAccount,
     String? userId,
     String? token,
     DateTime? expiration,
@@ -52,6 +55,7 @@ class AuthState {
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       isBootstrapping: isBootstrapping ?? this.isBootstrapping,
       needsPaywall: needsPaywall ?? this.needsPaywall,
+      isAppleAccount: isAppleAccount ?? this.isAppleAccount,
       userId: userId ?? this.userId,
       token: token ?? this.token,
       expiration: expiration ?? this.expiration,
@@ -296,6 +300,7 @@ class AuthController extends StateNotifier<AuthState> {
     state = AuthState(
       isAuthenticated: true,
       isBootstrapping: false,
+      isAppleAccount: _service.isCurrentUserAppleAccount(),
       userId: session.userId.toString(),
       token: session.token,
       expiration: DateTime.now().add(const Duration(hours: 24)),
@@ -341,6 +346,13 @@ class AuthController extends StateNotifier<AuthState> {
       currency: _preferredCurrency(),
     );
     await _completeAuthenticatedSignIn(bootstrap);
+  }
+
+  Future<void> verifyOtpTokenHash({
+    required String tokenHash,
+    required supabase.OtpType type,
+  }) {
+    return _service.verifyOtpTokenHash(tokenHash: tokenHash, type: type);
   }
 
   Future<void> deleteAccount() async {

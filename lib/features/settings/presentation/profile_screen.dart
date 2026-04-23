@@ -156,11 +156,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       profile.createdAt!,
       pattern: 'MMM yyyy',
     );
-    return tr(
-      context,
-      es: 'Desde $dateLabel',
-      en: 'Since $dateLabel',
-    );
+    return tr(context, es: 'Desde $dateLabel', en: 'Since $dateLabel');
   }
 
   String _budgetLabel(
@@ -294,6 +290,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _openChangePasswordSheet() async {
+    if (ref.read(authProvider).isAppleAccount) {
+      _showMessage('Tu acceso se gestiona con Apple.');
+      return;
+    }
+
     await showModalBottomSheet<void>(
       context: context,
       useRootNavigator: true,
@@ -386,7 +387,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = ref.watch(authProvider).profile;
+    final authState = ref.watch(authProvider);
+    final profile = authState.profile;
     final budgetsState = ref.watch(budgetNotifierProvider);
     final budgets = ref.watch(effectiveBudgetsProvider);
     final subscription = ref.watch(subscriptionProvider);
@@ -577,9 +579,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       _FieldLabel('Moneda base'),
                       const SizedBox(height: 10),
                       _ReadOnlyField(
-                        value: marketFromCurrency(_currency).label(
-                          isEnglishLocale(context),
-                        ),
+                        value: marketFromCurrency(
+                          _currency,
+                        ).label(isEnglishLocale(context)),
                         onTap: _pickCurrencyMarket,
                       ),
                     ],
@@ -735,35 +737,37 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: _SectionTitle('Seguridad'),
+            if (!authState.isAppleAccount) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: _SectionTitle('Seguridad'),
+                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                child: MenudoCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Si usas correo y contraseña, aquí puedes actualizarla sin salir de la app.',
-                        style: MenudoTextStyles.bodySmall.copyWith(
-                          color: MenudoColors.textMuted,
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  child: MenudoCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Si usas correo y contraseña, aquí puedes actualizarla sin salir de la app.',
+                          style: MenudoTextStyles.bodySmall.copyWith(
+                            color: MenudoColors.textMuted,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      MenudoSecondaryButton(
-                        label: 'Cambiar contraseña',
-                        onTap: _openChangePasswordSheet,
-                      ),
-                    ],
+                        const SizedBox(height: 16),
+                        MenudoSecondaryButton(
+                          label: 'Cambiar contraseña',
+                          onTap: _openChangePasswordSheet,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -1789,10 +1793,7 @@ class _ProfileSelectionOption<T> {
 }
 
 class _ProfileSelectionRow<T> extends StatelessWidget {
-  const _ProfileSelectionRow({
-    required this.option,
-    required this.selected,
-  });
+  const _ProfileSelectionRow({required this.option, required this.selected});
 
   final _ProfileSelectionOption<T> option;
   final bool selected;
@@ -1826,11 +1827,7 @@ class _ProfileSelectionRow<T> extends StatelessWidget {
                 ],
               ),
             ),
-            if (selected)
-              const Icon(
-                Icons.check_rounded,
-                color: AppColors.e8,
-              ),
+            if (selected) const Icon(Icons.check_rounded, color: AppColors.e8),
           ],
         ),
       ),

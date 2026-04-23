@@ -29,6 +29,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _appleAvailable = false;
+  bool _showEmailForm = false;
 
   @override
   void initState() {
@@ -49,7 +50,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     try {
       final available = await SignInWithApple.isAvailable();
       if (mounted) {
-        setState(() => _appleAvailable = available);
+        setState(() {
+          _appleAvailable = available;
+          if (!available) {
+            _showEmailForm = true;
+          }
+        });
       }
     } catch (_) {}
   }
@@ -181,7 +187,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 const SizedBox(height: 8),
                 Text(
                   _appleAvailable
-                      ? 'Empieza con correo y contraseña. Si estás en iPhone, también puedes usar Apple.'
+                      ? 'Si estás en iPhone, empieza con Apple. El correo queda como alternativa.'
                       : 'Empieza con tu correo y una contraseña segura.',
                   style: MenudoTextStyles.bodyMedium.copyWith(
                     color: MenudoColors.textMuted,
@@ -189,111 +195,136 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 160.ms),
                 const SizedBox(height: 28),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: MenudoColors.border),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _AuthField(
-                        controller: _nameController,
-                        label: 'Nombre',
-                        hintText: 'Cómo quieres verte en la app',
-                        textInputAction: TextInputAction.next,
-                        autofillHints: const [AutofillHints.name],
-                      ),
-                      const SizedBox(height: 14),
-                      _AuthField(
-                        controller: _emailController,
-                        label: 'Correo',
-                        hintText: 'correo@ejemplo.com',
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        autofillHints: const [AutofillHints.email],
-                      ),
-                      const SizedBox(height: 14),
-                      _AuthField(
-                        controller: _passwordController,
-                        label: 'Contraseña',
-                        hintText: 'Mínimo 6 caracteres',
-                        obscureText: _obscurePassword,
-                        textInputAction: TextInputAction.next,
-                        autofillHints: const [AutofillHints.newPassword],
-                        suffixIcon: IconButton(
-                          onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword,
-                          ),
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            color: MenudoColors.textMuted,
-                          ),
+                if (_appleAvailable) ...[
+                  IgnorePointer(
+                    ignoring: _isLoading,
+                    child: Opacity(
+                      opacity: _isLoading ? 0.7 : 1,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: SignInWithAppleButton(
+                          onPressed: _handleRegisterWithApple,
+                          style: SignInWithAppleButtonStyle.black,
+                          text: 'Crear cuenta con Apple',
                         ),
                       ),
-                      const SizedBox(height: 14),
-                      _AuthField(
-                        controller: _confirmController,
-                        label: 'Confirmar contraseña',
-                        hintText: 'Repite tu contraseña',
-                        obscureText: _obscureConfirm,
-                        textInputAction: TextInputAction.done,
-                        autofillHints: const [AutofillHints.newPassword],
-                        suffixIcon: IconButton(
-                          onPressed: () => setState(
-                            () => _obscureConfirm = !_obscureConfirm,
+                    ),
+                  ).animate().fadeIn(delay: 220.ms).slideY(begin: 0.04),
+                  const SizedBox(height: 14),
+                  TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () =>
+                              setState(() => _showEmailForm = !_showEmailForm),
+                    style: TextButton.styleFrom(
+                      foregroundColor: MenudoColors.primary,
+                    ),
+                    child: Text(
+                      _showEmailForm
+                          ? 'Ocultar registro con correo'
+                          : 'Crear cuenta con correo',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ).animate().fadeIn(delay: 260.ms),
+                ],
+                if (!_appleAvailable || _showEmailForm) ...[
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: MenudoColors.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (_appleAvailable) ...[
+                          Text(
+                            'O crea tu cuenta con correo',
+                            style: MenudoTextStyles.bodyLarge.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
-                          icon: Icon(
-                            _obscureConfirm
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            color: MenudoColors.textMuted,
-                          ),
+                          const SizedBox(height: 14),
+                        ],
+                        _AuthField(
+                          controller: _nameController,
+                          label: 'Nombre',
+                          hintText: 'Cómo quieres verte en la app',
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.name],
                         ),
-                        onSubmitted: (_) => _handleRegisterWithEmail(),
-                      ),
-                      const SizedBox(height: 20),
-                      MenudoPrimaryButton(
-                        label: _isLoading
-                            ? 'Creando cuenta...'
-                            : 'Crear cuenta',
-                        onTap: _handleRegisterWithEmail,
-                        isDisabled: _isLoading,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Luego podrás ajustar moneda, meta y presupuesto predeterminado desde tu perfil.',
-                        style: MenudoTextStyles.bodySmall.copyWith(
-                          color: MenudoColors.textMuted,
+                        const SizedBox(height: 14),
+                        _AuthField(
+                          controller: _emailController,
+                          label: 'Correo',
+                          hintText: 'correo@ejemplo.com',
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.email],
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                      if (_appleAvailable) ...[
-                        const SizedBox(height: 18),
-                        const _AuthDivider(label: 'o'),
-                        const SizedBox(height: 18),
-                        IgnorePointer(
-                          ignoring: _isLoading,
-                          child: Opacity(
-                            opacity: _isLoading ? 0.7 : 1,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: SignInWithAppleButton(
-                                onPressed: _handleRegisterWithApple,
-                                style: SignInWithAppleButtonStyle.black,
-                                text: 'Crear cuenta con Apple',
-                              ),
+                        const SizedBox(height: 14),
+                        _AuthField(
+                          controller: _passwordController,
+                          label: 'Contraseña',
+                          hintText: 'Mínimo 6 caracteres',
+                          obscureText: _obscurePassword,
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.newPassword],
+                          suffixIcon: IconButton(
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: MenudoColors.textMuted,
                             ),
                           ),
                         ),
+                        const SizedBox(height: 14),
+                        _AuthField(
+                          controller: _confirmController,
+                          label: 'Confirmar contraseña',
+                          hintText: 'Repite tu contraseña',
+                          obscureText: _obscureConfirm,
+                          textInputAction: TextInputAction.done,
+                          autofillHints: const [AutofillHints.newPassword],
+                          suffixIcon: IconButton(
+                            onPressed: () => setState(
+                              () => _obscureConfirm = !_obscureConfirm,
+                            ),
+                            icon: Icon(
+                              _obscureConfirm
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              color: MenudoColors.textMuted,
+                            ),
+                          ),
+                          onSubmitted: (_) => _handleRegisterWithEmail(),
+                        ),
+                        const SizedBox(height: 20),
+                        MenudoPrimaryButton(
+                          label: _isLoading
+                              ? 'Creando cuenta...'
+                              : 'Crear cuenta',
+                          onTap: _handleRegisterWithEmail,
+                          isDisabled: _isLoading,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Luego podrás ajustar moneda, meta y presupuesto predeterminado desde tu perfil.',
+                          style: MenudoTextStyles.bodySmall.copyWith(
+                            color: MenudoColors.textMuted,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ],
-                    ],
-                  ),
-                ).animate().fadeIn(delay: 220.ms).slideY(begin: 0.08),
+                    ),
+                  ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.08),
+                ],
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -395,31 +426,6 @@ class _AuthField extends StatelessWidget {
             ),
           ),
         ),
-      ],
-    );
-  }
-}
-
-class _AuthDivider extends StatelessWidget {
-  const _AuthDivider({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(child: Divider(color: AppColors.g2, height: 1)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            label,
-            style: MenudoTextStyles.bodySmall.copyWith(
-              color: MenudoColors.textMuted,
-            ),
-          ),
-        ),
-        const Expanded(child: Divider(color: AppColors.g2, height: 1)),
       ],
     );
   }

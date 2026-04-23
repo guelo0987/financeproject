@@ -40,6 +40,27 @@ class AuthRepository {
         .toLowerCase();
   }
 
+  bool isCurrentUserAppleAccount() {
+    final user = _supabaseOrNull?.auth.currentUser;
+    if (user == null) return false;
+
+    final primaryProvider = user.appMetadata['provider']
+        ?.toString()
+        .trim()
+        .toLowerCase();
+    if (primaryProvider == 'apple') return true;
+
+    final identityProviders = user.identities
+        ?.map((identity) => identity.provider.trim().toLowerCase())
+        .whereType<String>()
+        .where((provider) => provider.isNotEmpty)
+        .toSet();
+
+    return identityProviders != null &&
+        identityProviders.length == 1 &&
+        identityProviders.contains('apple');
+  }
+
   Future<AuthSession?> restoreSession() async {
     final session = _supabaseOrNull?.auth.currentSession;
     if (session == null) return null;
@@ -308,21 +329,39 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
+    final normalizedEmail = email.trim().toLowerCase();
     try {
       final response = await _supabase.auth.signInWithPassword(
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password: password,
       );
       final user = response.user ?? _supabase.auth.currentUser;
-      if (user?.emailConfirmedAt == null) {
-        await savePendingVerificationEmail(email);
+      final session = response.session ?? _supabase.auth.currentSession;
+
+      if (user?.emailConfirmedAt == null || session == null) {
+        await savePendingVerificationEmail(normalizedEmail);
         await _supabase.auth.signOut();
         throw const ApiException(
-          'Primero confirma tu correo y luego entra con tu contraseña.',
+          'Tu correo todavía no ha sido confirmado. Revisa tu inbox y luego vuelve a entrar.',
         );
       }
       return _completeSupabaseBootstrap();
     } on AuthException catch (error) {
+      final lower = error.message.trim().toLowerCase();
+      final pendingEmail = await restorePendingVerificationEmail();
+      final looksLikeUnverifiedEmail =
+          lower.contains('email not confirmed') ||
+          lower.contains('email not verified') ||
+          ((lower.contains('invalid login credentials') ||
+                  lower.contains('invalid_credentials')) &&
+              pendingEmail == normalizedEmail);
+
+      if (looksLikeUnverifiedEmail) {
+        await savePendingVerificationEmail(normalizedEmail);
+        throw const ApiException(
+          'Tu correo todavía no ha sido confirmado. Revisa tu inbox y luego vuelve a entrar.',
+        );
+      }
       throw ApiException(error.message);
     }
   }
@@ -434,6 +473,17 @@ class AuthRepository {
       throw ApiException(
         'No pudimos completar el inicio con Apple: ${error.message}',
       );
+    } on AuthException catch (error) {
+      throw ApiException(error.message);
+    }
+  }
+
+  Future<void> verifyOtpTokenHash({
+    required String tokenHash,
+    required OtpType type,
+  }) async {
+    try {
+      await _supabase.auth.verifyOTP(tokenHash: tokenHash, type: type);
     } on AuthException catch (error) {
       throw ApiException(error.message);
     }

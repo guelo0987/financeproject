@@ -59,7 +59,14 @@ String presentError(
     return 'Ya hay una invitación pendiente para ese correo.';
   }
   if (lower.contains('email not confirmed')) {
-    return 'Primero confirma tu correo y luego intenta entrar otra vez.';
+    return 'Tu correo todavía no ha sido confirmado. Revisa tu inbox y luego vuelve a entrar.';
+  }
+  if (lower.contains('email not verified')) {
+    return 'Tu correo todavía no ha sido confirmado. Revisa tu inbox y luego vuelve a entrar.';
+  }
+  if (lower.contains('otp_expired') ||
+      lower.contains('email link is invalid or has expired')) {
+    return 'Ese enlace ya venció. Pide uno nuevo desde Menudo.';
   }
   if (lower.contains('email_error')) {
     return 'No pudimos enviar la invitación ahora mismo. Inténtalo otra vez.';

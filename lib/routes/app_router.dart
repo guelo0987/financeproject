@@ -116,11 +116,11 @@ final appRouter = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/auth/confirm',
-        builder: (context, state) => const EmailConfirmationScreen(),
+        builder: (context, state) => EmailConfirmationScreen(uri: state.uri),
       ),
       GoRoute(
         path: '/callback',
-        builder: (context, state) => const EmailConfirmationScreen(),
+        builder: (context, state) => EmailConfirmationScreen(uri: state.uri),
       ),
       GoRoute(
         path: '/auth/reset-password',

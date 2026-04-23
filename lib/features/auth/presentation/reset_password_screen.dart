@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -28,11 +29,14 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _showRecoveryHelp = false;
+  bool _isVerifyingLink = false;
+  String? _linkErrorMessage;
 
   @override
   void initState() {
     super.initState();
     _startRecoveryFallbackTimer();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _verifyRecoveryLink());
   }
 
   @override
@@ -56,6 +60,83 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       if (!mounted) return;
       setState(() => _showRecoveryHelp = true);
     });
+  }
+
+  String? _readParam(String key) {
+    final routeUri = GoRouterState.of(context).uri;
+    final routeValue = routeUri.queryParameters[key];
+    if (routeValue != null && routeValue.isNotEmpty) return routeValue;
+
+    if (routeUri.fragment.isNotEmpty) {
+      final routeFragmentParams = Uri.splitQueryString(routeUri.fragment);
+      final routeFragmentValue = routeFragmentParams[key];
+      if (routeFragmentValue != null && routeFragmentValue.isNotEmpty) {
+        return routeFragmentValue;
+      }
+    }
+
+    final baseUri = Uri.base;
+    final baseValue = baseUri.queryParameters[key];
+    if (baseValue != null && baseValue.isNotEmpty) return baseValue;
+
+    if (baseUri.fragment.isNotEmpty) {
+      final baseFragmentParams = Uri.splitQueryString(baseUri.fragment);
+      final fragmentValue = baseFragmentParams[key];
+      if (fragmentValue != null && fragmentValue.isNotEmpty) {
+        return fragmentValue;
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> _verifyRecoveryLink() async {
+    if (!mounted) return;
+    final authState = ref.read(authProvider);
+    if (authState.requiresPasswordReset) return;
+
+    final errorDescription = _readParam('error_description');
+    final errorCode = _readParam('error_code');
+    if (errorDescription != null) {
+      setState(() {
+        _linkErrorMessage = presentError(
+          errorCode == null
+              ? errorDescription
+              : '$errorCode: $errorDescription',
+          fallback:
+              'No pudimos abrir tu cambio de contraseña. Pide un enlace nuevo.',
+        );
+      });
+      return;
+    }
+
+    final tokenHash = _readParam('token_hash');
+    final rawType = _readParam('type')?.trim().toLowerCase();
+    if (tokenHash == null || rawType != 'recovery') {
+      return;
+    }
+
+    setState(() {
+      _isVerifyingLink = true;
+      _linkErrorMessage = null;
+    });
+
+    try {
+      await ref
+          .read(authProvider.notifier)
+          .verifyOtpTokenHash(tokenHash: tokenHash, type: OtpType.recovery);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _linkErrorMessage = presentError(
+          error,
+          fallback:
+              'No pudimos abrir tu cambio de contraseña. Pide un enlace nuevo.',
+        );
+      });
+    } finally {
+      if (mounted) setState(() => _isVerifyingLink = false);
+    }
   }
 
   Future<void> _resendRecoveryLink(String email) async {
@@ -115,10 +196,45 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     }
 
     if (!authState.requiresPasswordReset) {
+      final inactiveMessage = _linkErrorMessage;
       return Scaffold(
         backgroundColor: MenudoColors.appBg,
         body: SafeArea(
-          child: _showRecoveryHelp
+          child: inactiveMessage != null
+              ? Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Icon(
+                        Icons.lock_reset_rounded,
+                        size: 52,
+                        color: MenudoColors.warning,
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        'No pudimos abrir tu cambio de contraseña',
+                        style: MenudoTextStyles.h2,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        inactiveMessage,
+                        style: MenudoTextStyles.bodyMedium.copyWith(
+                          color: MenudoColors.textMuted,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      MenudoSecondaryButton(
+                        label: 'Volver a iniciar sesión',
+                        onTap: () => context.go('/login'),
+                      ),
+                    ],
+                  ),
+                )
+              : _showRecoveryHelp
               ? Padding(
                   padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
                   child: Column(
@@ -185,9 +301,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     ],
                   ),
                 )
-              : const MenudoLoadingView(
+              : MenudoLoadingView(
                   title: 'Preparando tu cambio de contraseña',
-                  message: 'Abre el correo más reciente para continuar.',
+                  message: _isVerifyingLink
+                      ? 'Estamos validando tu enlace para dejarte cambiar la contraseña.'
+                      : 'Abre el correo más reciente para continuar.',
                 ),
         ),
       );

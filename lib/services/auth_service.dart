@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../features/auth/data/auth_repository.dart';
 import '../model/auth_session.dart';
@@ -15,6 +16,10 @@ class AuthService {
 
   String? currentSupabaseEmail() {
     return _repository.currentSupabaseEmail();
+  }
+
+  bool isCurrentUserAppleAccount() {
+    return _repository.isCurrentUserAppleAccount();
   }
 
   Future<void> saveSession({
@@ -69,6 +74,13 @@ class AuthService {
 
   Future<AuthBootstrapResult> signInWithApple({String? currency}) {
     return _repository.signInWithApple(currency: currency);
+  }
+
+  Future<void> verifyOtpTokenHash({
+    required String tokenHash,
+    required OtpType type,
+  }) {
+    return _repository.verifyOtpTokenHash(tokenHash: tokenHash, type: type);
   }
 
   Future<AuthBootstrapResult> signInWithEmailPassword({
