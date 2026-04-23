@@ -74,247 +74,210 @@ ${details.join('\n')}
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(authProvider).profile;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       backgroundColor: MenudoColors.appBg,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                child: Row(
-                  children: [
-                    _CircleActionButton(
-                      icon: Icons.arrow_back_ios_new_rounded,
-                      onTap: () => context.pop(),
-                    ),
-                    const SizedBox(width: 14),
-                    Text('Contacto', style: MenudoTextStyles.h1),
-                  ],
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 24 + bottomInset),
+          children: [
+            Row(
+              children: [
+                _CircleActionButton(
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  onTap: () => context.pop(),
+                ),
+                const SizedBox(width: 14),
+                Text('Contacto', style: MenudoTextStyles.h1),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                gradient: const LinearGradient(
+                  colors: [AppColors.e8, AppColors.e6],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(28),
-                    gradient: const LinearGradient(
-                      colors: [AppColors.e8, AppColors.e6],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      color: Colors.white,
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(
-                          Icons.chat_bubble_outline_rounded,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Cuéntanos qué podemos mejorar.',
-                        style: MenudoTextStyles.h2.copyWith(
-                          color: Colors.white,
-                          fontSize: 26,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Puedes reportar un problema, pedir una mejora o escribirnos una idea.',
-                        style: MenudoTextStyles.bodyMedium.copyWith(
-                          color: Colors.white.withValues(alpha: 0.85),
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 16),
+                  Text(
+                    'Cuéntanos qué podemos mejorar.',
+                    style: MenudoTextStyles.h2.copyWith(
+                      color: Colors.white,
+                      fontSize: 26,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Puedes reportar un problema, pedir una mejora o escribirnos una idea.',
+                    style: MenudoTextStyles.bodyMedium.copyWith(
+                      color: Colors.white.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            const _SectionTitle('Qué quieres contarnos'),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _TopicCard(
+                    label: 'Bug',
+                    subtitle: 'Algo no salió bien',
+                    icon: Icons.bug_report_outlined,
+                    selected: _topic == 'Bug',
+                    onTap: () => setState(() => _topic = 'Bug'),
                   ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _TopicCard(
+                    label: 'Mejora',
+                    subtitle: 'Una idea útil',
+                    icon: Icons.auto_awesome_outlined,
+                    selected: _topic == 'Mejora',
+                    onTap: () => setState(() => _topic = 'Mejora'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _TopicCard(
+                    label: 'Ayuda',
+                    subtitle: 'Necesito apoyo',
+                    icon: Icons.favorite_border_rounded,
+                    selected: _topic == 'Ayuda',
+                    onTap: () => setState(() => _topic = 'Ayuda'),
+                  ),
+                ),
+              ],
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: _SectionTitle('Qué quieres contarnos'),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _TopicCard(
-                        label: 'Bug',
-                        subtitle: 'Algo no salió bien',
-                        icon: Icons.bug_report_outlined,
-                        selected: _topic == 'Bug',
-                        onTap: () => setState(() => _topic = 'Bug'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _TopicCard(
-                        label: 'Mejora',
-                        subtitle: 'Una idea útil',
-                        icon: Icons.auto_awesome_outlined,
-                        selected: _topic == 'Mejora',
-                        onTap: () => setState(() => _topic = 'Mejora'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _TopicCard(
-                        label: 'Ayuda',
-                        subtitle: 'Necesito apoyo',
-                        icon: Icons.favorite_border_rounded,
-                        selected: _topic == 'Ayuda',
-                        onTap: () => setState(() => _topic = 'Ayuda'),
+            const SizedBox(height: 20),
+            const _SectionTitle('Tu mensaje'),
+            MenudoCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ContactField(
+                    controller: _titleController,
+                    label: 'Asunto',
+                    hintText: 'Cuéntanos en una línea',
+                  ),
+                  const SizedBox(height: 16),
+                  _ContactField(
+                    controller: _messageController,
+                    label: 'Detalle',
+                    hintText: 'Describe qué pasó o qué te gustaría mejorar',
+                    maxLines: 6,
+                  ),
+                  if (profile != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'Añadiremos tu correo para que podamos responderte mejor.',
+                      style: MenudoTextStyles.bodySmall.copyWith(
+                        color: MenudoColors.textMuted,
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: _SectionTitle('Tu mensaje'),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                child: MenudoCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _ContactField(
-                        controller: _titleController,
-                        label: 'Asunto',
-                        hintText: 'Cuéntanos en una línea',
-                      ),
-                      const SizedBox(height: 16),
-                      _ContactField(
-                        controller: _messageController,
-                        label: 'Detalle',
-                        hintText: 'Describe qué pasó o qué te gustaría mejorar',
-                        maxLines: 6,
-                      ),
-                      if (profile != null) ...[
-                        const SizedBox(height: 16),
+            const SizedBox(height: 20),
+            const _SectionTitle('Correo de contacto'),
+            MenudoCard(
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.o1,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.mail_outline_rounded,
+                      color: AppColors.o5,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          'Añadiremos tu correo para que podamos responderte mejor.',
+                          AppEnv.supportEmail,
+                          style: MenudoTextStyles.bodyLarge.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Si prefieres, copia el mensaje y envíalo a este correo.',
                           style: MenudoTextStyles.bodySmall.copyWith(
                             color: MenudoColors.textMuted,
                           ),
                         ),
                       ],
-                    ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _copyEmail,
+                    child: const Text('Copiar'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: MenudoSecondaryButton(
+                    label: 'Abrir ayuda',
+                    onTap: () => ExternalLinks.openUrlOrNotify(
+                      context,
+                      AppEnv.supportUrl,
+                    ),
                   ),
                 ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: _SectionTitle('Correo de contacto'),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                child: MenudoCard(
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: AppColors.o1,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.mail_outline_rounded,
-                          color: AppColors.o5,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              AppEnv.supportEmail,
-                              style: MenudoTextStyles.bodyLarge.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Si prefieres, copia el mensaje y envíalo a este correo.',
-                              style: MenudoTextStyles.bodySmall.copyWith(
-                                color: MenudoColors.textMuted,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: _copyEmail,
-                        child: const Text('Copiar'),
-                      ),
-                    ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: MenudoButton(
+                    label: 'Escribir correo',
+                    isFullWidth: true,
+                    onTap: () async {
+                      _copyMessage();
+                      await ExternalLinks.composeSupportOrNotify(
+                        context,
+                        subject: _titleController.text.trim().isEmpty
+                            ? 'Ayuda con Menudo'
+                            : _titleController.text.trim(),
+                      );
+                    },
                   ),
                 ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: MenudoSecondaryButton(
-                        label: 'Abrir ayuda',
-                        onTap: () => ExternalLinks.openUrlOrNotify(
-                          context,
-                          AppEnv.supportUrl,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: MenudoButton(
-                        label: 'Escribir correo',
-                        isFullWidth: true,
-                        onTap: () async {
-                          _copyMessage();
-                          await ExternalLinks.composeSupportOrNotify(
-                            context,
-                            subject: _titleController.text.trim().isEmpty
-                                ? 'Ayuda con Menudo'
-                                : _titleController.text.trim(),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              ],
             ),
           ],
         ),

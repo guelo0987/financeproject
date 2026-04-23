@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
+import '../../../../core/preferences/app_preferences.dart';
+import '../../../../core/preferences/app_preferences_controller.dart';
 import '../../../../core/utils/error_presenter.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../shared/widgets/menudo_loading_view.dart';
@@ -26,15 +28,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     return formatMoney(val, currency: currency);
   }
 
-  String _fmtAggregate(double val, Iterable<String> currencies) {
-    final unique = currencies.toSet();
-    if (unique.isEmpty) {
-      return _fmt(0);
-    }
-    if (unique.length != 1) {
-      return 'Multimoneda';
-    }
-    final label = _fmt(val, currency: unique.first);
+  String _fmtAggregate(double val, {required String currencyCode}) {
+    final label = _fmt(val.abs(), currency: currencyCode);
     return val < 0 ? '-$label' : label;
   }
 
@@ -87,6 +82,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   Widget build(BuildContext context) {
     final walletAsync = ref.watch(walletNotifierProvider);
     final wallets = ref.watch(effectiveWalletsProvider);
+    final preferences = ref.watch(appPreferencesProvider).valueOrNull;
+    final activeCurrency =
+        preferences?.currencyCode ?? AppFormattingPreferences.currencyCode;
 
     if (walletAsync.isLoading && wallets.isEmpty) {
       return const Scaffold(
@@ -102,10 +100,20 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     return Scaffold(
       backgroundColor: AppColors.g0,
       body: walletAsync.when(
-        loading: () => _buildContent(context, wallets, isLoading: true),
-        error: (e, _) =>
-            _buildContent(context, wallets, errorMessage: presentError(e)),
-        data: (wallets) => _buildContent(context, wallets),
+        loading: () => _buildContent(
+          context,
+          wallets,
+          isLoading: true,
+          currencyCode: activeCurrency,
+        ),
+        error: (e, _) => _buildContent(
+          context,
+          wallets,
+          errorMessage: presentError(e),
+          currencyCode: activeCurrency,
+        ),
+        data: (wallets) =>
+            _buildContent(context, wallets, currencyCode: activeCurrency),
       ),
     );
   }
@@ -115,6 +123,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     List<WalletAccount> wallets, {
     bool isLoading = false,
     String? errorMessage,
+    required String currencyCode,
   }) {
     final patrimonioWallets = wallets
         .where((wallet) => wallet.incluirEnPatrimonio)
@@ -130,8 +139,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final double deudas = patrimonioWallets
         .where((w) => w.saldo < 0)
         .fold(0, (s, w) => s + w.saldo);
-    final allCurrencies = patrimonioWallets.map((wallet) => wallet.moneda);
-
     final groups = {
       "cuentas": _WalletGroup(
         icon: LucideIcons.landmark,
@@ -208,7 +215,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                       net,
                       activos,
                       deudas,
-                      allCurrencies,
+                      currencyCode,
                       excludedCount: excludedWallets.length,
                     )
                     .animate()
@@ -218,10 +225,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 const SizedBox(height: 28),
 
                 if (isLoading)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.only(top: 40),
-                      child: CircularProgressIndicator(),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 28),
+                    child: MenudoInlineLoadingCard(
+                      label: 'Actualizando cartera',
                     ),
                   )
                 else if (errorMessage != null)
@@ -298,7 +305,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     );
                     final totalLabel = _fmtAggregate(
                       total,
-                      items.map((wallet) => wallet.moneda),
+                      currencyCode: currencyCode,
                     );
 
                     return _WalletGroupSection(
@@ -307,6 +314,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           totalLabel: totalLabel,
                           isDeuda: tipoKey == 'deudas',
                           fmt: _fmt,
+                          currencyCode: currencyCode,
                           onError: (error) => _showWalletError(context, error),
                         )
                         .animate()
@@ -327,12 +335,12 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     double net,
     double activos,
     double deudas,
-    Iterable<String> currencies, {
+    String currencyCode, {
     int excludedCount = 0,
   }) {
-    final netLabel = _fmtAggregate(net, currencies);
-    final activosLabel = _fmtAggregate(activos, currencies);
-    final deudaLabel = _fmtAggregate(deudas.abs(), currencies);
+    final netLabel = _fmtAggregate(net, currencyCode: currencyCode);
+    final activosLabel = _fmtAggregate(activos, currencyCode: currencyCode);
+    final deudaLabel = _fmtAggregate(deudas.abs(), currencyCode: currencyCode);
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -531,6 +539,7 @@ class _WalletGroupSection extends StatelessWidget {
   final String totalLabel;
   final bool isDeuda;
   final String Function(double, {String currency}) fmt;
+  final String currencyCode;
   final void Function(Object error) onError;
 
   const _WalletGroupSection({
@@ -539,6 +548,7 @@ class _WalletGroupSection extends StatelessWidget {
     required this.totalLabel,
     required this.isDeuda,
     required this.fmt,
+    required this.currencyCode,
     required this.onError,
   });
 
@@ -614,6 +624,7 @@ class _WalletGroupSection extends StatelessWidget {
                 return _WalletTile(
                   wallet: w,
                   fmt: fmt,
+                  currencyCode: currencyCode,
                   isLast: i == items.length - 1,
                   onTap: () {
                     HapticFeedback.lightImpact();
@@ -639,12 +650,14 @@ class _WalletGroupSection extends StatelessWidget {
 class _WalletTile extends StatelessWidget {
   final WalletAccount wallet;
   final String Function(double, {String currency}) fmt;
+  final String currencyCode;
   final bool isLast;
   final VoidCallback onTap;
 
   const _WalletTile({
     required this.wallet,
     required this.fmt,
+    required this.currencyCode,
     required this.isLast,
     required this.onTap,
   });
@@ -713,8 +726,8 @@ class _WalletTile extends StatelessWidget {
                   children: [
                     Text(
                       wallet.saldo < 0
-                          ? '-${fmt(wallet.saldo, currency: wallet.moneda)}'
-                          : fmt(wallet.saldo, currency: wallet.moneda),
+                          ? '-${fmt(wallet.saldo.abs(), currency: currencyCode)}'
+                          : fmt(wallet.saldo.abs(), currency: currencyCode),
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w900,

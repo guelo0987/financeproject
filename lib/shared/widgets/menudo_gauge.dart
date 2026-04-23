@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../core/data/models.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/formatters.dart';
 
 class MenudoGauge extends StatefulWidget {
   final MenudoBudget budget;
@@ -94,7 +95,7 @@ class _MenudoGaugeState extends State<MenudoGauge>
               ),
               const SizedBox(height: 2),
               Text(
-                "RD\$${budget.availableToSpend.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                formatMoney(budget.availableToSpend),
                 style: TextStyle(
                   fontSize: 34,
                   fontWeight: FontWeight.w900,

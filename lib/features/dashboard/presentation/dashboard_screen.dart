@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../controllers/demo_mode_controller.dart';
+import '../../../core/preferences/app_preferences.dart';
+import '../../../core/preferences/app_preferences_controller.dart';
 import '../../../core/utils/display_utils.dart';
 import '../../../core/utils/error_presenter.dart';
 import '../../../core/utils/formatters.dart';
@@ -196,6 +198,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final unreadAlerts = ref
         .watch(unreadAlertsCountProvider)
         .maybeWhen(data: (count) => count, orElse: () => 0);
+    final preferences = ref.watch(appPreferencesProvider).valueOrNull;
+    final activeCurrency =
+        preferences?.currencyCode ?? AppFormattingPreferences.currencyCode;
     final displayName = _displayName(authState.profile?.name);
     final avatarEmoji = authState.profile?.avatarEmoji?.trim();
     final isHydratingHome =
@@ -371,7 +376,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
               const SizedBox(height: 4),
 
-              _buildRecentTransactions(recent)
+              _buildRecentTransactions(recent, activeCurrency)
                   .animate()
                   .fadeIn(duration: 500.ms, delay: 520.ms)
                   .slideY(begin: 0.05, end: 0, curve: Curves.easeOut),
@@ -574,7 +579,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildRecentTransactions(List<MenudoTransaction> recent) {
+  Widget _buildRecentTransactions(
+    List<MenudoTransaction> recent,
+    String currencyCode,
+  ) {
     if (recent.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(20),
@@ -608,6 +616,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             transaction: t,
             subtitle: _buildRecentSubtitle(t, _transactionCategoryLabel(t)),
             color: color,
+            currencyCode: currencyCode,
             isLast: i == recent.length - 1,
             onTap: (context) {
               HapticFeedback.lightImpact();
@@ -830,6 +839,7 @@ class _TransactionTile extends StatelessWidget {
   final MenudoTransaction transaction;
   final String subtitle;
   final Color color;
+  final String currencyCode;
   final bool isLast;
   final Function(BuildContext) onTap;
 
@@ -837,16 +847,10 @@ class _TransactionTile extends StatelessWidget {
     required this.transaction,
     required this.subtitle,
     required this.color,
+    required this.currencyCode,
     required this.isLast,
     required this.onTap,
   });
-
-  String _fmt(double value) {
-    return value.toInt().toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (match) => '${match[1]},',
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -897,9 +901,11 @@ class _TransactionTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  transaction.tipo == "ingreso"
-                      ? "+RD\$${_fmt(transaction.monto.abs())}"
-                      : "-RD\$${_fmt(transaction.monto.abs())}",
+                  formatMoney(
+                    transaction.monto.abs(),
+                    currency: currencyCode,
+                    signed: transaction.tipo != 'transferencia',
+                  ),
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w900,

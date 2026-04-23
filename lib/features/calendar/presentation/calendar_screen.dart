@@ -540,32 +540,15 @@ class _DayTransactionsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (dayTxns.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(40),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.g2),
-        ),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 28),
         child: Column(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: AppColors.e0,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              alignment: Alignment.center,
-              child: const Icon(
-                LucideIcons.calendarSearch,
-                size: 24,
-                color: AppColors.e8,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
+          children: const [
+            Icon(LucideIcons.calendarSearch, size: 24, color: AppColors.g4),
+            SizedBox(height: 10),
+            Text(
               "Sin movimientos este día",
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

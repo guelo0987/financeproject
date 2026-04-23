@@ -11,6 +11,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../core/utils/error_presenter.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../shared/widgets/menudo_loading_view.dart';
 import '../../../../shared/widgets/menudo_chip.dart';
 import '../../auth/auth_state.dart';
 import '../budget_providers.dart';
@@ -52,6 +53,27 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
 
   bool get _supportsHistory {
     return widget.budget.periodo != 'unico';
+  }
+
+  MenudoBudget _currentBudget() {
+    for (final budget in ref.read(effectiveBudgetsProvider)) {
+      if (budget.id == widget.budget.id) {
+        return budget;
+      }
+    }
+    return widget.budget;
+  }
+
+  bool _isCurrentUserOwner(MenudoBudget budget, int? currentUserId) {
+    if (currentUserId == null) return false;
+    if (budget.ownerUserId != null && budget.ownerUserId == currentUserId) {
+      return true;
+    }
+
+    final members = _members.isNotEmpty ? _members : budget.miembros;
+    return members.any(
+      (member) => member.userId == currentUserId && member.isOwner,
+    );
   }
 
   @override
@@ -128,17 +150,21 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                const Text(
-                  'Eliminar presupuesto',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.e8,
+                const Center(
+                  child: Text(
+                    'Eliminar presupuesto',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.e8,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Esto borrará ${widget.budget.nombre} y todo lo relacionado.',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 14,
                     height: 1.4,
@@ -148,6 +174,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                 ),
                 const SizedBox(height: 16),
                 Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: AppColors.o1,
@@ -185,6 +212,9 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52),
+                        ),
                         onPressed: () => Navigator.of(sheetContext).pop(false),
                         child: const Text('Cancelar'),
                       ),
@@ -195,6 +225,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.r5,
                           foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(52),
                         ),
                         onPressed: () => Navigator.of(sheetContext).pop(true),
                         child: const Text('Sí, eliminar'),
@@ -268,7 +299,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Dejarás de verlo en tu cuenta. Solo podrás volver si te invitan otra vez.',
+                  'Se quitará de tu lista, pero seguirá intacto para quien lo creó y para el resto del equipo.',
                   style: const TextStyle(
                     fontSize: 14,
                     height: 1.4,
@@ -303,7 +334,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          widget.budget.nombre,
+                          _currentBudget().nombre,
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
@@ -364,12 +395,12 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
 
   Future<void> _openBudgetActions() async {
     HapticFeedback.lightImpact();
+    final currentBudget = _currentBudget();
     final currentUserId = int.tryParse(ref.read(authProvider).userId ?? '');
-    final isOwner =
-        currentUserId != null &&
-        widget.budget.ownerUserId != null &&
-        widget.budget.ownerUserId == currentUserId;
-    final canLeave = !isOwner && widget.budget.espacioId != null;
+    final isOwner = _isCurrentUserOwner(currentBudget, currentUserId);
+    final members = _members.isNotEmpty ? _members : currentBudget.miembros;
+    final isMember = members.any((member) => member.userId == currentUserId);
+    final canLeave = !isOwner && (currentBudget.espacioId != null || isMember);
     final action = await showModalBottomSheet<String>(
       context: context,
       useRootNavigator: true,
@@ -1210,14 +1241,11 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
           ),
           const SizedBox(height: 18),
           if (_isLoadingMembers && previewMembers.isEmpty)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2.2),
-                ),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: MenudoInlineLoadingCard(
+                label: 'Cargando personas',
+                compact: true,
               ),
             )
           else if (_membersError != null && previewMembers.isEmpty)
@@ -1516,13 +1544,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         else if (_isLoadingHistory && _history.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 28),
-            child: Center(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2.4),
-              ),
-            ),
+            child: MenudoInlineLoadingCard(label: 'Cargando cierres'),
           )
         else if (_historyError != null && _history.isEmpty)
           _InlineInfoCard(
@@ -2724,9 +2746,9 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                     ],
                     if (_isLoading && _members.isEmpty)
                       const Padding(
-                        padding: EdgeInsets.only(top: 60),
-                        child: Center(
-                          child: CircularProgressIndicator(strokeWidth: 2.4),
+                        padding: EdgeInsets.only(top: 40),
+                        child: MenudoInlineLoadingCard(
+                          label: 'Cargando equipo',
                         ),
                       )
                     else if (_error != null && _members.isEmpty)

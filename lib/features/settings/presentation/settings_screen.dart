@@ -31,6 +31,7 @@ class SettingsScreen extends ConsumerWidget {
   ) async {
     final selected = await showModalBottomSheet<String>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => _PreferencesSheet<String>(
         title: tr(context, es: 'Idioma de la app', en: 'App language'),
@@ -59,6 +60,7 @@ class SettingsScreen extends ConsumerWidget {
   ) async {
     final selected = await showModalBottomSheet<String>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => _PreferencesSheet<String>(
         title: tr(context, es: 'País y moneda', en: 'Country and currency'),
@@ -80,14 +82,16 @@ class SettingsScreen extends ConsumerWidget {
     final market = marketFromCode(selected);
     try {
       if (profile != null) {
-        await ref.read(authProvider.notifier).updateProfile(
-          name: profile.name,
-          currency: market.currencyCode,
-          avatarEmoji: profile.avatarEmoji,
-          financialGoal: profile.financialGoal,
-          goalAmount: profile.goalAmount,
-          goalDate: profile.goalDate,
-        );
+        await ref
+            .read(authProvider.notifier)
+            .updateProfile(
+              name: profile.name,
+              currency: market.currencyCode,
+              avatarEmoji: profile.avatarEmoji,
+              financialGoal: profile.financialGoal,
+              goalAmount: profile.goalAmount,
+              goalDate: profile.goalDate,
+            );
       }
       await ref.read(appPreferencesProvider.notifier).setMarket(selected);
       if (!context.mounted) return;
@@ -252,11 +256,7 @@ class SettingsScreen extends ConsumerWidget {
                           const Divider(height: 1, color: MenudoColors.divider),
                           _SettingsTile(
                             icon: Icons.notifications_none_rounded,
-                            title: tr(
-                              context,
-                              es: 'Alertas',
-                              en: 'Alerts',
-                            ),
+                            title: tr(context, es: 'Alertas', en: 'Alerts'),
                             subtitle: unreadAlerts > 0
                                 ? tr(
                                     context,
@@ -289,21 +289,14 @@ class SettingsScreen extends ConsumerWidget {
                         children: [
                           _SettingsTile(
                             icon: Icons.language_rounded,
-                            title: tr(
-                              context,
-                              es: 'Idioma',
-                              en: 'Language',
-                            ),
+                            title: tr(context, es: 'Idioma', en: 'Language'),
                             subtitle: currentLanguage.label(
                               isEnglishLocale(context),
                             ),
                             onTap: preferences == null
                                 ? null
-                                : () => _pickLanguage(
-                                    context,
-                                    ref,
-                                    preferences,
-                                  ),
+                                : () =>
+                                      _pickLanguage(context, ref, preferences),
                           ),
                           const Divider(height: 1, color: MenudoColors.divider),
                           _SettingsTile(
@@ -379,7 +372,10 @@ class SettingsScreen extends ConsumerWidget {
                           _SettingsTile(
                             icon: _subscriptionIcon(subscription.estado),
                             title: 'Menudo Pro',
-                            subtitle: _subscriptionSubtitle(context, subscription),
+                            subtitle: _subscriptionSubtitle(
+                              context,
+                              subscription,
+                            ),
                             trailing: subscription.hasVerificationIssue
                                 ? const MenudoChip(
                                     'REVISAR',
@@ -441,9 +437,7 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ).animate().fadeIn(delay: 240.ms).slideY(begin: 0.04),
                     const SizedBox(height: 24),
-                    _SectionHeader(
-                      tr(context, es: 'Contacto', en: 'Contact'),
-                    ),
+                    _SectionHeader(tr(context, es: 'Contacto', en: 'Contact')),
                     MenudoCard(
                       padding: EdgeInsets.zero,
                       child: _SettingsTile(
@@ -527,11 +521,7 @@ class SettingsScreen extends ConsumerWidget {
                     ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.04),
                     const SizedBox(height: 40),
                     MenudoSecondaryButton(
-                      label: tr(
-                        context,
-                        es: 'Cerrar sesión',
-                        en: 'Sign out',
-                      ),
+                      label: tr(context, es: 'Cerrar sesión', en: 'Sign out'),
                       onTap: () {
                         ref.read(authProvider.notifier).logout();
                         context.go('/login');
@@ -615,6 +605,8 @@ class _SettingsTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: MenudoTextStyles.bodySmall.copyWith(
                       color: MenudoColors.textMuted,
                     ),
@@ -664,9 +656,10 @@ String _subscriptionSubtitle(BuildContext context, SubscriptionState sub) {
   return switch (sub.estado) {
     'prueba' =>
       '$planLabel · ${tr(context, es: 'Prueba gratuita', en: 'Free trial')}',
-    'activa' => sub.plan == 'lifetime'
-        ? tr(context, es: 'Acceso permanente', en: 'Permanent access')
-        : '$planLabel ${tr(context, es: 'activo', en: 'active')}',
+    'activa' =>
+      sub.plan == 'lifetime'
+          ? tr(context, es: 'Acceso permanente', en: 'Permanent access')
+          : '$planLabel ${tr(context, es: 'activo', en: 'active')}',
     'cancelada' =>
       '$planLabel · ${tr(context, es: 'Cancelado', en: 'Canceled')}',
     'vencida' => tr(
@@ -691,7 +684,11 @@ class _PreferencesSheet<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final maxHeight = MediaQuery.of(context).size.height * 0.72;
+
     return Container(
+      constraints: BoxConstraints(maxHeight: maxHeight),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -699,7 +696,7 @@ class _PreferencesSheet<T> extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + safeBottom),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -714,14 +711,18 @@ class _PreferencesSheet<T> extends StatelessWidget {
               const SizedBox(height: 18),
               Text(title, style: MenudoTextStyles.h3),
               const SizedBox(height: 18),
-              for (var i = 0; i < options.length; i++) ...[
-                _PreferenceRow<T>(
-                  option: options[i],
-                  selected: options[i].value == selectedValue,
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: options.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, color: MenudoColors.divider),
+                  itemBuilder: (context, index) => _PreferenceRow<T>(
+                    option: options[index],
+                    selected: options[index].value == selectedValue,
+                  ),
                 ),
-                if (i != options.length - 1)
-                  const Divider(height: 1, color: MenudoColors.divider),
-              ],
+              ),
             ],
           ),
         ),
@@ -743,10 +744,7 @@ class _PreferenceOption<T> {
 }
 
 class _PreferenceRow<T> extends StatelessWidget {
-  const _PreferenceRow({
-    required this.option,
-    required this.selected,
-  });
+  const _PreferenceRow({required this.option, required this.selected});
 
   final _PreferenceOption<T> option;
   final bool selected;
@@ -766,6 +764,8 @@ class _PreferenceRow<T> extends StatelessWidget {
                 children: [
                   Text(
                     option.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: MenudoTextStyles.bodyLarge.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -773,6 +773,8 @@ class _PreferenceRow<T> extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     option.subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: MenudoTextStyles.bodySmall.copyWith(
                       color: MenudoColors.textMuted,
                     ),
@@ -780,15 +782,10 @@ class _PreferenceRow<T> extends StatelessWidget {
                 ],
               ),
             ),
-            if (selected)
-              const Icon(
-                Icons.check_rounded,
-                color: AppColors.e8,
-              ),
+            if (selected) const Icon(Icons.check_rounded, color: AppColors.e8),
           ],
         ),
       ),
     );
   }
 }
-

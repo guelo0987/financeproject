@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
+import '../../../core/preferences/app_preferences.dart';
+import '../../../core/preferences/app_preferences_controller.dart';
 import '../../../core/utils/error_presenter.dart';
 import '../../../core/utils/formatters.dart';
 import '../../categories/providers/category_providers.dart';
@@ -339,6 +341,9 @@ class WalletDetailSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final wallets = ref.watch(effectiveWalletsProvider);
     final w = _findWallet(wallets, wallet.id) ?? wallet;
+    final preferences = ref.watch(appPreferencesProvider).valueOrNull;
+    final activeCurrency =
+        preferences?.currencyCode ?? AppFormattingPreferences.currencyCode;
     final bool isNegative = w.saldo < 0;
 
     // Type labels
@@ -614,8 +619,8 @@ class WalletDetailSheet extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Text(
                           isNegative
-                              ? '-${fmt(w.saldo.abs(), currency: w.moneda)}'
-                              : fmt(w.saldo.abs(), currency: w.moneda),
+                              ? '-${fmt(w.saldo.abs(), currency: activeCurrency)}'
+                              : fmt(w.saldo.abs(), currency: activeCurrency),
                           style: TextStyle(
                             fontSize: 36,
                             fontWeight: FontWeight.w800,
@@ -819,8 +824,11 @@ class WalletDetailSheet extends ConsumerWidget {
                                     ? '${presentation.routeLabel} · ${dayStr[2]} $monthLabel'
                                     : '${category?.nombre ?? t.catKey} · ${dayStr[2]} $monthLabel';
                                 final amountText = presentation.prefix.isEmpty
-                                    ? fmt(t.monto.abs())
-                                    : '${presentation.prefix}${fmt(t.monto.abs())}';
+                                    ? fmt(
+                                        t.monto.abs(),
+                                        currency: activeCurrency,
+                                      )
+                                    : '${presentation.prefix}${fmt(t.monto.abs(), currency: activeCurrency)}';
 
                                 return Column(
                                   children: [

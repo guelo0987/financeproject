@@ -47,6 +47,11 @@ String presentError(
   )) {
     return 'Solo quien administra este presupuesto puede hacer ese cambio.';
   }
+  if (lower.contains('solo propietario') ||
+      lower.contains('solo el creador') ||
+      lower.contains('owner_only')) {
+    return 'Solo quien creó este presupuesto puede eliminarlo.';
+  }
   if (lower.contains('already_member')) {
     return 'Esa persona ya forma parte de este presupuesto.';
   }
@@ -58,6 +63,11 @@ String presentError(
   }
   if (lower.contains('email_error')) {
     return 'No pudimos enviar la invitación ahora mismo. Inténtalo otra vez.';
+  }
+  if (lower.contains('domain not verified') ||
+      lower.contains('invalid from address') ||
+      (lower.contains('resend') && lower.contains('from'))) {
+    return 'El correo de invitación no está configurado correctamente todavía.';
   }
   if (lower.contains('limite_miembros')) {
     return 'Este presupuesto ya llegó al límite de personas.';
@@ -82,6 +92,10 @@ String presentError(
   }
   if (lower.contains('category_duplicate_name')) {
     return 'Ya existe una categoría con ese nombre.';
+  }
+  if (lower.contains('budget_not_found') ||
+      lower.contains('presupuesto no encontrado')) {
+    return 'No encontramos ese presupuesto.';
   }
 
   return message;

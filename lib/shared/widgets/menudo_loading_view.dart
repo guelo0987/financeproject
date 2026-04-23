@@ -56,3 +56,51 @@ class MenudoLoadingView extends StatelessWidget {
     );
   }
 }
+
+class MenudoInlineLoadingCard extends StatelessWidget {
+  const MenudoInlineLoadingCard({
+    super.key,
+    this.label = 'Cargando',
+    this.compact = false,
+  });
+
+  final String label;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 16 : 18,
+        vertical: compact ? 14 : 18,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(compact ? 18 : 22),
+        border: Border.all(color: AppColors.g2),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.2,
+              color: AppColors.e8,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: MenudoTextStyles.bodyMedium.copyWith(
+              color: MenudoColors.textMuted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
