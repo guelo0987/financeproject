@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
+import '../core/preferences/app_preferences.dart';
 import '../model/auth_session.dart';
 import '../model/user_profile.dart';
 import '../services/auth_service.dart';
@@ -87,6 +88,10 @@ class AuthController extends StateNotifier<AuthState> {
   bool _ignoringSupabaseAuthChanges = false;
   bool _syncingSupabaseSession = false;
 
+  String _preferredCurrency() {
+    return marketFromDeviceLocale().currencyCode;
+  }
+
   Future<void> _tryRestoreSession() async {
     final pendingVerificationEmail = await _service
         .restorePendingVerificationEmail();
@@ -117,7 +122,7 @@ class AuthController extends StateNotifier<AuthState> {
 
     try {
       final bootstrap = await _service.bootstrapCurrentSupabaseSession(
-        currency: 'DOP',
+        currency: _preferredCurrency(),
       );
       await _completeAuthenticatedSignIn(bootstrap);
     } catch (_) {
@@ -179,7 +184,7 @@ class AuthController extends StateNotifier<AuthState> {
       name: name,
       email: email,
       password: password,
-      currency: 'DOP',
+      currency: _preferredCurrency(),
     );
 
     if (result.bootstrap != null) {
@@ -333,7 +338,7 @@ class AuthController extends StateNotifier<AuthState> {
   Future<void> completePasswordRecovery(String newPassword) async {
     await _service.updatePasswordFromRecovery(newPassword);
     final bootstrap = await _service.bootstrapCurrentSupabaseSession(
-      currency: 'DOP',
+      currency: _preferredCurrency(),
     );
     await _completeAuthenticatedSignIn(bootstrap);
   }
@@ -406,7 +411,7 @@ class AuthController extends StateNotifier<AuthState> {
     try {
       state = state.copyWith(isBootstrapping: true);
       final bootstrap = await _service.bootstrapCurrentSupabaseSession(
-        currency: 'DOP',
+        currency: _preferredCurrency(),
       );
       await _completeAuthenticatedSignIn(bootstrap);
     } catch (_) {

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../categories/presentation/categories_screen.dart';
 import '../../recurring/presentation/recurring_screen.dart';
 import 'package:go_router/go_router.dart';
@@ -46,8 +47,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
   bool get _showsIosShortcuts =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
-  String _fmt(double val) =>
-      "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
+  String _fmt(double val) => formatMoney(val);
 
   @override
   Widget build(BuildContext context) {

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_card.dart';
 import '../../../shared/widgets/menudo_chip.dart';
@@ -319,5 +319,5 @@ String _dateLabel(SubscriptionState subscription) {
     return prefix;
   }
 
-  return '$prefix el ${DateFormat('d MMM yyyy', 'es').format(expiresAt)}';
+  return '$prefix ${formatDateByPattern(expiresAt)}';
 }

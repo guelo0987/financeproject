@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/preferences/app_preferences.dart';
 import '../../../model/models.dart';
 import '../../../services/api_service.dart';
 import '../../../utils/utils.dart';
@@ -39,7 +40,7 @@ class RecurringRepository {
         'catKey': rec.catKey.isEmpty ? null : rec.catKey,
         'tipo': rec.tipo,
         'monto': rec.monto.abs(),
-        'moneda': 'DOP',
+        'moneda': AppFormattingPreferences.currencyCode,
         'descripcion': rec.desc,
         'nota': rec.nota,
         'frecuencia': rec.frecuencia,
@@ -64,7 +65,7 @@ class RecurringRepository {
         'catKey': rec.catKey.isEmpty ? null : rec.catKey,
         'tipo': rec.tipo,
         'monto': rec.monto.abs(),
-        'moneda': 'DOP',
+        'moneda': AppFormattingPreferences.currencyCode,
         'descripcion': rec.desc,
         'nota': rec.nota,
         'frecuencia': rec.frecuencia,

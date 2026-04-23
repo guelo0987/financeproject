@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/preferences/app_preferences.dart';
+import 'core/preferences/app_preferences_controller.dart';
 import 'core/theme/app_theme.dart';
 import 'features/shortcuts/presentation/ios_shortcuts_coordinator.dart';
 import 'routes/app_router.dart';
@@ -22,7 +24,7 @@ void main() async {
     url: AppEnv.supabaseUrl,
     anonKey: AppEnv.supabasePublishableKey,
   );
-  await initializeDateFormatting('es', null);
+  await initializeDateFormatting();
   await SubscriptionService.initialize();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -40,13 +42,29 @@ class MenudoApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouter);
+    final preferences = ref.watch(appPreferencesProvider).valueOrNull;
+    final market = preferences?.market ?? marketFromDeviceLocale();
+    final locale =
+        preferences?.locale ??
+        buildAppLocale(
+          languageCode: defaultLanguageForMarket(market),
+          marketCode: market.code,
+        );
 
     return MaterialApp.router(
       title: 'Menudo',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      locale: const Locale('es'),
-      supportedLocales: const [Locale('es'), Locale('en')],
+      locale: locale,
+      supportedLocales: const [
+        Locale('es', 'DO'),
+        Locale('es', 'MX'),
+        Locale('es', 'CO'),
+        Locale('es', 'ES'),
+        Locale('es', 'AR'),
+        Locale('es', 'CL'),
+        Locale('en', 'US'),
+      ],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: router,
       builder: (context, child) =>

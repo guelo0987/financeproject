@@ -25,17 +25,238 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     super.dispose();
   }
 
-  void _showAddCategory(BuildContext context, {MenudoCategory? parent}) {
+  void _showCategorySheet(
+    BuildContext context, {
+    MenudoCategory? parent,
+    MenudoCategory? category,
+  }) {
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => parent == null
-          ? const _CategoryCreationLauncherSheet()
-          : AddCategorySheet(parent: parent),
+      builder: (_) {
+        if (parent != null) {
+          return AddCategorySheet(parent: parent, existingCategory: category);
+        }
+        if (category != null) {
+          return AddCategorySheet(existingCategory: category);
+        }
+        return const _CategoryCreationLauncherSheet();
+      },
     );
+  }
+
+  Future<void> _showCategoryActions({
+    required MenudoCategory category,
+    MenudoCategory? parent,
+  }) async {
+    if (category.esSistema) return;
+
+    final action = await showModalBottomSheet<_CategoryAction>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final safeBottom = MediaQuery.of(sheetContext).padding.bottom;
+        final isParent = category.esParent;
+        final label = isParent ? 'grupo' : 'categoría';
+
+        return SafeArea(
+          top: false,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: AppColors.g0,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + safeBottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.g3,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: category.color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        category.icono,
+                        size: 20,
+                        color: category.color,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            category.nombre,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.e8,
+                            ),
+                          ),
+                          Text(
+                            'Elige qué quieres hacer con este $label.',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.g5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                _CategoryActionTile(
+                  icon: LucideIcons.pencil,
+                  label: isParent ? 'Editar grupo' : 'Editar categoría',
+                  onTap: () =>
+                      Navigator.of(sheetContext).pop(_CategoryAction.edit),
+                ),
+                const SizedBox(height: 10),
+                _CategoryActionTile(
+                  icon: LucideIcons.trash2,
+                  label: isParent ? 'Eliminar grupo' : 'Eliminar categoría',
+                  isDestructive: true,
+                  onTap: () =>
+                      Navigator.of(sheetContext).pop(_CategoryAction.delete),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted || action == null) return;
+
+    switch (action) {
+      case _CategoryAction.edit:
+        _showCategorySheet(context, parent: parent, category: category);
+        break;
+      case _CategoryAction.delete:
+        await _confirmDeleteCategory(category);
+        break;
+    }
+  }
+
+  Future<void> _confirmDeleteCategory(MenudoCategory category) async {
+    final isParent = category.esParent;
+    final confirm = await showModalBottomSheet<bool>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final safeBottom = MediaQuery.of(sheetContext).padding.bottom;
+        final label = isParent ? 'grupo' : 'categoría';
+
+        return SafeArea(
+          top: false,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: AppColors.g0,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + safeBottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.g3,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  isParent ? 'Eliminar grupo' : 'Eliminar categoría',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.e8,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Intentaremos borrar ${category.nombre}. Si ese $label ya tiene movimientos o sigue en uso, no se podrá eliminar.',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.4,
+                    color: AppColors.g5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(false),
+                        child: const Text('Cancelar'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.r5,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => Navigator.of(sheetContext).pop(true),
+                        child: const Text('Eliminar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      await ref
+          .read(categoryNotifierProvider.notifier)
+          .removeCategory(category.id);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(presentError(error)),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   List<MapEntry<MenudoCategory, List<MenudoCategory>>> _filteredEntries(
@@ -89,7 +310,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: IconButton(
-              onPressed: () => _showAddCategory(context),
+              onPressed: () => _showCategorySheet(context),
               style: IconButton.styleFrom(
                 backgroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
@@ -188,7 +409,15 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                             subcategories: subs,
                             animDelay: groupIdx * 80,
                             onAddSub: () =>
-                                _showAddCategory(context, parent: parent),
+                                _showCategorySheet(context, parent: parent),
+                            onManageParent: parent.esSistema
+                                ? null
+                                : () => _showCategoryActions(category: parent),
+                            onManageSubcategory: (subcategory) =>
+                                _showCategoryActions(
+                                  category: subcategory,
+                                  parent: parent,
+                                ),
                           );
                         }),
                       ],
@@ -376,12 +605,16 @@ class _CategoryGroup extends StatefulWidget {
   final List<MenudoCategory> subcategories;
   final int animDelay;
   final VoidCallback onAddSub;
+  final VoidCallback? onManageParent;
+  final ValueChanged<MenudoCategory>? onManageSubcategory;
 
   const _CategoryGroup({
     required this.parent,
     required this.subcategories,
     required this.animDelay,
     required this.onAddSub,
+    this.onManageParent,
+    this.onManageSubcategory,
   });
 
   @override
@@ -485,6 +718,27 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                         ),
                       ),
                     ),
+                    if (widget.onManageParent != null) ...[
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: widget.onManageParent,
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: AppColors.g1,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            LucideIcons.moreHorizontal,
+                            size: 16,
+                            color: AppColors.g5,
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(width: 8),
                     AnimatedRotation(
                       turns: _expanded ? 0 : -0.25,
@@ -526,7 +780,12 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                         if (i == subs.length) {
                           return _AddSubcategoryTile(onTap: widget.onAddSub);
                         }
-                        return _SubcategoryTile(category: subs[i]);
+                        return _SubcategoryTile(
+                          category: subs[i],
+                          onManage: widget.onManageSubcategory == null
+                              ? null
+                              : () => widget.onManageSubcategory!(subs[i]),
+                        );
                       },
                     );
                   },
@@ -544,31 +803,64 @@ class _CategoryGroupState extends State<_CategoryGroup> {
 
 class _SubcategoryTile extends StatelessWidget {
   final MenudoCategory category;
-  const _SubcategoryTile({required this.category});
+  final VoidCallback? onManage;
+
+  const _SubcategoryTile({required this.category, this.onManage});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => HapticFeedback.lightImpact(),
+      onTap: onManage ?? () => HapticFeedback.lightImpact(),
       child: Column(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: category.color.withValues(alpha: 0.15)),
-              boxShadow: [
-                BoxShadow(
-                  color: category.color.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: category.color.withValues(alpha: 0.15),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: category.color.withValues(alpha: 0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            alignment: Alignment.center,
-            child: Icon(category.icono, size: 24, color: category.color),
+                alignment: Alignment.center,
+                child: Icon(category.icono, size: 24, color: category.color),
+              ),
+              if (onManage != null)
+                Positioned(
+                  top: -6,
+                  right: -6,
+                  child: GestureDetector(
+                    onTap: onManage,
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.g2),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        LucideIcons.moreHorizontal,
+                        size: 12,
+                        color: AppColors.g5,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
@@ -628,12 +920,14 @@ class _AddSubcategoryTile extends StatelessWidget {
 // ── Add Category Sheet ─────────────────────────────
 class AddCategorySheet extends ConsumerStatefulWidget {
   final MenudoCategory? parent;
+  final MenudoCategory? existingCategory;
   final String? initialType;
   final bool lockType;
 
   const AddCategorySheet({
     super.key,
     this.parent,
+    this.existingCategory,
     this.initialType,
     this.lockType = false,
   });
@@ -707,8 +1001,18 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
   @override
   void initState() {
     super.initState();
-    _selectedType = widget.parent?.tipo ?? widget.initialType ?? 'gasto';
-    _syncAppearance(forceDefaultIcon: true);
+    final existingCategory = widget.existingCategory;
+    if (existingCategory != null) {
+      _nameCtrl.text = existingCategory.nombre;
+      _selectedType = existingCategory.tipo;
+      _icon = existingCategory.icono;
+      _color = existingCategory.color;
+      _hasCustomColor = true;
+      _hasCustomIcon = true;
+    } else {
+      _selectedType = widget.parent?.tipo ?? widget.initialType ?? 'gasto';
+      _syncAppearance(forceDefaultIcon: true);
+    }
   }
 
   @override
@@ -812,17 +1116,24 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
     }
   }
 
-  String get _sheetTitle =>
-      widget.parent == null ? 'Nuevo grupo' : 'Nueva categoría';
+  String get _sheetTitle => widget.existingCategory != null
+      ? (widget.existingCategory!.esParent
+            ? 'Editar grupo'
+            : 'Editar categoría')
+      : (widget.parent == null ? 'Nuevo grupo' : 'Nueva categoría');
 
   String get _sheetSubtitle => widget.parent == null
-      ? 'Crea una categoría principal para organizar tus movimientos.'
-      : 'Se agregará dentro de ${widget.parent!.nombre}.';
+      ? (widget.existingCategory == null
+            ? 'Crea una categoría principal para organizar tus movimientos.'
+            : 'Actualiza el nombre, color o icono de este grupo.')
+      : (widget.existingCategory == null
+            ? 'Se agregará dentro de ${widget.parent!.nombre}.'
+            : 'Actualiza el nombre, color o icono de esta categoría.');
 
   String get _nameLabel =>
       widget.parent == null ? 'Nombre del grupo' : 'Nombre de la categoría';
 
-  Future<void> _createCategory() async {
+  Future<void> _submitCategory() async {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
       _showError('Escribe un nombre para la categoría.');
@@ -830,20 +1141,26 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
     }
 
     final parent = widget.parent;
+    final existingCategory = widget.existingCategory;
 
     setState(() => _isSaving = true);
     try {
       final category = MenudoCategory(
-        id: 0,
-        slug: name.toLowerCase(),
+        id: existingCategory?.id ?? 0,
+        slug: existingCategory?.slug ?? name.toLowerCase(),
         nombre: name,
-        tipo: parent?.tipo ?? _effectiveType,
-        icono: parent?.icono ?? _icon,
+        tipo: existingCategory?.tipo ?? parent?.tipo ?? _effectiveType,
+        icono: _icon,
         color: _color,
-        esSistema: false,
-        categoriaParadreId: parent?.id,
+        esSistema: existingCategory?.esSistema ?? false,
+        usuarioId: existingCategory?.usuarioId,
+        categoriaParadreId: parent?.id ?? existingCategory?.categoriaParadreId,
       );
-      if (parent == null) {
+      if (existingCategory != null) {
+        await ref
+            .read(categoryNotifierProvider.notifier)
+            .updateCategory(category);
+      } else if (parent == null) {
         await ref
             .read(categoryNotifierProvider.notifier)
             .addParentCategory(category);
@@ -945,7 +1262,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                           autofocus: true,
                           textCapitalization: TextCapitalization.words,
                           textInputAction: TextInputAction.done,
-                          onSubmitted: (_) => _createCategory(),
+                          onSubmitted: (_) => _submitCategory(),
                           onTapOutside: (_) => FocusScope.of(context).unfocus(),
                           scrollPadding: EdgeInsets.only(
                             bottom: viewInsets + 120,
@@ -1031,7 +1348,8 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  if (widget.parent == null) ...[
+                  if (widget.parent == null &&
+                      widget.existingCategory == null) ...[
                     const Text(
                       'Tipo',
                       style: TextStyle(
@@ -1197,15 +1515,65 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
             child: MenudoButton(
               label: _isSaving
                   ? "GUARDANDO..."
+                  : widget.existingCategory != null
+                  ? "GUARDAR CAMBIOS"
                   : widget.parent == null
                   ? "CREAR GRUPO"
                   : "CREAR CATEGORÍA",
               isFullWidth: true,
               isDisabled: _isSaving,
-              onTap: _createCategory,
+              onTap: _submitCategory,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+enum _CategoryAction { edit, delete }
+
+class _CategoryActionTile extends StatelessWidget {
+  const _CategoryActionTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.isDestructive = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isDestructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDestructive ? AppColors.r5 : AppColors.e8;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.g2),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,30 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../preferences/app_preferences.dart';
 
-final NumberFormat _moneyWholeFormatter = NumberFormat('#,##0', 'en_US');
-final NumberFormat _moneyDecimalFormatter = NumberFormat('#,##0.00', 'en_US');
-
-String _currencyPrefix(String currency) {
+String currencyPrefix(String currency) {
   switch (currency.trim().toUpperCase()) {
     case 'USD':
       return 'US\$';
     case 'EUR':
       return '€';
+    case 'MXN':
+      return 'MX\$';
+    case 'COP':
+      return 'COP\$';
+    case 'ARS':
+      return 'AR\$';
+    case 'CLP':
+      return 'CLP\$';
+    case 'DOP':
+      return 'RD\$';
     default:
       return 'RD\$';
   }
 }
 
+String currentCurrencyPrefix() {
+  return currencyPrefix(AppFormattingPreferences.currencyCode);
+}
+
+String currentLocaleTag() {
+  return AppFormattingPreferences.localeTag;
+}
+
 String formatMoney(
   double value, {
-  String currency = 'DOP',
+  String currency = '',
   bool signed = false,
   bool keepDecimals = false,
 }) {
-  final formatter = keepDecimals
-      ? _moneyDecimalFormatter
-      : _moneyWholeFormatter;
-  final prefix = _currencyPrefix(currency);
+  final effectiveCurrency = currency.trim().isEmpty
+      ? AppFormattingPreferences.currencyCode
+      : currency.trim().toUpperCase();
+  final formatter = NumberFormat(
+    keepDecimals ? '#,##0.00' : '#,##0',
+    AppFormattingPreferences.localeTag,
+  );
+  final prefix = currencyPrefix(effectiveCurrency);
   final base = '$prefix${formatter.format(value.abs())}';
 
   if (signed) {
@@ -76,4 +96,11 @@ DateTimeRange normalizeDateRange(DateTimeRange range) {
       999,
     ),
   );
+}
+
+String formatDateByPattern(
+  DateTime value, {
+  String pattern = 'd MMM yyyy',
+}) {
+  return DateFormat(pattern, AppFormattingPreferences.localeTag).format(value);
 }

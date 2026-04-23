@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/error_presenter.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../model/models.dart';
 import '../../../../shared/widgets/menudo_loading_view.dart';
 import '../../auth/auth_state.dart';
@@ -424,7 +424,10 @@ class _AlertCard extends StatelessWidget {
     };
     final dateLabel = alert.createdAt == null
         ? null
-        : DateFormat('d MMM, h:mm a', 'es').format(alert.createdAt!.toLocal());
+        : formatDateByPattern(
+            alert.createdAt!.toLocal(),
+            pattern: 'd MMM, h:mm a',
+          );
 
     return Container(
       padding: const EdgeInsets.all(18),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
+import '../../../core/preferences/app_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/error_presenter.dart';
@@ -137,7 +138,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(authProvider.notifier).registerWithApple(currency: 'DOP');
+      await ref
+          .read(authProvider.notifier)
+          .registerWithApple(currency: marketFromDeviceLocale().currencyCode);
       if (!mounted) return;
 
       final needsPaywall = ref.read(authProvider).needsPaywall;

@@ -3,21 +3,116 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:intl/intl.dart';
 import '../../alerts/providers/alert_providers.dart';
 import '../../auth/auth_state.dart';
 import '../../subscription/subscription_provider.dart';
 import '../../subscription/subscription_state.dart';
+import '../../../core/localization/app_copy.dart';
+import '../../../core/preferences/app_preferences.dart';
+import '../../../core/preferences/app_preferences_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/display_utils.dart';
 import '../../../core/utils/external_links.dart';
+import '../../../core/utils/formatters.dart';
+import '../../../model/user_profile.dart';
+import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_card.dart';
 import '../../../shared/widgets/menudo_chip.dart';
-import '../../../shared/widgets/menudo_button.dart';
 import '../../../utils/app_env.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
+
+  Future<void> _pickLanguage(
+    BuildContext context,
+    WidgetRef ref,
+    AppPreferencesState preferences,
+  ) async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _PreferencesSheet<String>(
+        title: tr(context, es: 'Idioma de la app', en: 'App language'),
+        selectedValue: preferences.languageCode,
+        options: supportedAppLanguages
+            .map(
+              (language) => _PreferenceOption<String>(
+                value: language.code,
+                title: language.label(isEnglishLocale(context)),
+                subtitle: language.code.toUpperCase(),
+              ),
+            )
+            .toList(),
+      ),
+    );
+
+    if (selected == null || selected == preferences.languageCode) return;
+    await ref.read(appPreferencesProvider.notifier).setLanguage(selected);
+  }
+
+  Future<void> _pickMarket(
+    BuildContext context,
+    WidgetRef ref,
+    AppPreferencesState preferences,
+    UserProfile? profile,
+  ) async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _PreferencesSheet<String>(
+        title: tr(context, es: 'País y moneda', en: 'Country and currency'),
+        selectedValue: preferences.marketCode,
+        options: supportedAppMarkets
+            .map(
+              (market) => _PreferenceOption<String>(
+                value: market.code,
+                title: market.label(isEnglishLocale(context)),
+                subtitle: market.currencyCode,
+              ),
+            )
+            .toList(),
+      ),
+    );
+
+    if (selected == null || selected == preferences.marketCode) return;
+
+    final market = marketFromCode(selected);
+    try {
+      if (profile != null) {
+        await ref.read(authProvider.notifier).updateProfile(
+          name: profile.name,
+          currency: market.currencyCode,
+          avatarEmoji: profile.avatarEmoji,
+          financialGoal: profile.financialGoal,
+          goalAmount: profile.goalAmount,
+          goalDate: profile.goalDate,
+        );
+      }
+      await ref.read(appPreferencesProvider.notifier).setMarket(selected);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            tr(
+              context,
+              es: 'Tu país y moneda principal ya quedaron actualizados.',
+              en: 'Your country and main currency have been updated.',
+            ),
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,7 +121,14 @@ class SettingsScreen extends ConsumerWidget {
         .maybeWhen(data: (count) => count, orElse: () => 0);
     final profile = ref.watch(authProvider).profile;
     final subscription = ref.watch(subscriptionProvider);
-    final initials = (profile?.name ?? 'M')
+    final preferences = ref.watch(appPreferencesProvider).valueOrNull;
+    final currentMarket =
+        preferences?.market ?? marketFromCurrency(profile?.baseCurrency);
+    final currentLanguage =
+        preferences?.language ??
+        languageFromCode(defaultLanguageForMarket(currentMarket));
+    final displayName = shortDisplayName(profile?.name);
+    final initials = (displayName.isEmpty ? 'M' : displayName)
         .split(RegExp(r'\s+'))
         .where((part) => part.isNotEmpty)
         .take(2)
@@ -44,7 +146,10 @@ class SettingsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                 child: Column(
                   children: [
-                    Text('Ajustes', style: MenudoTextStyles.h1),
+                    Text(
+                      tr(context, es: 'Ajustes', en: 'Settings'),
+                      style: MenudoTextStyles.h1,
+                    ),
                     const SizedBox(height: 24),
                     Container(
                       padding: const EdgeInsets.all(22),
@@ -80,21 +185,32 @@ class SettingsScreen extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  profile?.name ?? 'Tu cuenta',
+                                  displayName.isEmpty
+                                      ? tr(
+                                          context,
+                                          es: 'Tu cuenta',
+                                          en: 'Your account',
+                                        )
+                                      : displayName,
                                   style: MenudoTextStyles.h3.copyWith(
                                     color: Colors.white,
                                   ),
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  profile?.email ?? 'Sesión activa',
+                                  profile?.email ??
+                                      tr(
+                                        context,
+                                        es: 'Sesión activa',
+                                        en: 'Active session',
+                                      ),
                                   style: MenudoTextStyles.bodyMedium.copyWith(
                                     color: Colors.white.withValues(alpha: 0.82),
                                   ),
                                 ),
                                 const SizedBox(height: 10),
                                 MenudoChip.custom(
-                                  label: profile?.baseCurrency ?? 'DOP',
+                                  label: currentMarket.currencyCode,
                                   color: Colors.white,
                                   bgColor: Colors.white.withValues(alpha: 0.12),
                                 ),
@@ -114,24 +230,44 @@ class SettingsScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _SectionHeader('Cuenta'),
+                    _SectionHeader(tr(context, es: 'Cuenta', en: 'Account')),
                     MenudoCard(
                       padding: EdgeInsets.zero,
                       child: Column(
                         children: [
                           _SettingsTile(
                             icon: Icons.person_outline_rounded,
-                            title: 'Mi perfil',
-                            subtitle: 'Nombre, meta y seguridad',
+                            title: tr(
+                              context,
+                              es: 'Mi perfil',
+                              en: 'My profile',
+                            ),
+                            subtitle: tr(
+                              context,
+                              es: 'Nombre, meta y seguridad',
+                              en: 'Name, goals and security',
+                            ),
                             onTap: () => context.push('/profile'),
                           ),
                           const Divider(height: 1, color: MenudoColors.divider),
                           _SettingsTile(
                             icon: Icons.notifications_none_rounded,
-                            title: 'Alertas',
+                            title: tr(
+                              context,
+                              es: 'Alertas',
+                              en: 'Alerts',
+                            ),
                             subtitle: unreadAlerts > 0
-                                ? '$unreadAlerts sin leer'
-                                : 'Todo al día',
+                                ? tr(
+                                    context,
+                                    es: '$unreadAlerts sin leer',
+                                    en: '$unreadAlerts unread',
+                                  )
+                                : tr(
+                                    context,
+                                    es: 'Todo al día',
+                                    en: 'All caught up',
+                                  ),
                             trailing: unreadAlerts > 0
                                 ? MenudoChip(
                                     unreadAlerts.toString(),
@@ -144,29 +280,98 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.04),
                     const SizedBox(height: 24),
-                    _SectionHeader('Herramientas'),
+                    _SectionHeader(
+                      tr(context, es: 'Preferencias', en: 'Preferences'),
+                    ),
+                    MenudoCard(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          _SettingsTile(
+                            icon: Icons.language_rounded,
+                            title: tr(
+                              context,
+                              es: 'Idioma',
+                              en: 'Language',
+                            ),
+                            subtitle: currentLanguage.label(
+                              isEnglishLocale(context),
+                            ),
+                            onTap: preferences == null
+                                ? null
+                                : () => _pickLanguage(
+                                    context,
+                                    ref,
+                                    preferences,
+                                  ),
+                          ),
+                          const Divider(height: 1, color: MenudoColors.divider),
+                          _SettingsTile(
+                            icon: Icons.public_rounded,
+                            title: tr(
+                              context,
+                              es: 'País y moneda',
+                              en: 'Country and currency',
+                            ),
+                            subtitle: currentMarket.label(
+                              isEnglishLocale(context),
+                            ),
+                            onTap: preferences == null
+                                ? null
+                                : () => _pickMarket(
+                                    context,
+                                    ref,
+                                    preferences,
+                                    profile,
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ).animate().fadeIn(delay: 140.ms).slideY(begin: 0.04),
+                    const SizedBox(height: 24),
+                    _SectionHeader(
+                      tr(context, es: 'Herramientas', en: 'Tools'),
+                    ),
                     MenudoCard(
                       padding: EdgeInsets.zero,
                       child: Column(
                         children: [
                           _SettingsTile(
                             icon: Icons.repeat_rounded,
-                            title: 'Transacciones automáticas',
-                            subtitle: 'Cobros y pagos recurrentes',
+                            title: tr(
+                              context,
+                              es: 'Transacciones automáticas',
+                              en: 'Automatic transactions',
+                            ),
+                            subtitle: tr(
+                              context,
+                              es: 'Cobros y pagos recurrentes',
+                              en: 'Recurring payments and income',
+                            ),
                             onTap: () => context.push('/recurring'),
                           ),
                           const Divider(height: 1, color: MenudoColors.divider),
                           _SettingsTile(
                             icon: Icons.grid_view_rounded,
-                            title: 'Herramientas de categorías',
-                            subtitle: 'Organiza y ajusta tus categorías',
+                            title: tr(
+                              context,
+                              es: 'Herramientas de categorías',
+                              en: 'Category tools',
+                            ),
+                            subtitle: tr(
+                              context,
+                              es: 'Organiza y ajusta tus categorías',
+                              en: 'Organize and refine categories',
+                            ),
                             onTap: () => context.push('/tools'),
                           ),
                         ],
                       ),
                     ).animate().fadeIn(delay: 180.ms).slideY(begin: 0.04),
                     const SizedBox(height: 24),
-                    _SectionHeader('Suscripción'),
+                    _SectionHeader(
+                      tr(context, es: 'Suscripción', en: 'Subscription'),
+                    ),
                     MenudoCard(
                       padding: EdgeInsets.zero,
                       child: Column(
@@ -174,7 +379,7 @@ class SettingsScreen extends ConsumerWidget {
                           _SettingsTile(
                             icon: _subscriptionIcon(subscription.estado),
                             title: 'Menudo Pro',
-                            subtitle: _subscriptionSubtitle(subscription),
+                            subtitle: _subscriptionSubtitle(context, subscription),
                             trailing: subscription.hasVerificationIssue
                                 ? const MenudoChip(
                                     'REVISAR',
@@ -205,14 +410,25 @@ class SettingsScreen extends ConsumerWidget {
                             _SettingsTile(
                               icon: Icons.calendar_today_rounded,
                               title: subscription.estado == 'prueba'
-                                  ? 'Trial hasta'
+                                  ? tr(
+                                      context,
+                                      es: 'Trial hasta',
+                                      en: 'Trial until',
+                                    )
                                   : subscription.estado == 'cancelada'
-                                  ? 'Acceso hasta'
-                                  : 'Se renueva',
-                              subtitle: DateFormat(
-                                'd MMM yyyy',
-                                'es',
-                              ).format(subscription.expiresAt!),
+                                  ? tr(
+                                      context,
+                                      es: 'Acceso hasta',
+                                      en: 'Access until',
+                                    )
+                                  : tr(
+                                      context,
+                                      es: 'Se renueva',
+                                      en: 'Renews on',
+                                    ),
+                              subtitle: formatDateByPattern(
+                                subscription.expiresAt!,
+                              ),
                               trailing: subscription.estado == 'cancelada'
                                   ? const MenudoChip(
                                       'NO RENUEVA',
@@ -225,26 +441,46 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ).animate().fadeIn(delay: 240.ms).slideY(begin: 0.04),
                     const SizedBox(height: 24),
-                    _SectionHeader('Contacto'),
+                    _SectionHeader(
+                      tr(context, es: 'Contacto', en: 'Contact'),
+                    ),
                     MenudoCard(
                       padding: EdgeInsets.zero,
                       child: _SettingsTile(
                         icon: Icons.chat_bubble_outline_rounded,
-                        title: 'Reportes y sugerencias',
-                        subtitle: 'Bugs, mejoras y ayuda',
+                        title: tr(
+                          context,
+                          es: 'Reportes y sugerencias',
+                          en: 'Reports and suggestions',
+                        ),
+                        subtitle: tr(
+                          context,
+                          es: 'Bugs, mejoras y ayuda',
+                          en: 'Bugs, ideas and support',
+                        ),
                         onTap: () => context.push('/contact'),
                       ),
                     ).animate().fadeIn(delay: 260.ms).slideY(begin: 0.04),
                     const SizedBox(height: 24),
-                    _SectionHeader('Ayuda y legal'),
+                    _SectionHeader(
+                      tr(context, es: 'Ayuda y legal', en: 'Help and legal'),
+                    ),
                     MenudoCard(
                       padding: EdgeInsets.zero,
                       child: Column(
                         children: [
                           _SettingsTile(
                             icon: Icons.support_agent_rounded,
-                            title: 'Centro de ayuda',
-                            subtitle: 'Soporte, contacto y seguimiento',
+                            title: tr(
+                              context,
+                              es: 'Centro de ayuda',
+                              en: 'Help center',
+                            ),
+                            subtitle: tr(
+                              context,
+                              es: 'Soporte, contacto y seguimiento',
+                              en: 'Support, contact and follow-up',
+                            ),
                             onTap: () => ExternalLinks.openUrlOrNotify(
                               context,
                               AppEnv.supportUrl,
@@ -253,8 +489,16 @@ class SettingsScreen extends ConsumerWidget {
                           const Divider(height: 1, color: MenudoColors.divider),
                           _SettingsTile(
                             icon: Icons.privacy_tip_outlined,
-                            title: 'Política de privacidad',
-                            subtitle: 'Cómo manejamos tus datos',
+                            title: tr(
+                              context,
+                              es: 'Política de privacidad',
+                              en: 'Privacy policy',
+                            ),
+                            subtitle: tr(
+                              context,
+                              es: 'Cómo manejamos tus datos',
+                              en: 'How we handle your data',
+                            ),
                             onTap: () => ExternalLinks.openUrlOrNotify(
                               context,
                               AppEnv.privacyPolicyUrl,
@@ -263,8 +507,16 @@ class SettingsScreen extends ConsumerWidget {
                           const Divider(height: 1, color: MenudoColors.divider),
                           _SettingsTile(
                             icon: Icons.description_outlined,
-                            title: 'Términos de servicio',
-                            subtitle: 'Condiciones de uso de Menudo',
+                            title: tr(
+                              context,
+                              es: 'Términos de servicio',
+                              en: 'Terms of service',
+                            ),
+                            subtitle: tr(
+                              context,
+                              es: 'Condiciones de uso de Menudo',
+                              en: 'Conditions for using Menudo',
+                            ),
                             onTap: () => ExternalLinks.openUrlOrNotify(
                               context,
                               AppEnv.termsUrl,
@@ -275,7 +527,11 @@ class SettingsScreen extends ConsumerWidget {
                     ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.04),
                     const SizedBox(height: 40),
                     MenudoSecondaryButton(
-                      label: 'Cerrar sesión',
+                      label: tr(
+                        context,
+                        es: 'Cerrar sesión',
+                        en: 'Sign out',
+                      ),
                       onTap: () {
                         ref.read(authProvider.notifier).logout();
                         context.go('/login');
@@ -379,8 +635,6 @@ class _SettingsTile extends StatelessWidget {
   }
 }
 
-// ── Subscription helpers ─────────────────────────────────────────────────
-
 IconData _subscriptionIcon(String? estado) {
   return switch (estado) {
     'prueba' => Icons.access_time_rounded,
@@ -391,24 +645,150 @@ IconData _subscriptionIcon(String? estado) {
   };
 }
 
-String _subscriptionSubtitle(SubscriptionState sub) {
+String _subscriptionSubtitle(BuildContext context, SubscriptionState sub) {
   if (sub.hasVerificationIssue) {
-    return 'No pudimos comprobar tu acceso ahora mismo';
+    return tr(
+      context,
+      es: 'No pudimos comprobar tu acceso ahora mismo',
+      en: 'We could not verify your access right now',
+    );
   }
 
   final planLabel = switch (sub.plan) {
-    'annual' => 'Plan anual',
-    'lifetime' => 'De por vida',
-    'monthly' => 'Plan mensual',
+    'annual' => tr(context, es: 'Plan anual', en: 'Annual plan'),
+    'lifetime' => tr(context, es: 'De por vida', en: 'Lifetime'),
+    'monthly' => tr(context, es: 'Plan mensual', en: 'Monthly plan'),
     _ => '',
   };
 
   return switch (sub.estado) {
-    'prueba' => '$planLabel · Prueba gratuita',
-    'activa' =>
-      sub.plan == 'lifetime' ? 'Acceso permanente' : '$planLabel activo',
-    'cancelada' => '$planLabel · Cancelado',
-    'vencida' => 'Suscripción vencida',
-    _ => 'Activar suscripción',
+    'prueba' =>
+      '$planLabel · ${tr(context, es: 'Prueba gratuita', en: 'Free trial')}',
+    'activa' => sub.plan == 'lifetime'
+        ? tr(context, es: 'Acceso permanente', en: 'Permanent access')
+        : '$planLabel ${tr(context, es: 'activo', en: 'active')}',
+    'cancelada' =>
+      '$planLabel · ${tr(context, es: 'Cancelado', en: 'Canceled')}',
+    'vencida' => tr(
+      context,
+      es: 'Suscripción vencida',
+      en: 'Subscription expired',
+    ),
+    _ => tr(context, es: 'Activar suscripción', en: 'Activate subscription'),
   };
 }
+
+class _PreferencesSheet<T> extends StatelessWidget {
+  const _PreferencesSheet({
+    required this.title,
+    required this.options,
+    required this.selectedValue,
+  });
+
+  final String title;
+  final List<_PreferenceOption<T>> options;
+  final T selectedValue;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: MenudoColors.divider,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(title, style: MenudoTextStyles.h3),
+              const SizedBox(height: 18),
+              for (var i = 0; i < options.length; i++) ...[
+                _PreferenceRow<T>(
+                  option: options[i],
+                  selected: options[i].value == selectedValue,
+                ),
+                if (i != options.length - 1)
+                  const Divider(height: 1, color: MenudoColors.divider),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PreferenceOption<T> {
+  const _PreferenceOption({
+    required this.value,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final T value;
+  final String title;
+  final String subtitle;
+}
+
+class _PreferenceRow<T> extends StatelessWidget {
+  const _PreferenceRow({
+    required this.option,
+    required this.selected,
+  });
+
+  final _PreferenceOption<T> option;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => Navigator.of(context).pop(option.value),
+      borderRadius: BorderRadius.circular(18),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    option.title,
+                    style: MenudoTextStyles.bodyLarge.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    option.subtitle,
+                    style: MenudoTextStyles.bodySmall.copyWith(
+                      color: MenudoColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (selected)
+              const Icon(
+                Icons.check_rounded,
+                color: AppColors.e8,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

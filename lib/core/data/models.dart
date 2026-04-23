@@ -849,6 +849,7 @@ class MenudoBudget {
 
   const MenudoBudget({
     required this.id,
+    this.ownerUserId,
     this.espacioId,
     required this.nombre,
     required this.periodo,
@@ -866,6 +867,7 @@ class MenudoBudget {
     this.totalIncomeActual,
   });
 
+  final int? ownerUserId;
   List<BudgetCategory> get spendingCategories => [
     ...cats.values,
     ...otherExpenses,
@@ -889,6 +891,7 @@ class MenudoBudget {
 
   MenudoBudget copyWith({
     int? id,
+    int? ownerUserId,
     int? espacioId,
     bool clearEspacioId = false,
     String? nombre,
@@ -908,6 +911,7 @@ class MenudoBudget {
   }) {
     return MenudoBudget(
       id: id ?? this.id,
+      ownerUserId: ownerUserId ?? this.ownerUserId,
       espacioId: clearEspacioId ? null : (espacioId ?? this.espacioId),
       nombre: nombre ?? this.nombre,
       periodo: periodo ?? this.periodo,
@@ -939,6 +943,9 @@ class MenudoBudget {
   }) {
     return MenudoBudget(
       id: (json['presupuesto_id'] as num).toInt(),
+      ownerUserId: json['usuario_id'] != null
+          ? (json['usuario_id'] as num).toInt()
+          : null,
       espacioId: json['espacio_id'] != null
           ? (json['espacio_id'] as num).toInt()
           : null,

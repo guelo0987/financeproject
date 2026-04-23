@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
 import '../../transactions/presentation/transaction_presentation_utils.dart';
 import '../../transactions/providers/transaction_providers.dart';
@@ -42,9 +43,8 @@ class _SpendingCategoriesScreenState
     'dic',
   ];
 
-  String _fmtMoney(double value, {String currency = 'DOP'}) {
-    final prefix = currency == 'USD' ? 'US\$' : 'RD\$';
-    return '$prefix${_fmtNumber(value.round())}';
+  String _fmtMoney(double value, {String currency = ''}) {
+    return formatMoney(value);
   }
 
   String _fmtNumber(int value) {
@@ -981,7 +981,7 @@ class _MovementTile extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              '$amountPrefix ${moneyFormatter(transaction.monto.abs(), currency: transaction.moneda)}',
+              '$amountPrefix ${moneyFormatter(transaction.monto.abs())}',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w900,

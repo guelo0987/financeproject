@@ -9,6 +9,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/error_presenter.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../model/models.dart';
 import '../../auth/auth_state.dart';
 import '../../budgets/budget_providers.dart';
@@ -24,12 +25,7 @@ class SpacesManagerScreen extends ConsumerStatefulWidget {
 
 class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
   String _fmt(double val, {String currency = 'DOP'}) {
-    final prefix = currency == 'USD' ? 'US\$' : 'RD\$';
-    final amount = val.abs().toInt().toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match match) => '${match[1]},',
-    );
-    return '$prefix$amount';
+    return formatMoney(val, currency: currency);
   }
 
   void _openBudgets() {

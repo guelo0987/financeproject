@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/data/models.dart';
+import '../../../../core/preferences/app_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/error_presenter.dart';
 import '../../../../shared/widgets/menudo_button.dart';
@@ -235,7 +236,8 @@ class _RegisterTransactionSheetState
       fromAccountId: _fromAccountId,
       toAccountId: _selectedType == 'transferencia' ? _toAccountId : null,
       nota: _nota,
-      moneda: widget.transaction?.moneda ?? 'DOP',
+      moneda:
+          widget.transaction?.moneda ?? AppFormattingPreferences.currencyCode,
     );
 
     HapticFeedback.mediumImpact();

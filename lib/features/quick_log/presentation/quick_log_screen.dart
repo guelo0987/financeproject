@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/formatters.dart';
 
 class QuickLogScreen extends StatefulWidget {
   const QuickLogScreen({super.key});
@@ -120,7 +121,7 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '${_isIncome ? "Entrada" : "Salida"} de RD\$ ${NumberFormat('#,##0').format(value)} registrada',
+            '${_isIncome ? "Entrada" : "Salida"} de ${formatMoney(value)} registrada',
           ),
           backgroundColor: _isIncome ? AppColors.positive : AppColors.negative,
           behavior: SnackBarBehavior.floating,
@@ -140,7 +141,7 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final formatter = NumberFormat('#,##0.##', 'en_US');
+    final formatter = NumberFormat('#,##0.##', currentLocaleTag());
     final parsedAmount = double.tryParse(_amount) ?? 0;
     final categories = _isIncome ? _incomeCategories : _expenseCategories;
 

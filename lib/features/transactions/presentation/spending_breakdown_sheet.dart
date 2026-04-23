@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
+import '../../../core/utils/formatters.dart';
 import '../../categories/providers/category_providers.dart';
 
 class SpendingBreakdownSheet extends ConsumerStatefulWidget {
@@ -45,8 +46,7 @@ class _SpendingBreakdownSheetState
     'dic',
   ];
 
-  String _fmt(double val) =>
-      "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
+  String _fmt(double val) => formatMoney(val);
 
   String _fmtDate(String dateStr) {
     final parts = dateStr.split('-');

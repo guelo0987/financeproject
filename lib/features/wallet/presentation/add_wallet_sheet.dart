@@ -5,6 +5,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../auth/auth_state.dart';
 
 class AddWalletSheet extends ConsumerStatefulWidget {
@@ -135,7 +136,7 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
     });
   }
 
-  String _currencyPrefix() => _currency == 'USD' ? 'US\$' : 'RD\$';
+  String _currencyPrefix() => currencyPrefix(_currency);
 
   String _formattedAmountDisplay() {
     if (_amount.isEmpty) return '0';

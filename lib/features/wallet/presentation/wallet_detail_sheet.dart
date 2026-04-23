@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
 import '../../../core/utils/error_presenter.dart';
+import '../../../core/utils/formatters.dart';
 import '../../categories/providers/category_providers.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
 import '../../transactions/presentation/transaction_presentation_utils.dart';
@@ -301,12 +302,7 @@ class WalletDetailSheet extends ConsumerWidget {
   const WalletDetailSheet({super.key, required this.wallet, this.onError});
 
   String fmt(double val, {String currency = 'DOP'}) {
-    final prefix = currency == 'USD' ? 'US\$' : 'RD\$';
-    final amount = val.abs().toInt().toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-    return '$prefix$amount';
+    return formatMoney(val, currency: currency);
   }
 
   MenudoCategory? _findCategory(List<MenudoCategory> categories, String slug) {
@@ -823,8 +819,8 @@ class WalletDetailSheet extends ConsumerWidget {
                                     ? '${presentation.routeLabel} · ${dayStr[2]} $monthLabel'
                                     : '${category?.nombre ?? t.catKey} · ${dayStr[2]} $monthLabel';
                                 final amountText = presentation.prefix.isEmpty
-                                    ? fmt(t.monto.abs(), currency: t.moneda)
-                                    : '${presentation.prefix}${fmt(t.monto.abs(), currency: t.moneda)}';
+                                    ? fmt(t.monto.abs())
+                                    : '${presentation.prefix}${fmt(t.monto.abs())}';
 
                                 return Column(
                                   children: [

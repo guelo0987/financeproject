@@ -156,8 +156,8 @@ class TransactionDetailSheet extends ConsumerWidget {
         ? null
         : normalizedUiLabel(t.desc);
     final String formattedAmount = amountPrefix.isEmpty
-        ? formatMoney(t.monto.abs(), currency: t.moneda)
-        : "$amountPrefix${formatMoney(t.monto.abs(), currency: t.moneda)}";
+        ? formatMoney(t.monto.abs())
+        : "$amountPrefix${formatMoney(t.monto.abs())}";
     final summaryColor = isTransfer
         ? AppColors.b5
         : _mix(amountColor, catColor, 0.4);

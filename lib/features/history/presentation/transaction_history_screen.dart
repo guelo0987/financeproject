@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../core/data/models.dart';
+import '../../../core/preferences/app_preferences.dart';
+import '../../../core/preferences/app_preferences_controller.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/menudo_loading_view.dart';
@@ -18,6 +20,10 @@ import '../../wallet/providers/wallet_providers.dart';
 enum _HistoryTypeFilter { all, expense, income, transfer }
 
 enum _HistoryDateFilter { all, thisMonth, last30Days, custom }
+
+String _formatHistoryMoney(double value, String currencyCode) {
+  return formatMoney(value, currency: currencyCode);
+}
 
 class TransactionHistoryScreen extends ConsumerStatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -297,7 +303,10 @@ class _TransactionHistoryScreenState
         initialDateRange:
             _customRange ??
             DateTimeRange(start: DateTime(now.year, now.month, 1), end: now),
-        locale: const Locale('es'),
+        locale: Locale(
+          AppFormattingPreferences.locale.languageCode,
+          AppFormattingPreferences.locale.countryCode,
+        ),
       );
       if (picked == null || !mounted) return;
       setState(() {
@@ -393,6 +402,9 @@ class _TransactionHistoryScreenState
 
   @override
   Widget build(BuildContext context) {
+    final preferences = ref.watch(appPreferencesProvider).valueOrNull;
+    final activeCurrency =
+        preferences?.currencyCode ?? AppFormattingPreferences.currencyCode;
     final transactionsAsync = ref.watch(transactionNotifierProvider);
     final transactions = ref.watch(effectiveTransactionsProvider);
     final categories = ref.watch(effectiveCategoriesProvider);
@@ -526,6 +538,7 @@ class _TransactionHistoryScreenState
                       balance: balance,
                       income: totalIncome,
                       expense: totalExpense,
+                      currencyCode: activeCurrency,
                     ).animate().fadeIn(duration: 320.ms, delay: 120.ms),
                     if (expenseBreakdown.isNotEmpty) ...[
                       const SizedBox(height: 18),
@@ -533,8 +546,12 @@ class _TransactionHistoryScreenState
                         title: 'Gastos por categoría',
                         icon: LucideIcons.trendingDown,
                         accentColor: AppColors.o5,
-                        totalLabel: formatMoney(totalExpense),
+                        totalLabel: _formatHistoryMoney(
+                          totalExpense,
+                          activeCurrency,
+                        ),
                         items: expenseBreakdown,
+                        currencyCode: activeCurrency,
                       ).animate().fadeIn(duration: 320.ms, delay: 180.ms),
                     ],
                     if (incomeBreakdown.isNotEmpty) ...[
@@ -543,8 +560,12 @@ class _TransactionHistoryScreenState
                         title: 'Ingresos por categoría',
                         icon: LucideIcons.trendingUp,
                         accentColor: AppColors.e6,
-                        totalLabel: formatMoney(totalIncome),
+                        totalLabel: _formatHistoryMoney(
+                          totalIncome,
+                          activeCurrency,
+                        ),
                         items: incomeBreakdown,
+                        currencyCode: activeCurrency,
                       ).animate().fadeIn(duration: 320.ms, delay: 220.ms),
                     ],
                     const SizedBox(height: 22),
@@ -598,6 +619,7 @@ class _TransactionHistoryScreenState
                       categoriesById: categoriesById,
                       budgetsById: budgetsById,
                       wallets: wallets,
+                      currencyCode: activeCurrency,
                     ),
                   ).animate().fadeIn(duration: 260.ms, delay: (index * 40).ms);
                 }, childCount: groupedTransactions.length),
@@ -791,11 +813,13 @@ class _HistoryOverviewCard extends StatelessWidget {
     required this.balance,
     required this.income,
     required this.expense,
+    required this.currencyCode,
   });
 
   final double balance;
   final double income;
   final double expense;
+  final String currencyCode;
 
   @override
   Widget build(BuildContext context) {
@@ -824,7 +848,7 @@ class _HistoryOverviewCard extends StatelessWidget {
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
-              formatMoney(balance),
+              _formatHistoryMoney(balance, currencyCode),
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.w900,
@@ -838,13 +862,13 @@ class _HistoryOverviewCard extends StatelessWidget {
           const SizedBox(height: 14),
           _HistoryInlineMetric(
             label: 'Ingresos',
-            value: formatMoney(income),
+            value: _formatHistoryMoney(income, currencyCode),
             color: AppColors.e6,
           ),
           const SizedBox(height: 12),
           _HistoryInlineMetric(
             label: 'Gastos',
-            value: formatMoney(expense),
+            value: _formatHistoryMoney(expense, currencyCode),
             color: AppColors.o5,
           ),
         ],
@@ -948,6 +972,7 @@ class _HistoryBreakdownCard extends StatelessWidget {
     required this.accentColor,
     required this.totalLabel,
     required this.items,
+    required this.currencyCode,
   });
 
   final String title;
@@ -955,6 +980,7 @@ class _HistoryBreakdownCard extends StatelessWidget {
   final Color accentColor;
   final String totalLabel;
   final List<_HistoryBreakdownItem> items;
+  final String currencyCode;
 
   @override
   Widget build(BuildContext context) {
@@ -1017,7 +1043,11 @@ class _HistoryBreakdownCard extends StatelessWidget {
                 padding: EdgeInsets.only(
                   bottom: entry.key == visibleCount - 1 ? 0 : 12,
                 ),
-                child: _BreakdownRow(item: item, accentColor: accentColor),
+                child: _BreakdownRow(
+                  item: item,
+                  accentColor: accentColor,
+                  currencyCode: currencyCode,
+                ),
               );
             }),
         ],
@@ -1050,10 +1080,15 @@ class _BreakdownEmptyState extends StatelessWidget {
 }
 
 class _BreakdownRow extends StatelessWidget {
-  const _BreakdownRow({required this.item, required this.accentColor});
+  const _BreakdownRow({
+    required this.item,
+    required this.accentColor,
+    required this.currencyCode,
+  });
 
   final _HistoryBreakdownItem item;
   final Color accentColor;
+  final String currencyCode;
 
   @override
   Widget build(BuildContext context) {
@@ -1108,7 +1143,7 @@ class _BreakdownRow extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            formatMoney(item.total),
+            _formatHistoryMoney(item.total, currencyCode),
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w900,
@@ -1197,6 +1232,7 @@ class _HistoryDaySection extends StatelessWidget {
     required this.categoriesById,
     required this.budgetsById,
     required this.wallets,
+    required this.currencyCode,
   });
 
   final String dateKey;
@@ -1207,6 +1243,7 @@ class _HistoryDaySection extends StatelessWidget {
   final Map<int, MenudoCategory> categoriesById;
   final Map<int, MenudoBudget> budgetsById;
   final List<WalletAccount> wallets;
+  final String currencyCode;
 
   MenudoCategory? _findCategory(MenudoTransaction transaction) {
     if (transaction.categoryId != null) {
@@ -1293,7 +1330,7 @@ class _HistoryDaySection extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    formatMoney(net),
+                    _formatHistoryMoney(net, currencyCode),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w900,
@@ -1311,13 +1348,13 @@ class _HistoryDaySection extends StatelessWidget {
                     if (income > 0)
                       _HistoryMicroStat(
                         label: 'Entró',
-                        value: formatMoney(income),
+                        value: _formatHistoryMoney(income, currencyCode),
                         color: AppColors.e6,
                       ),
                     if (expense > 0)
                       _HistoryMicroStat(
                         label: 'Salió',
-                        value: formatMoney(expense),
+                        value: _formatHistoryMoney(expense, currencyCode),
                         color: AppColors.o5,
                       ),
                   ],
@@ -1384,9 +1421,9 @@ class _HistoryDaySection extends StatelessWidget {
                     : transaction.tipo == 'transferencia'
                     ? AppColors.b5
                     : AppColors.e8,
-                amount: formatMoney(
+                amount: _formatHistoryMoney(
                   transaction.monto.abs(),
-                  currency: transaction.moneda,
+                  currencyCode,
                 ),
                 prefix: presentation.prefix,
                 isLast: index == transactions.length - 1,

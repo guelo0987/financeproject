@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../controllers/demo_mode_controller.dart';
+import '../../../core/utils/display_utils.dart';
 import '../../../core/utils/error_presenter.dart';
+import '../../../core/utils/formatters.dart';
 import '../../alerts/providers/alert_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
@@ -27,12 +29,11 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _didShowWalletTour = false;
 
-  String _fmt(double val) =>
-      "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
+  String _fmt(double val) => formatMoney(val);
 
   String? _displayName(String? fullName) {
-    final name = fullName?.trim();
-    if (name == null || name.isEmpty) return null;
+    final name = shortDisplayName(fullName);
+    if (name.isEmpty) return null;
     return name;
   }
 

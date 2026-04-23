@@ -60,6 +60,10 @@ class BudgetService {
     return _repository.deleteBudget(budgetId);
   }
 
+  Future<void> leaveBudget(int budgetId) {
+    return _repository.leaveBudget(budgetId);
+  }
+
   Future<List<BudgetMember>> fetchBudgetMembers(int budgetId) {
     return _repository.fetchBudgetMembers(budgetId);
   }

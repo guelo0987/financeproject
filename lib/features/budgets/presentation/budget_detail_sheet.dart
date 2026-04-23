@@ -99,27 +99,112 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   }
 
   Future<void> _deleteBudget() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showModalBottomSheet<bool>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Eliminar presupuesto'),
-          content: const Text(
-            'Eliminarás este presupuesto y ya no podrás recuperarlo.',
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final safeBottom = MediaQuery.of(sheetContext).padding.bottom;
+        return SafeArea(
+          top: false,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: AppColors.g0,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + safeBottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.g3,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'Eliminar presupuesto',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.e8,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Esto borrará ${widget.budget.nombre} y todo lo relacionado.',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.4,
+                    color: AppColors.g5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.o1,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.o5.withValues(alpha: 0.14),
+                    ),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Se eliminará',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.e8,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        '• Movimientos del presupuesto\n• Historial del presupuesto\n• Plan de ingresos\n• Límites por categoría\n• Espacio compartido e invitaciones',
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.45,
+                          color: AppColors.g5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(false),
+                        child: const Text('Cancelar'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.r5,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => Navigator.of(sheetContext).pop(true),
+                        child: const Text('Sí, eliminar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text(
-                'Sí, eliminar',
-                style: TextStyle(color: AppColors.r5),
-              ),
-            ),
-          ],
         );
       },
     );
@@ -143,8 +228,148 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     }
   }
 
+  Future<void> _leaveBudget() async {
+    final confirm = await showModalBottomSheet<bool>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final safeBottom = MediaQuery.of(sheetContext).padding.bottom;
+        return SafeArea(
+          top: false,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: AppColors.g0,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + safeBottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.g3,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'Salir del presupuesto',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.e8,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Dejarás de verlo en tu cuenta. Solo podrás volver si te invitan otra vez.',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.4,
+                    color: AppColors.g5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AppColors.g2),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: AppColors.g1,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          LucideIcons.users,
+                          size: 15,
+                          color: AppColors.e8,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          widget.budget.nombre,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.e8,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(false),
+                        child: const Text('Quedarme'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.e8,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => Navigator.of(sheetContext).pop(true),
+                        child: const Text('Salir'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      await ref
+          .read(budgetControllerProvider.notifier)
+          .leaveBudget(widget.budget.id);
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(presentError(error)),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   Future<void> _openBudgetActions() async {
     HapticFeedback.lightImpact();
+    final currentUserId = int.tryParse(ref.read(authProvider).userId ?? '');
+    final isOwner =
+        currentUserId != null &&
+        widget.budget.ownerUserId != null &&
+        widget.budget.ownerUserId == currentUserId;
+    final canLeave = !isOwner && widget.budget.espacioId != null;
     final action = await showModalBottomSheet<String>(
       context: context,
       useRootNavigator: true,
@@ -175,13 +400,23 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                   label: 'Editar presupuesto',
                   onTap: () => Navigator.pop(sheetContext, 'edit'),
                 ),
-                const SizedBox(height: 10),
-                _BudgetActionOption(
-                  icon: LucideIcons.trash2,
-                  label: 'Eliminar presupuesto',
-                  color: AppColors.r5,
-                  onTap: () => Navigator.pop(sheetContext, 'delete'),
-                ),
+                if (isOwner) ...[
+                  const SizedBox(height: 10),
+                  _BudgetActionOption(
+                    icon: LucideIcons.trash2,
+                    label: 'Eliminar presupuesto',
+                    color: AppColors.r5,
+                    onTap: () => Navigator.pop(sheetContext, 'delete'),
+                  ),
+                ] else if (canLeave) ...[
+                  const SizedBox(height: 10),
+                  _BudgetActionOption(
+                    icon: LucideIcons.logOut,
+                    label: 'Salir del presupuesto',
+                    color: AppColors.o5,
+                    onTap: () => Navigator.pop(sheetContext, 'leave'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -194,6 +429,8 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       await _openBudgetEditor();
     } else if (action == 'delete') {
       await _deleteBudget();
+    } else if (action == 'leave') {
+      await _leaveBudget();
     }
   }
 
@@ -1357,17 +1594,19 @@ class _BudgetOverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final planBase = budget.displayIncomeBase;
+    final actualIncome = budget.actualIncomeTotal;
+    final hasActualIncome = actualIncome > 0;
+    final primaryValue = hasActualIncome ? actualIncome - spent : left;
     final usage = planBase > 0 ? (spent / planBase).clamp(0.0, 1.0) : 0.0;
-    final accentColor = left < 0 ? AppColors.r5 : AppColors.e8;
-    final spentSummary = planBase > 0
+    final accentColor = primaryValue < 0 ? AppColors.r5 : AppColors.e8;
+    final spentSummary = hasActualIncome
+        ? '${fmt(spent)} gastados de ${fmt(actualIncome)} recibidos'
+        : planBase > 0
         ? '${fmt(spent)} de ${fmt(planBase)} usados'
         : '${fmt(spent)} usados';
     final metrics = [
       _OverviewMetric(label: 'Plan', value: fmt(planBase)),
-      _OverviewMetric(
-        label: 'Ingresos',
-        value: fmt(budget.actualIncomeTotal),
-      ),
+      _OverviewMetric(label: 'Ingresó', value: fmt(actualIncome)),
       _OverviewMetric(
         label: 'Meta',
         value: budget.ahorroObjetivo > 0
@@ -1410,8 +1649,8 @@ class _BudgetOverviewCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          const Text(
-            'Disponible',
+          Text(
+            hasActualIncome ? 'Balance actual' : 'Disponible del plan',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -1425,7 +1664,7 @@ class _BudgetOverviewCard extends StatelessWidget {
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
-                fmt(left),
+                fmt(primaryValue),
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w900,
@@ -1452,7 +1691,7 @@ class _BudgetOverviewCard extends StatelessWidget {
               minHeight: 8,
               backgroundColor: AppColors.g1,
               valueColor: AlwaysStoppedAnimation<Color>(
-                left < 0 ? AppColors.r5 : AppColors.e6,
+                primaryValue < 0 ? AppColors.r5 : AppColors.e6,
               ),
             ),
           ),
@@ -3619,7 +3858,7 @@ class _HistoryTransactionRow extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Text(
-          fmt(amount, currency: transaction.moneda, signed: true),
+          fmt(amount, signed: true),
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w900,

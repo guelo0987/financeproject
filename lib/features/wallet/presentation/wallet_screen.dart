@@ -7,6 +7,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../core/utils/error_presenter.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../shared/widgets/menudo_loading_view.dart';
 import '../../auth/auth_state.dart';
 import '../providers/wallet_providers.dart';
@@ -22,12 +23,7 @@ class WalletScreen extends ConsumerStatefulWidget {
 
 class _WalletScreenState extends ConsumerState<WalletScreen> {
   String _fmt(double val, {String currency = 'DOP'}) {
-    final prefix = currency == 'USD' ? 'US\$' : 'RD\$';
-    final amount = val.abs().toInt().toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-    return '$prefix$amount';
+    return formatMoney(val, currency: currency);
   }
 
   String _fmtAggregate(double val, Iterable<String> currencies) {

@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../core/utils/error_presenter.dart';
+import '../../../../core/utils/formatters.dart';
 import '../budget_providers.dart';
 import 'budget_detail_sheet.dart';
 import 'wizard/create_budget_wizard.dart';
@@ -31,8 +32,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   String _filtro = "Todos";
   final List<String> _filtros = ["Todos", "Mensual", "Quincenal", "Semanal"];
 
-  String _fmt(double val) =>
-      "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}";
+  String _fmt(double val) => formatMoney(val);
 
   void _showDetail(MenudoBudget b) {
     HapticFeedback.lightImpact();

@@ -20,8 +20,7 @@ class CalendarScreen extends ConsumerStatefulWidget {
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   DateTime _selectedDate = dateOnly(DateTime.now());
 
-  String _fmt(double val) =>
-      "RD\$${val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}";
+  String _fmt(double val) => formatMoney(val);
 
   String _monthName(int month) {
     const months = [

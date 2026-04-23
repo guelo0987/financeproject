@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../../core/data/models.dart';
+import '../../../../core/preferences/app_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/error_presenter.dart';
 import '../../../../core/utils/formatters.dart';
@@ -154,7 +155,7 @@ class _QuickExpenseShortcutSheetState
               .where((item) => item.id == selectedCategory!.categoriaParadreId)
               .firstOrNull;
     final wallet = defaultWallet ?? (wallets.isNotEmpty ? wallets.first : null);
-    final currency = wallet?.moneda ?? 'DOP';
+    final currency = wallet?.moneda ?? AppFormattingPreferences.currencyCode;
     final isCompact = media.size.height < 820;
 
     return GestureDetector(

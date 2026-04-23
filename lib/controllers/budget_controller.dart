@@ -139,6 +139,24 @@ class BudgetController extends AsyncNotifier<List<MenudoBudget>> {
     }
   }
 
+  Future<void> leaveBudget(int budgetId) async {
+    final userId = _uid();
+    if (userId == 0) return;
+
+    state = const AsyncLoading<List<MenudoBudget>>().copyWithPrevious(state);
+    try {
+      await ref.read(budgetServiceProvider).leaveBudget(budgetId);
+      final budgets = await ref
+          .read(budgetServiceProvider)
+          .fetchBudgets(userId);
+      _syncSelectedBudgetIndex(budgets);
+      state = AsyncValue.data(budgets);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      rethrow;
+    }
+  }
+
   Future<MenudoBudget> fetchBudgetById(int budgetId) {
     return ref.read(budgetServiceProvider).fetchBudgetById(budgetId);
   }

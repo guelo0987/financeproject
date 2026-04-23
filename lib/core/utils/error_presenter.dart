@@ -71,8 +71,17 @@ String presentError(
   if (lower.contains('categoria_con_transacciones')) {
     return 'No puedes eliminar esta categoría porque ya tiene movimientos.';
   }
+  if (lower.contains('categoria_con_subcategorias')) {
+    return 'No puedes eliminar este grupo porque todavía tiene categorías dentro.';
+  }
   if (lower.contains('categoria_en_presupuesto')) {
     return 'No puedes eliminar esta categoría porque todavía está en uso en un presupuesto.';
+  }
+  if (lower.contains('system_category_immutable')) {
+    return 'Solo puedes cambiar categorías creadas por ti.';
+  }
+  if (lower.contains('category_duplicate_name')) {
+    return 'Ya existe una categoría con ese nombre.';
   }
 
   return message;

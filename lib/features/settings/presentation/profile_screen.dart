@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
+import '../../../core/localization/app_copy.dart';
+import '../../../core/preferences/app_preferences.dart';
+import '../../../core/preferences/app_preferences_controller.dart';
 import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/display_utils.dart';
 import '../../../core/utils/error_presenter.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../core/utils/external_links.dart';
 import '../../../model/user_profile.dart';
 import '../../../shared/widgets/menudo_button.dart';
@@ -138,13 +142,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   String _formatDate(DateTime? value) {
-    if (value == null) return 'Elegir fecha';
-    return DateFormat('d MMM yyyy', 'es').format(value);
+    if (value == null) {
+      return tr(context, es: 'Elegir fecha', en: 'Choose date');
+    }
+    return formatDateByPattern(value);
   }
 
   String _formatJoined(UserProfile profile) {
-    if (profile.createdAt == null) return 'Tu cuenta';
-    return 'Desde ${DateFormat('MMM yyyy', 'es').format(profile.createdAt!)}';
+    if (profile.createdAt == null) {
+      return tr(context, es: 'Tu cuenta', en: 'Your account');
+    }
+    final dateLabel = formatDateByPattern(
+      profile.createdAt!,
+      pattern: 'MMM yyyy',
+    );
+    return tr(
+      context,
+      es: 'Desde $dateLabel',
+      en: 'Since $dateLabel',
+    );
   }
 
   String _budgetLabel(
@@ -208,6 +224,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } catch (error) {
       _showMessage(presentError(error));
     }
+  }
+
+  Future<void> _pickCurrencyMarket() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _ProfileSelectionSheet<String>(
+          title: tr(context, es: 'País y moneda', en: 'Country and currency'),
+          selectedValue: marketFromCurrency(_currency).code,
+          options: supportedAppMarkets
+              .map(
+                (market) => _ProfileSelectionOption<String>(
+                  value: market.code,
+                  title: market.label(isEnglishLocale(context)),
+                  subtitle: market.currencyCode,
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+
+    if (selected == null) return;
+    setState(() => _currency = marketFromCode(selected).currencyCode);
   }
 
   Future<void> _pickGoalDate() async {
@@ -317,6 +358,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             goalAmount: _parseMoney(),
             goalDate: _goalDate,
           );
+      await ref
+          .read(appPreferencesProvider.notifier)
+          .setMarket(marketFromCurrency(_currency).code);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -360,7 +404,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
     }
 
-    final initials = profile.name
+    final displayName = shortDisplayName(profile.name);
+    final initials = displayName
         .split(RegExp(r'\s+'))
         .where((part) => part.isNotEmpty)
         .take(2)
@@ -375,7 +420,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final goalSummary = [
       if (_financialGoal != null && _financialGoal!.isNotEmpty) _financialGoal!,
       if (goalAmount != null && goalAmount > 0)
-        '${_currency == 'USD' ? 'US\$' : 'RD\$'} ${_formatMoney(goalAmount)}',
+        '${currencyPrefix(_currency)} ${_formatMoney(goalAmount)}',
       if (_goalDate != null) _formatDate(_goalDate),
     ].join(' · ');
 
@@ -438,7 +483,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              profile.name,
+                              displayName,
                               style: MenudoTextStyles.h3.copyWith(
                                 color: Colors.white,
                               ),
@@ -531,24 +576,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       const SizedBox(height: 16),
                       _FieldLabel('Moneda base'),
                       const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _ChoicePill(
-                              label: 'DOP',
-                              selected: _currency == 'DOP',
-                              onTap: () => setState(() => _currency = 'DOP'),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _ChoicePill(
-                              label: 'USD',
-                              selected: _currency == 'USD',
-                              onTap: () => setState(() => _currency = 'USD'),
-                            ),
-                          ),
-                        ],
+                      _ReadOnlyField(
+                        value: marketFromCurrency(_currency).label(
+                          isEnglishLocale(context),
+                        ),
+                        onTap: _pickCurrencyMarket,
                       ),
                     ],
                   ),
@@ -658,7 +690,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         hintText: '',
                         keyboardType: TextInputType.number,
                         onChanged: _onAmountChanged,
-                        prefixText: _currency == 'USD' ? 'US\$ ' : 'RD\$ ',
+                        prefixText: '${currencyPrefix(_currency)} ',
                       ),
                       const SizedBox(height: 16),
                       _FieldLabel('Fecha objetivo'),
@@ -1175,45 +1207,6 @@ class _FieldLabel extends StatelessWidget {
   }
 }
 
-class _ChoicePill extends StatelessWidget {
-  const _ChoicePill({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.e8 : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: selected ? AppColors.e8 : AppColors.g2),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: MenudoTextStyles.bodyMedium.copyWith(
-            color: selected ? Colors.white : MenudoColors.textSecondary,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _ChoiceTag extends StatelessWidget {
   const _ChoiceTag({
     required this.label,
@@ -1726,6 +1719,120 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
             onTap: _submit,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProfileSelectionSheet<T> extends StatelessWidget {
+  const _ProfileSelectionSheet({
+    required this.title,
+    required this.options,
+    required this.selectedValue,
+  });
+
+  final String title;
+  final List<_ProfileSelectionOption<T>> options;
+  final T selectedValue;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: MenudoColors.divider,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(title, style: MenudoTextStyles.h3),
+              const SizedBox(height: 18),
+              for (var i = 0; i < options.length; i++) ...[
+                _ProfileSelectionRow<T>(
+                  option: options[i],
+                  selected: options[i].value == selectedValue,
+                ),
+                if (i != options.length - 1)
+                  const Divider(height: 1, color: MenudoColors.divider),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileSelectionOption<T> {
+  const _ProfileSelectionOption({
+    required this.value,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final T value;
+  final String title;
+  final String subtitle;
+}
+
+class _ProfileSelectionRow<T> extends StatelessWidget {
+  const _ProfileSelectionRow({
+    required this.option,
+    required this.selected,
+  });
+
+  final _ProfileSelectionOption<T> option;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => Navigator.of(context).pop(option.value),
+      borderRadius: BorderRadius.circular(18),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    option.title,
+                    style: MenudoTextStyles.bodyLarge.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    option.subtitle,
+                    style: MenudoTextStyles.bodySmall.copyWith(
+                      color: MenudoColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (selected)
+              const Icon(
+                Icons.check_rounded,
+                color: AppColors.e8,
+              ),
+          ],
+        ),
       ),
     );
   }
