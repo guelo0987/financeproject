@@ -23,7 +23,6 @@ class DemoModeController extends StateNotifier<bool> {
   }
 }
 
-final demoModeProvider =
-    StateNotifierProvider<DemoModeController, bool>((ref) {
-      return DemoModeController();
-    });
+final demoModeProvider = StateNotifierProvider<DemoModeController, bool>((ref) {
+  return DemoModeController();
+});

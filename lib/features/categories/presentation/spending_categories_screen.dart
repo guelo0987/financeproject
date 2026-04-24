@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 
 import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
@@ -44,7 +45,7 @@ class _SpendingCategoriesScreenState
   ];
 
   String _fmtMoney(double value, {String currency = ''}) {
-    return formatMoney(value);
+    return formatMoney(value, currency: currency);
   }
 
   String _fmtNumber(int value) {
@@ -151,9 +152,11 @@ class _SpendingCategoriesScreenState
       final parentIcon =
           parentCategory?.icono ??
           resolvedCategory?.icono ??
-          LucideIcons.layoutGrid;
+          MenudoCupertinoIcons.layoutGrid;
       final parentColor =
-          parentCategory?.color ?? resolvedCategory?.color ?? AppColors.g4;
+          parentCategory?.color ??
+          resolvedCategory?.color ??
+          context.menudo.textMuted;
 
       final isSubcategory = resolvedCategory?.categoriaParadreId != null;
       final subKey = isSubcategory
@@ -164,7 +167,7 @@ class _SpendingCategoriesScreenState
           : 'Sin subcategoría';
       final subIcon = isSubcategory
           ? resolvedCategory!.icono
-          : LucideIcons.chevronRight;
+          : MenudoCupertinoIcons.chevronRight;
       final subColor = isSubcategory
           ? resolvedCategory!.color
           : parentColor.withValues(alpha: 0.85);
@@ -264,21 +267,24 @@ class _SpendingCategoriesScreenState
     final movementLabel = _movementLabelFor(_selectedType);
 
     return Scaffold(
-      backgroundColor: AppColors.g0,
+      backgroundColor: context.menudo.background,
       appBar: AppBar(
-        backgroundColor: AppColors.g0,
+        backgroundColor: context.menudo.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(LucideIcons.chevronLeft, color: AppColors.e8),
+        leading: MenudoIconButton(
+          icon: Icon(
+            MenudoCupertinoIcons.chevronLeft,
+            color: context.menudo.textMain,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Categorías',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w900,
-            color: AppColors.e8,
+            color: context.menudo.textMain,
             letterSpacing: -0.4,
           ),
         ),
@@ -291,7 +297,7 @@ class _SpendingCategoriesScreenState
             selectedType: _selectedType,
             onChanged: _changeType,
           ).animate().fadeIn(duration: 220.ms).slideY(begin: 0.03, end: 0),
-          const SizedBox(height: 16),
+          SizedBox(height: (16)),
           if (filtered.isEmpty)
             _EmptyBreakdownState(
               title: sectionTitle,
@@ -333,25 +339,25 @@ class _SpendingCategoriesScreenState
               footer:
                   '${sectionVerb[0].toUpperCase()}${sectionVerb.substring(1)} $periodLabel',
             ).animate().fadeIn(duration: 240.ms).slideY(begin: 0.03, end: 0),
-            const SizedBox(height: 20),
+            SizedBox(height: (20)),
             Text(
               '$sectionTitle por categoría',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: AppColors.e8,
+                color: context.menudo.textMain,
               ),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(
               'Padre, subcategoría y movimientos en una sola vista.',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppColors.g5,
+                color: context.menudo.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: (16)),
             for (var index = 0; index < groups.length; index++) ...[
               _ParentCategoryCard(
                     group: groups[index],
@@ -369,7 +375,7 @@ class _SpendingCategoriesScreenState
                   .animate()
                   .fadeIn(delay: (index * 45).ms, duration: 260.ms)
                   .slideY(begin: 0.03, end: 0),
-              if (index != groups.length - 1) const SizedBox(height: 12),
+              if (index != groups.length - 1) SizedBox(height: (12)),
             ],
           ],
         ],
@@ -389,7 +395,7 @@ class _TypeSwitcher extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.g1,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -403,7 +409,7 @@ class _TypeSwitcher extends StatelessWidget {
               onTap: () => onChanged('gasto'),
             ),
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: 6),
           Expanded(
             child: _TypeOption(
               label: 'Ingresos',
@@ -436,20 +442,22 @@ class _TypeOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    final colors = context.menudo;
+
+    return MenudoInkWell(
       borderRadius: BorderRadius.circular(14),
       onTap: () {
-        HapticFeedback.selectionClick();
+        MenudoHaptics.selection();
         onTap();
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 11),
         decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.transparent,
+          color: selected ? colors.surface : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? AppColors.g2 : Colors.transparent,
+            color: selected ? colors.border : Colors.transparent,
           ),
         ),
         alignment: Alignment.center,
@@ -458,7 +466,7 @@ class _TypeOption extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w800,
-            color: selected ? selectedColor : AppColors.g5,
+            color: selected ? selectedColor : colors.textSecondary,
           ),
         ),
       ),
@@ -489,45 +497,47 @@ class _BreakdownOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '$title $periodLabel',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: AppColors.g5,
+              color: colors.textSecondary,
               letterSpacing: 0.2,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             totalLabel,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w900,
-              color: AppColors.e8,
+              color: colors.textMain,
               letterSpacing: -1.2,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             summary,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: AppColors.g5,
+              color: colors.textSecondary,
               height: 1.35,
             ),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: (18)),
           Row(
             children: stats
                 .map(
@@ -538,7 +548,7 @@ class _BreakdownOverviewCard extends StatelessWidget {
                 .toList(),
           ),
           if (legend.isNotEmpty) ...[
-            const SizedBox(height: 18),
+            SizedBox(height: (18)),
             Wrap(
               spacing: 12,
               runSpacing: 8,
@@ -553,13 +563,13 @@ class _BreakdownOverviewCard extends StatelessWidget {
                   .toList(),
             ),
           ],
-          const SizedBox(height: 16),
+          SizedBox(height: (16)),
           Text(
             footer,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: AppColors.g4,
+              color: context.menudo.textMuted,
             ),
           ),
         ],
@@ -597,18 +607,20 @@ class _ParentCategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: expanded ? group.color.withValues(alpha: 0.32) : AppColors.g2,
+          color: expanded ? group.color.withValues(alpha: 0.32) : colors.border,
         ),
       ),
       child: Column(
         children: [
-          InkWell(
+          MenudoInkWell(
             borderRadius: BorderRadius.circular(20),
             onTap: onTap,
             child: Padding(
@@ -625,46 +637,46 @@ class _ParentCategoryCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(15),
                         ),
                         alignment: Alignment.center,
-                        child: Icon(group.icon, size: 21, color: group.color),
+                        child: Icon(group.icon, size: (21), color: group.color),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: (12)),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               group.label,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.e8,
+                                color: colors.textMain,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
                             Text(
                               '${countFormatter(group.subcategories.length)} subcategorías · ${countFormatter(group.transactions.length)} movimientos',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.g5,
+                                color: colors.textSecondary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
                             moneyFormatter(group.total),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.e8,
+                              color: colors.textMain,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
                             '${countFormatter(group.transactions.length)} mov.',
                             style: TextStyle(
@@ -675,22 +687,22 @@ class _ParentCategoryCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(width: 6),
+                      SizedBox(width: 6),
                       Icon(
                         expanded
-                            ? LucideIcons.chevronUp
-                            : LucideIcons.chevronDown,
-                        size: 18,
-                        color: AppColors.g4,
+                            ? MenudoCupertinoIcons.chevronUp
+                            : MenudoCupertinoIcons.chevronDown,
+                        size: (18),
+                        color: context.menudo.textMuted,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: (14)),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(999),
                     child: Container(
                       height: 6,
-                      color: AppColors.g1,
+                      color: context.menudo.surface,
                       alignment: Alignment.centerLeft,
                       child: FractionallySizedBox(
                         widthFactor: total == 0 ? 0 : group.total / total,
@@ -760,20 +772,20 @@ class _SubcategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.g0,
+        color: context.menudo.background,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: expanded
               ? subcategory.color.withValues(alpha: 0.28)
-              : AppColors.g2,
+              : context.menudo.border,
         ),
       ),
       child: Column(
         children: [
-          InkWell(
+          MenudoInkWell(
             borderRadius: BorderRadius.circular(20),
             onTap: () {
-              HapticFeedback.selectionClick();
+              MenudoHaptics.selection();
               onTap();
             },
             child: Padding(
@@ -790,51 +802,53 @@ class _SubcategoryCard extends StatelessWidget {
                     alignment: Alignment.center,
                     child: Icon(
                       subcategory.icon,
-                      size: 18,
+                      size: (18),
                       color: subcategory.color,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: (12)),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           subcategory.label,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.e8,
+                            color: context.menudo.textMain,
                           ),
                         ),
-                        const SizedBox(height: 3),
+                        SizedBox(height: 3),
                         Text(
                           subcategory.isDirectParentEntry
                               ? 'Registrado directo en la categoría padre'
                               : '${countFormatter(subcategory.transactions.length)} movimientos · ${moneyFormatter(subcategory.total)}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.g5,
+                            color: context.menudo.textSecondary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Text(
                     moneyFormatter(subcategory.total),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.e8,
+                      color: context.menudo.textMain,
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: 6),
                   Icon(
-                    expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown,
-                    size: 18,
-                    color: AppColors.g4,
+                    expanded
+                        ? MenudoCupertinoIcons.chevronUp
+                        : MenudoCupertinoIcons.chevronDown,
+                    size: (18),
+                    color: context.menudo.textMuted,
                   ),
                 ],
               ),
@@ -902,12 +916,15 @@ class _MovementTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final amountPrefix = selectedType == 'ingreso' ? '+' : '-';
-    final amountColor = selectedType == 'ingreso' ? AppColors.e6 : AppColors.e8;
+    final colors = context.menudo;
+    final amountColor = selectedType == 'ingreso'
+        ? colors.success
+        : colors.textMain;
 
-    return InkWell(
+    return MenudoInkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () {
-        HapticFeedback.lightImpact();
+        MenudoHaptics.light();
         showModalBottomSheet<void>(
           context: context,
           useRootNavigator: true,
@@ -919,23 +936,23 @@ class _MovementTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFF3F4F6)),
+          border: Border.all(color: colors.border),
         ),
         child: Row(
           children: [
             Container(
-              width: 38,
-              height: 38,
+              width: (38),
+              height: (38),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(13),
               ),
               alignment: Alignment.center,
-              child: Icon(transaction.icono, size: 18, color: color),
+              child: Icon(transaction.icono, size: (18), color: color),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: (12)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -944,20 +961,20 @@ class _MovementTile extends StatelessWidget {
                     transaction.desc,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.e8,
+                      color: colors.textMain,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Row(
                     children: [
                       Text(
                         dateLabel,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.g5,
+                          color: colors.textSecondary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -967,9 +984,9 @@ class _MovementTile extends StatelessWidget {
                             ' · $walletLabel',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.g5,
+                              color: colors.textSecondary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -979,7 +996,7 @@ class _MovementTile extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Text(
               '$amountPrefix ${moneyFormatter(transaction.monto.abs())}',
               style: TextStyle(
@@ -1008,12 +1025,14 @@ class _EmptyBreakdownState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         children: [
@@ -1025,28 +1044,28 @@ class _EmptyBreakdownState extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
             ),
             alignment: Alignment.center,
-            child: const Icon(
-              LucideIcons.layoutGrid,
-              size: 24,
-              color: AppColors.e8,
+            child: Icon(
+              MenudoCupertinoIcons.layoutGrid,
+              size: (24),
+              color: colors.textMain,
             ),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: (14)),
           Text(
             'Todavía no hay $title por mostrar',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: AppColors.e8,
+              color: colors.textMain,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'Cuando registres $movementLabel $periodLabel, aquí verás cómo se reparte entre categorías y subcategorías.',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: AppColors.g5,
+              color: colors.textSecondary,
               height: 1.4,
             ),
             textAlign: TextAlign.center,
@@ -1065,6 +1084,8 @@ class _StatBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       margin: const EdgeInsets.only(right: 8),
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -1073,19 +1094,19 @@ class _StatBlock extends StatelessWidget {
         children: [
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: AppColors.e8,
+              color: colors.textMain,
             ),
           ),
-          const SizedBox(height: 2),
+          SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: AppColors.g5,
+              color: colors.textSecondary,
             ),
           ),
         ],
@@ -1121,13 +1142,13 @@ class _LegendBadge extends StatelessWidget {
             height: 8,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: 6),
           Text(
             '$label $value',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: AppColors.e8,
+              color: context.menudo.textMain,
             ),
           ),
         ],

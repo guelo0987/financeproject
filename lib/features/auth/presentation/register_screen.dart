@@ -6,10 +6,12 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../../core/preferences/app_preferences.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/error_presenter.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_logo.dart';
+import '../../../shared/widgets/menudo_tap_target.dart';
 import '../auth_state.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -66,7 +68,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       SnackBar(
         content: Text(message),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: success ? AppColors.e8 : null,
+        backgroundColor: success ? context.menudo.primary : null,
       ),
     );
   }
@@ -165,8 +167,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: MenudoColors.textMain),
+        leading: MenudoIconButton(
+          icon: Icon(
+            MenudoCupertinoIcons.arrow_back,
+            color: MenudoColors.textMain,
+          ),
           onPressed: _handleBack,
         ),
       ),
@@ -177,14 +182,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Center(child: MenudoLogo(size: 112, hero: true)),
-                const SizedBox(height: 20),
+                Center(child: MenudoLogo(size: (112), hero: true)),
+                SizedBox(height: (20)),
                 Text(
                   'Crear cuenta',
                   style: MenudoTextStyles.h1,
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 100.ms),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   _appleAvailable
                       ? 'Empieza con Apple o usa tu correo.'
@@ -194,7 +199,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 160.ms),
-                const SizedBox(height: 28),
+                SizedBox(height: (28)),
                 if (_appleAvailable) ...[
                   IgnorePointer(
                     ignoring: _isLoading,
@@ -210,7 +215,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                     ),
                   ).animate().fadeIn(delay: 220.ms).slideY(begin: 0.04),
-                  const SizedBox(height: 14),
+                  SizedBox(height: (14)),
                   TextButton(
                     onPressed: _isLoading
                         ? null
@@ -223,16 +228,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       _showEmailForm
                           ? 'Ocultar registro con correo'
                           : 'Crear cuenta con correo',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
+                      style: TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ).animate().fadeIn(delay: 260.ms),
                 ],
                 if (!_appleAvailable || _showEmailForm) ...[
-                  const SizedBox(height: 18),
+                  SizedBox(height: (18)),
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.menudo.textOnDark,
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: MenudoColors.border),
                     ),
@@ -246,66 +251,66 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const SizedBox(height: 14),
+                          SizedBox(height: (14)),
                         ],
                         _AuthField(
                           controller: _nameController,
                           label: 'Nombre',
                           hintText: 'Cómo quieres verte en la app',
                           textInputAction: TextInputAction.next,
-                          autofillHints: const [AutofillHints.name],
+                          autofillHints: [AutofillHints.name],
                         ),
-                        const SizedBox(height: 14),
+                        SizedBox(height: (14)),
                         _AuthField(
                           controller: _emailController,
                           label: 'Correo',
                           hintText: 'correo@ejemplo.com',
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
-                          autofillHints: const [AutofillHints.email],
+                          autofillHints: [AutofillHints.email],
                         ),
-                        const SizedBox(height: 14),
+                        SizedBox(height: (14)),
                         _AuthField(
                           controller: _passwordController,
                           label: 'Contraseña',
                           hintText: 'Mínimo 6 caracteres',
                           obscureText: _obscurePassword,
                           textInputAction: TextInputAction.next,
-                          autofillHints: const [AutofillHints.newPassword],
-                          suffixIcon: IconButton(
+                          autofillHints: [AutofillHints.newPassword],
+                          suffixIcon: MenudoIconButton(
                             onPressed: () => setState(
                               () => _obscurePassword = !_obscurePassword,
                             ),
                             icon: Icon(
                               _obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
+                                  ? MenudoCupertinoIcons.visibility_off_outlined
+                                  : MenudoCupertinoIcons.visibility_outlined,
                               color: MenudoColors.textMuted,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 14),
+                        SizedBox(height: (14)),
                         _AuthField(
                           controller: _confirmController,
                           label: 'Confirmar contraseña',
                           hintText: 'Repite tu contraseña',
                           obscureText: _obscureConfirm,
                           textInputAction: TextInputAction.done,
-                          autofillHints: const [AutofillHints.newPassword],
-                          suffixIcon: IconButton(
+                          autofillHints: [AutofillHints.newPassword],
+                          suffixIcon: MenudoIconButton(
                             onPressed: () => setState(
                               () => _obscureConfirm = !_obscureConfirm,
                             ),
                             icon: Icon(
                               _obscureConfirm
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
+                                  ? MenudoCupertinoIcons.visibility_off_outlined
+                                  : MenudoCupertinoIcons.visibility_outlined,
                               color: MenudoColors.textMuted,
                             ),
                           ),
                           onSubmitted: (_) => _handleRegisterWithEmail(),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: (20)),
                         MenudoPrimaryButton(
                           label: _isLoading
                               ? 'Creando cuenta...'
@@ -313,7 +318,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           onTap: _handleRegisterWithEmail,
                           isDisabled: _isLoading,
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: (12)),
                         Text(
                           'Luego podrás ajustar moneda, meta y presupuesto predeterminado desde tu perfil.',
                           style: MenudoTextStyles.bodySmall.copyWith(
@@ -325,7 +330,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.08),
                 ],
-                const SizedBox(height: 24),
+                SizedBox(height: (24)),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -338,7 +343,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       style: TextButton.styleFrom(
                         foregroundColor: MenudoColors.primary,
                       ),
-                      child: const Text(
+                      child: Text(
                         'Entrar',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
@@ -389,7 +394,7 @@ class _AuthField extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         TextField(
           controller: controller,
           keyboardType: keyboardType,
@@ -406,19 +411,19 @@ class _AuthField extends StatelessWidget {
               color: MenudoColors.textMuted,
             ),
             filled: true,
-            fillColor: AppColors.g0,
+            fillColor: context.menudo.background,
             suffixIcon: suffixIcon,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: AppColors.g2),
+              borderSide: BorderSide(color: context.menudo.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: AppColors.g2),
+              borderSide: BorderSide(color: context.menudo.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: AppColors.e6, width: 1.5),
+              borderSide: BorderSide(color: AppColors.e6, width: 1.5),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,

@@ -125,7 +125,8 @@ class _IosShortcutsCoordinatorState
   void _maybePresentPendingShortcut() {
     if (!mounted || _pendingPayload == null || _isPresenting) return;
     final navigatorContext = _navigatorContext;
-    if (navigatorContext == null || Navigator.maybeOf(navigatorContext) == null) {
+    if (navigatorContext == null ||
+        Navigator.maybeOf(navigatorContext) == null) {
       return;
     }
 

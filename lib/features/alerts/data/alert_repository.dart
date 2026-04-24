@@ -26,9 +26,9 @@ class AlertRepository {
       );
 
       alerts.addAll(
-        response
-            .requireData()
-            .map((item) => AppAlert.fromJson(asJsonMap(item))),
+        response.requireData().map(
+          (item) => AppAlert.fromJson(asJsonMap(item)),
+        ),
       );
 
       if (!_hasMore(response.meta)) break;

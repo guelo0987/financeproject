@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 
@@ -24,10 +25,11 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
     final card = ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
         child: Container(
           padding: padding ?? const EdgeInsets.all(AppConstants.paddingM),
           margin: margin,
@@ -36,9 +38,9 @@ class GlassCard extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: gradientColors ?? AppColors.glassGradient,
+              colors: gradientColors ?? colors.glassGradient,
             ),
-            border: Border.all(color: AppColors.glassBorder, width: 1),
+            border: Border.all(color: colors.glassBorder, width: 0.5),
           ),
           child: child,
         ),
@@ -46,7 +48,10 @@ class GlassCard extends StatelessWidget {
     );
 
     if (onTap != null) {
-      return GestureDetector(onTap: onTap, child: card);
+      return Semantics(
+        button: true,
+        child: MenudoGestureDetector(onTap: onTap, child: card),
+      );
     }
     return card;
   }

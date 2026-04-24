@@ -24,43 +24,47 @@ class MenudoTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(label, style: MenudoTextStyles.labelCaps),
-        const SizedBox(height: 8),
+        Text(
+          label,
+          style: MenudoTextStyles.labelCaps.copyWith(
+            color: colors.textSecondary,
+          ),
+        ),
+        SizedBox(height: 8),
         TextField(
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
-          style: MenudoTextStyles.bodyLarge,
+          style: MenudoTextStyles.bodyLarge.copyWith(color: colors.textMain),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: MenudoTextStyles.bodyLarge.copyWith(
-              color: MenudoColors.textMuted,
+              color: colors.textMuted,
             ),
             prefixIcon: prefixIcon,
             suffixIcon: trailing,
             filled: true,
-            fillColor: Colors.white,
+            fillColor: colors.surface,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 14,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: MenudoColors.border),
+              borderSide: BorderSide(color: colors.border, width: 0.5),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: MenudoColors.border),
+              borderSide: BorderSide(color: colors.border, width: 0.5),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: MenudoColors.borderActive,
-                width: 2,
-              ),
+              borderSide: BorderSide(color: colors.borderActive, width: 1.5),
             ),
           ),
         ),

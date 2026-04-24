@@ -8,5 +8,5 @@ final spaceControllerProvider = space_controller.spaceControllerProvider;
 
 final effectiveSpacesProvider = Provider<List<SpaceSummary>>((ref) {
   final spaces = ref.watch(spaceNotifierProvider).valueOrNull;
-  return spaces ?? const [];
+  return spaces ?? [];
 });

@@ -6,10 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/error_presenter.dart';
+import '../../../core/utils/menudo_haptics.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_loading_view.dart';
+import '../../../shared/widgets/menudo_tap_target.dart';
 import '../auth_state.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
@@ -173,6 +176,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     setState(() => _isSaving = true);
     try {
       await ref.read(authProvider.notifier).completePasswordRecovery(password);
+      MenudoHaptics.success();
     } catch (error) {
       _showMessage(presentError(error));
     } finally {
@@ -208,17 +212,17 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Icon(
-                        Icons.lock_reset_rounded,
+                        MenudoCupertinoIcons.lock_reset_rounded,
                         size: 52,
                         color: MenudoColors.warning,
                       ),
-                      const SizedBox(height: 18),
+                      SizedBox(height: (18)),
                       Text(
                         'No pudimos abrir tu cambio de contraseña',
                         style: MenudoTextStyles.h2,
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: (10)),
                       Text(
                         inactiveMessage,
                         style: MenudoTextStyles.bodyMedium.copyWith(
@@ -226,7 +230,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: (24)),
                       MenudoSecondaryButton(
                         label: 'Volver a iniciar sesión',
                         onTap: () => context.go('/login'),
@@ -245,7 +249,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                         style: MenudoTextStyles.h2,
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: (10)),
                       Text(
                         resetEmail == null
                             ? 'Abre el correo más reciente. Si ya venció, pide otro sin empezar de cero.'
@@ -255,11 +259,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 28),
+                      SizedBox(height: (28)),
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: context.menudo.textOnDark,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(color: MenudoColors.border),
                         ),
@@ -272,7 +276,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
-                            const SizedBox(height: 10),
+                            SizedBox(height: (10)),
                             Text(
                               '1. Usa el correo más reciente.\n2. Si ya venció, pide otro.\n3. Cuando sea válido, Menudo te traerá aquí.',
                               style: MenudoTextStyles.bodySmall.copyWith(
@@ -281,7 +285,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                               ),
                             ),
                             if (resetEmail != null) ...[
-                              const SizedBox(height: 18),
+                              SizedBox(height: (18)),
                               MenudoPrimaryButton(
                                 label: _isResending
                                     ? 'Enviando correo...'
@@ -290,7 +294,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                 isDisabled: _isResending,
                               ),
                             ],
-                            const SizedBox(height: 12),
+                            SizedBox(height: (12)),
                             MenudoSecondaryButton(
                               label: 'Volver a iniciar sesión',
                               onTap: () => context.go('/login'),
@@ -324,7 +328,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 style: MenudoTextStyles.h1,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: (10)),
               Text(
                 resetEmail == null
                     ? 'Elige una contraseña nueva para recuperar tu cuenta.'
@@ -334,11 +338,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 28),
+              SizedBox(height: (28)),
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.menudo.textOnDark,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: MenudoColors.border),
                 ),
@@ -351,19 +355,19 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       hintText: 'Mínimo 6 caracteres',
                       obscureText: _obscurePassword,
                       textInputAction: TextInputAction.next,
-                      suffixIcon: IconButton(
+                      suffixIcon: MenudoIconButton(
                         onPressed: () => setState(
                           () => _obscurePassword = !_obscurePassword,
                         ),
                         icon: Icon(
                           _obscurePassword
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
+                              ? MenudoCupertinoIcons.visibility_off_outlined
+                              : MenudoCupertinoIcons.visibility_outlined,
                           color: MenudoColors.textMuted,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: (14)),
                     _ResetField(
                       controller: _confirmController,
                       label: 'Confirmar contraseña',
@@ -371,18 +375,18 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       obscureText: _obscureConfirm,
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => _submit(),
-                      suffixIcon: IconButton(
+                      suffixIcon: MenudoIconButton(
                         onPressed: () =>
                             setState(() => _obscureConfirm = !_obscureConfirm),
                         icon: Icon(
                           _obscureConfirm
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
+                              ? MenudoCupertinoIcons.visibility_off_outlined
+                              : MenudoCupertinoIcons.visibility_outlined,
                           color: MenudoColors.textMuted,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: (20)),
                     MenudoPrimaryButton(
                       label: _isSaving
                           ? 'Guardando contraseña...'
@@ -432,7 +436,7 @@ class _ResetField extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         TextField(
           controller: controller,
           obscureText: obscureText,
@@ -447,19 +451,19 @@ class _ResetField extends StatelessWidget {
               color: MenudoColors.textMuted,
             ),
             filled: true,
-            fillColor: AppColors.g0,
+            fillColor: context.menudo.background,
             suffixIcon: suffixIcon,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: AppColors.g2),
+              borderSide: BorderSide(color: context.menudo.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: AppColors.g2),
+              borderSide: BorderSide(color: context.menudo.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: AppColors.e6, width: 1.5),
+              borderSide: BorderSide(color: AppColors.e6, width: 1.5),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,

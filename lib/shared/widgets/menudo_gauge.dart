@@ -41,6 +41,7 @@ class _MenudoGaugeState extends State<MenudoGauge>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
     final budget = widget.budget;
     final isDark = widget.isDark;
     final double ingresos = budget.displayIncomeBase > 0
@@ -50,7 +51,7 @@ class _MenudoGaugeState extends State<MenudoGauge>
 
     return RepaintBoundary(
       child: SizedBox(
-        height: 160,
+        height: (160),
         child: AnimatedBuilder(
           animation: _sweepAnimation,
           builder: (context, child) {
@@ -63,7 +64,7 @@ class _MenudoGaugeState extends State<MenudoGauge>
                   size: const Size(260, 160),
                   painter: _GaugePainter(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.1)
+                        ? colors.textOnDark.withValues(alpha: 0.1)
                         : AppColors.g2,
                     strokeWidth: 18,
                     startAngle: 180,
@@ -88,18 +89,18 @@ class _MenudoGaugeState extends State<MenudoGauge>
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: isDark
-                      ? Colors.white.withValues(alpha: 0.5)
+                      ? colors.textOnDark.withValues(alpha: 0.5)
                       : AppColors.g4,
                   letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(height: 2),
+              SizedBox(height: 2),
               Text(
                 formatMoney(budget.availableToSpend),
                 style: TextStyle(
                   fontSize: 34,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? Colors.white : AppColors.e8,
+                  color: isDark ? colors.textOnDark : AppColors.e8,
                   letterSpacing: -1.2,
                 ),
               ),

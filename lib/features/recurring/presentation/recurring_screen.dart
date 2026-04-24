@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 
 import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
@@ -80,7 +81,7 @@ class RecurringScreen extends ConsumerWidget {
     WidgetRef ref,
     RecurringTransaction recurring,
   ) async {
-    HapticFeedback.lightImpact();
+    MenudoHaptics.light();
     try {
       await ref
           .read(recurringNotifierProvider.notifier)
@@ -99,18 +100,18 @@ class RecurringScreen extends ConsumerWidget {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Eliminar automática'),
+        title: Text('Eliminar automática'),
         content: Text(
           'Eliminarás "${recurring.desc}" y dejará de registrarse automáticamente.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: Text('Cancelar'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sí, eliminar'),
+            child: Text('Sí, eliminar'),
           ),
         ],
       ),
@@ -133,8 +134,8 @@ class RecurringScreen extends ConsumerWidget {
     final recurringAsync = ref.watch(recurringNotifierProvider);
 
     if (recurringAsync.isLoading && recurringAsync.valueOrNull == null) {
-      return const Scaffold(
-        backgroundColor: AppColors.g0,
+      return Scaffold(
+        backgroundColor: context.menudo.background,
         body: MenudoLoadingView(
           title: 'Cargando automáticas',
           message: 'Estamos preparando tus cobros y pagos recurrentes.',
@@ -145,20 +146,23 @@ class RecurringScreen extends ConsumerWidget {
 
     if (recurringAsync.hasError && recurringAsync.valueOrNull == null) {
       return Scaffold(
-        backgroundColor: AppColors.g0,
+        backgroundColor: context.menudo.background,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: context.menudo.surface,
           elevation: 0,
-          leading: IconButton(
+          leading: MenudoIconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(LucideIcons.arrowLeft, color: AppColors.e8),
+            icon: Icon(
+              MenudoCupertinoIcons.arrowLeft,
+              color: context.menudo.textMain,
+            ),
           ),
-          title: const Text(
+          title: Text(
             'Automáticas',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: AppColors.e8,
+              color: context.menudo.textMain,
             ),
           ),
         ),
@@ -168,30 +172,30 @@ class RecurringScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'No pudimos cargar tus automáticas.',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.e8,
+                    color: context.menudo.textMain,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                SizedBox(height: 8),
+                Text(
                   'Revisa tu conexión e inténtalo otra vez.',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.g4,
+                    color: context.menudo.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: (12)),
                 FilledButton(
                   onPressed: () =>
                       ref.read(recurringNotifierProvider.notifier).refresh(),
-                  child: const Text('Reintentar'),
+                  child: Text('Reintentar'),
                 ),
               ],
             ),
@@ -214,36 +218,40 @@ class RecurringScreen extends ConsumerWidget {
     final totalSalida = gastos.fold(0.0, (sum, item) => sum + item.monto);
 
     return Scaffold(
-      backgroundColor: AppColors.g0,
+      backgroundColor: context.menudo.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.menudo.surface,
         elevation: 0,
-        leading: GestureDetector(
+        leading: MenudoGestureDetector(
           onTap: () {
-            HapticFeedback.lightImpact();
+            MenudoHaptics.light();
             Navigator.pop(context);
           },
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.all(8),
-            child: Icon(LucideIcons.arrowLeft, color: AppColors.e8, size: 22),
+            child: Icon(
+              MenudoCupertinoIcons.arrowLeft,
+              color: context.menudo.textMain,
+              size: (22),
+            ),
           ),
         ),
-        title: const Text(
+        title: Text(
           'Automáticas',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
-            color: AppColors.e8,
+            color: context.menudo.textMain,
           ),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(color: const Color(0xFFF3F4F6), height: 1),
+          child: Container(color: const Color(0xFFF3F4F6), height: 0.5),
         ),
         actions: [
-          GestureDetector(
+          MenudoGestureDetector(
             onTap: () {
-              HapticFeedback.lightImpact();
+              MenudoHaptics.light();
               _showRecurringSheet(context);
             },
             child: Container(
@@ -252,7 +260,7 @@ class RecurringScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: AppColors.o5,
                 borderRadius: BorderRadius.circular(10),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
                     color: Color(0x44F97316),
                     blurRadius: 12,
@@ -261,10 +269,10 @@ class RecurringScreen extends ConsumerWidget {
                 ],
               ),
               alignment: Alignment.center,
-              child: const Text(
+              child: Text(
                 "+ Nueva",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: context.menudo.textOnDark,
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
                 ),
@@ -287,9 +295,9 @@ class RecurringScreen extends ConsumerWidget {
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: AppColors.e8,
+                          color: context.menudo.textMain,
                           borderRadius: BorderRadius.circular(18),
-                          boxShadow: const [
+                          boxShadow: [
                             BoxShadow(
                               color: Color(0x33065F46),
                               blurRadius: 20,
@@ -304,15 +312,17 @@ class RecurringScreen extends ConsumerWidget {
                               "ENTRAN",
                               style: TextStyle(
                                 fontSize: 10,
-                                color: Colors.white.withValues(alpha: 0.5),
+                                color: context.menudo.textOnDark.withValues(
+                                  alpha: 0.5,
+                                ),
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.5,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
                             Text(
                               fmt(totalEntrada),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
                                 color: Color(0xFF6EE7B7),
@@ -323,12 +333,12 @@ class RecurringScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: (10)),
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: context.menudo.textOnDark,
                           border: Border.all(
                             color: const Color(0xFFF3F4F6),
                             width: 1.5,
@@ -338,19 +348,19 @@ class RecurringScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               "SALEN",
                               style: TextStyle(
                                 fontSize: 10,
-                                color: AppColors.g4,
+                                color: context.menudo.textMuted,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.5,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
                             Text(
                               fmt(totalSalida),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
                                 color: AppColors.r5,
@@ -367,11 +377,11 @@ class RecurringScreen extends ConsumerWidget {
                 .fadeIn(duration: 400.ms)
                 .slideY(begin: 0.05, end: 0, duration: 400.ms),
             if (items.isEmpty) ...[
-              const SizedBox(height: 28),
+              SizedBox(height: (28)),
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.menudo.textOnDark,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
                     color: const Color(0xFFF3F4F6),
@@ -380,25 +390,28 @@ class RecurringScreen extends ConsumerWidget {
                 ),
                 child: Column(
                   children: [
-                    const Icon(
-                      LucideIcons.repeat,
-                      color: AppColors.g4,
-                      size: 28,
+                    Icon(
+                      MenudoCupertinoIcons.repeat,
+                      color: context.menudo.textMuted,
+                      size: (28),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: (12)),
                     Text(
                       'Todavía no tienes automáticas',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.e8,
+                        color: context.menudo.textMain,
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
+                    SizedBox(height: 6),
+                    Text(
                       'Cuando quieras automatizar algo, lo verás aquí.',
-                      style: TextStyle(fontSize: 12, color: AppColors.g4),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.menudo.textMuted,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -406,16 +419,16 @@ class RecurringScreen extends ConsumerWidget {
               ),
             ],
             if (ingresos.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              const Text(
+              SizedBox(height: (24)),
+              Text(
                 "Ingresos recurrentes",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.e8,
+                  color: context.menudo.textMain,
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: (12)),
               _RecurringList(
                 items: ingresos.toList(),
                 isIngreso: true,
@@ -427,16 +440,16 @@ class RecurringScreen extends ConsumerWidget {
               ),
             ],
             if (gastos.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              const Text(
+              SizedBox(height: (20)),
+              Text(
                 "Gastos recurrentes",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.e8,
+                  color: context.menudo.textMain,
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: (12)),
               _RecurringList(
                 items: gastos.toList(),
                 isIngreso: false,
@@ -448,16 +461,16 @@ class RecurringScreen extends ConsumerWidget {
               ),
             ],
             if (transferencias.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              const Text(
+              SizedBox(height: (20)),
+              Text(
                 "Movimientos entre cuentas",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.e8,
+                  color: context.menudo.textMain,
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: (12)),
               _RecurringList(
                 items: transferencias.toList(),
                 isIngreso: false,
@@ -469,16 +482,16 @@ class RecurringScreen extends ConsumerWidget {
               ),
             ],
             if (inactivos.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              const Text(
+              SizedBox(height: (20)),
+              Text(
                 "Pausadas",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.e8,
+                  color: context.menudo.textMain,
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: (12)),
               _RecurringList(
                 items: inactivos.toList(),
                 isIngreso: false,
@@ -530,7 +543,7 @@ class _RecurringList extends StatelessWidget {
 
     return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.menudo.textOnDark,
             border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
             borderRadius: BorderRadius.circular(22),
           ),
@@ -540,8 +553,9 @@ class _RecurringList extends StatelessWidget {
               return Column(
                 children: [
                   if (index > 0)
-                    const Divider(
+                    Divider(
                       height: 1,
+                      thickness: 0.5,
                       color: Color(0xFFF3F4F6),
                       indent: 68,
                       endIndent: 16,
@@ -565,11 +579,13 @@ class _RecurringList extends StatelessWidget {
                           alignment: Alignment.center,
                           child: Icon(
                             item.icono,
-                            size: 19,
-                            color: isInactive ? AppColors.g4 : accentColor,
+                            size: (19),
+                            color: isInactive
+                                ? context.menudo.textMuted
+                                : accentColor,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: (12)),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -580,27 +596,27 @@ class _RecurringList extends StatelessWidget {
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   color: isInactive
-                                      ? AppColors.g4
-                                      : AppColors.e8,
+                                      ? context.menudo.textMuted
+                                      : context.menudo.textMain,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 2),
+                              SizedBox(height: 2),
                               Text(
                                 frecuenciaLabel(
                                   item.frecuencia,
                                   item.diaEjecucion,
                                 ),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
-                                  color: AppColors.g4,
+                                  color: context.menudo.textMuted,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
@@ -613,11 +629,13 @@ class _RecurringList extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
-                                color: isInactive ? AppColors.g4 : accentColor,
+                                color: isInactive
+                                    ? context.menudo.textMuted
+                                    : accentColor,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            GestureDetector(
+                            SizedBox(height: 4),
+                            MenudoGestureDetector(
                               onTap: () => onToggle(item),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
@@ -627,7 +645,7 @@ class _RecurringList extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: item.activo
                                       ? AppColors.e1
-                                      : AppColors.g1,
+                                      : context.menudo.surface,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -637,7 +655,7 @@ class _RecurringList extends StatelessWidget {
                                     fontWeight: FontWeight.w700,
                                     color: item.activo
                                         ? AppColors.e6
-                                        : AppColors.g4,
+                                        : context.menudo.textMuted,
                                   ),
                                 ),
                               ),
@@ -645,10 +663,10 @@ class _RecurringList extends StatelessWidget {
                           ],
                         ),
                         PopupMenuButton<_RecurringAction>(
-                          icon: const Icon(
-                            LucideIcons.moreVertical,
-                            size: 18,
-                            color: AppColors.g4,
+                          icon: Icon(
+                            MenudoCupertinoIcons.moreVertical,
+                            size: (18),
+                            color: context.menudo.textMuted,
                           ),
                           onSelected: (action) async {
                             switch (action) {
@@ -741,7 +759,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   }
 
   void _onKeyTap(String key) {
-    HapticFeedback.lightImpact();
+    MenudoHaptics.light();
     setState(() {
       if (key == 'backspace') {
         if (_amount.isNotEmpty) {
@@ -834,7 +852,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   }
 
   void _selectFrequency(String frecuencia) {
-    HapticFeedback.selectionClick();
+    MenudoHaptics.selection();
     setState(() {
       _frecuencia = frecuencia;
       if (frecuencia == 'semanal' && _dia > 7) {
@@ -846,7 +864,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   }
 
   void _selectExecutionDay(int day) {
-    HapticFeedback.selectionClick();
+    MenudoHaptics.selection();
     setState(() => _dia = day);
   }
 
@@ -918,17 +936,17 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
       builder: (_) => _SimplePickerSheet(
         title: 'Presupuesto',
         items: [
-          const _PickerItem(
+          _PickerItem(
             id: 0,
             label: 'General',
-            icon: LucideIcons.layoutGrid,
-            color: AppColors.g4,
+            icon: MenudoCupertinoIcons.layoutGrid,
+            color: context.menudo.textMuted,
           ),
           for (final budget in budgets)
             _PickerItem(
               id: budget.id,
               label: budget.nombre,
-              icon: LucideIcons.layoutGrid,
+              icon: MenudoCupertinoIcons.layoutGrid,
               color: AppColors.p5,
             ),
         ],
@@ -986,7 +1004,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
       icono:
           selectedCategory?.icono ??
           widget.recurring?.icono ??
-          LucideIcons.circle,
+          MenudoCupertinoIcons.circle,
       frecuencia: _frecuencia,
       diaEjecucion: _dia,
       activo: widget.recurring?.activo ?? true,
@@ -1004,6 +1022,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
         await notifier.addRecurring(recurring);
       }
       if (!mounted) return;
+      MenudoHaptics.success();
       Navigator.pop(context);
     } catch (error) {
       _showError(presentError(error));
@@ -1017,7 +1036,9 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   @override
   Widget build(BuildContext context) {
     final amountValue = double.tryParse(_amount) ?? 0;
-    final accentColor = _typeIndex == 1 ? AppColors.e6 : AppColors.e8;
+    final accentColor = _typeIndex == 1
+        ? AppColors.e6
+        : context.menudo.textMain;
     final wallets = ref.watch(effectiveWalletsProvider);
     final budgets = ref.watch(effectiveBudgetsProvider);
     final categories = ref.watch(effectiveCategoriesProvider);
@@ -1037,8 +1058,8 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
       expand: false,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.g0,
+          decoration: BoxDecoration(
+            color: context.menudo.background,
             borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
           ),
           child: Column(
@@ -1049,7 +1070,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                   height: 5,
                   width: 40,
                   decoration: BoxDecoration(
-                    color: AppColors.g2,
+                    color: context.menudo.border,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -1061,25 +1082,25 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                   children: [
                     Text(
                       _isEditing ? "Editar automática" : "Nueva automática",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
-                        color: AppColors.e8,
+                        color: context.menudo.textMain,
                         letterSpacing: -0.5,
                       ),
                     ),
-                    GestureDetector(
+                    MenudoGestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.g1,
+                          color: context.menudo.surface,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(
-                          LucideIcons.x,
-                          color: AppColors.g5,
-                          size: 18,
+                        child: Icon(
+                          MenudoCupertinoIcons.x,
+                          color: context.menudo.textSecondary,
+                          size: (18),
                         ),
                       ),
                     ),
@@ -1090,7 +1111,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppColors.g1,
+                    color: context.menudo.surface,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   padding: const EdgeInsets.all(4),
@@ -1099,7 +1120,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: (20)),
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
                 child:
@@ -1116,7 +1137,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                                 color: accentColor.withValues(alpha: 0.4),
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 160),
                               transitionBuilder: (child, animation) =>
@@ -1155,28 +1176,28 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.menudo.textOnDark,
                         borderRadius: BorderRadius.circular(28),
-                        border: Border.all(color: AppColors.g2),
+                        border: Border.all(color: context.menudo.border),
                       ),
                       child: Column(
                         children: [
                           _DetailRow(
-                            icon: LucideIcons.tag,
+                            icon: MenudoCupertinoIcons.tag,
                             color: AppColors.o5,
                             label: "Categoría",
                             value: selectedCategory?.nombre ?? "Seleccionar",
                             onTap: _pickCategory,
                           ),
                           _DetailRow(
-                            icon: LucideIcons.landmark,
+                            icon: MenudoCupertinoIcons.landmark,
                             color: AppColors.b5,
                             label: "Cuenta",
                             value: _walletName(_accountId, wallets),
                             onTap: () => _pickWallet(wallets),
                           ),
                           _DetailRow(
-                            icon: LucideIcons.layoutGrid,
+                            icon: MenudoCupertinoIcons.layoutGrid,
                             color: AppColors.p5,
                             label: "Presupuesto",
                             value: _budgetName(_presupuestoId, budgets),
@@ -1186,37 +1207,37 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: (20)),
                     TextField(
                       controller: _descController,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.e8,
+                        color: context.menudo.textMain,
                       ),
                       decoration: InputDecoration(
                         hintText: "Nombre de la automática",
-                        hintStyle: const TextStyle(
-                          color: AppColors.g4,
+                        hintStyle: TextStyle(
+                          color: context.menudo.textMuted,
                           fontWeight: FontWeight.w600,
                         ),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: context.menudo.surface,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(color: AppColors.g2),
+                          borderSide: BorderSide(color: context.menudo.border),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(
+                          borderSide: BorderSide(
                             color: Color(0xFFF3F4F6),
                             width: 1.5,
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(
-                            color: AppColors.e8,
+                          borderSide: BorderSide(
+                            color: context.menudo.textMain,
                             width: 2.0,
                           ),
                         ),
@@ -1226,11 +1247,11 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: (16)),
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.menudo.textOnDark,
                         border: Border.all(
                           color: const Color(0xFFF3F4F6),
                           width: 1.5,
@@ -1240,19 +1261,19 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             "Frecuencia",
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.g4,
+                              color: context.menudo.textMuted,
                               letterSpacing: 0.5,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: (12)),
                           Row(
                             children:
-                                const [
+                                [
                                   ('mensual', 'Mes'),
                                   ('quincenal', '15 dias'),
                                   ('semanal', 'Semana'),
@@ -1261,7 +1282,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                                   final label = item.$2;
                                   final isSelected = _frecuencia == frecuencia;
                                   return Expanded(
-                                    child: GestureDetector(
+                                    child: MenudoGestureDetector(
                                       onTap: () => _selectFrequency(frecuencia),
                                       child: AnimatedContainer(
                                         duration: const Duration(
@@ -1273,8 +1294,8 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: isSelected
-                                              ? AppColors.e8
-                                              : AppColors.g1,
+                                              ? context.menudo.primary
+                                              : context.menudo.surface,
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
@@ -1288,8 +1309,8 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                                                 ? FontWeight.w800
                                                 : FontWeight.w600,
                                             color: isSelected
-                                                ? Colors.white
-                                                : AppColors.g5,
+                                                ? context.menudo.textOnDark
+                                                : context.menudo.textSecondary,
                                           ),
                                         ),
                                       ),
@@ -1297,31 +1318,33 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                                   );
                                 }).toList(),
                           ),
-                          const SizedBox(height: 14),
+                          SizedBox(height: (14)),
                           Text(
                             _frequencySummary(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.g4,
+                              color: context.menudo.textMuted,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: (16)),
                           if (_frecuencia == 'quincenal')
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: AppColors.g0,
+                                color: context.menudo.background,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: AppColors.g2),
+                                border: Border.all(
+                                  color: context.menudo.border,
+                                ),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'No tienes que elegir un dia. La automatica se repetira cada 15 dias.',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.g4,
+                                  color: context.menudo.textMuted,
                                   height: 1.35,
                                 ),
                               ),
@@ -1331,13 +1354,13 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                               _frecuencia == 'mensual'
                                   ? 'Dia del mes'
                                   : 'Dia de la semana',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.e8,
+                                color: context.menudo.textMain,
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: (12)),
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
@@ -1359,7 +1382,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: (24)),
                     GridView.count(
                       crossAxisCount: 3,
                       childAspectRatio: 1.8,
@@ -1376,7 +1399,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                           )
                           .toList(),
                     ),
-                    const SizedBox(height: 32),
+                    SizedBox(height: (32)),
                   ],
                 ),
               ),
@@ -1387,7 +1410,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                   20,
                   24 + MediaQuery.of(context).padding.bottom,
                 ),
-                child: GestureDetector(
+                child: MenudoGestureDetector(
                   onTap: amountValue > 0 && !_isSaving ? _saveRecurring : null,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -1395,13 +1418,15 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
                       color: amountValue > 0 && !_isSaving
-                          ? AppColors.e8
-                          : AppColors.g2,
+                          ? context.menudo.primary
+                          : context.menudo.border,
                       borderRadius: BorderRadius.circular(100),
                       boxShadow: amountValue > 0 && !_isSaving
                           ? [
                               BoxShadow(
-                                color: AppColors.e8.withValues(alpha: 0.3),
+                                color: context.menudo.textMain.withValues(
+                                  alpha: 0.3,
+                                ),
                                 blurRadius: 20,
                                 offset: const Offset(0, 8),
                               ),
@@ -1417,8 +1442,8 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                           : "Crear automática",
                       style: TextStyle(
                         color: amountValue > 0 && !_isSaving
-                            ? Colors.white
-                            : AppColors.g4,
+                            ? context.menudo.textOnDark
+                            : context.menudo.textMuted,
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.5,
@@ -1437,16 +1462,16 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
   Widget _buildSeg(String title, int index) {
     final isSelected = _typeIndex == index;
     return Expanded(
-      child: GestureDetector(
+      child: MenudoGestureDetector(
         onTap: () {
-          HapticFeedback.selectionClick();
+          MenudoHaptics.selection();
           _setTypeIndex(index);
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected ? context.menudo.textOnDark : Colors.transparent,
             borderRadius: BorderRadius.circular(11),
             boxShadow: isSelected
                 ? [
@@ -1464,7 +1489,9 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-              color: isSelected ? AppColors.e8 : AppColors.g4,
+              color: isSelected
+                  ? context.menudo.primary
+                  : context.menudo.textMuted,
             ),
           ),
         ),
@@ -1486,16 +1513,16 @@ class _RecurringDayChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         decoration: BoxDecoration(
-          color: selected ? AppColors.e8 : AppColors.g1,
+          color: selected ? context.menudo.primary : context.menudo.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? AppColors.e8 : AppColors.g2,
+            color: selected ? context.menudo.primary : context.menudo.border,
             width: selected ? 1.6 : 1.2,
           ),
         ),
@@ -1504,7 +1531,9 @@ class _RecurringDayChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w800,
-            color: selected ? Colors.white : AppColors.g5,
+            color: selected
+                ? context.menudo.textOnDark
+                : context.menudo.textSecondary,
           ),
         ),
       ),
@@ -1531,7 +1560,7 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Column(
@@ -1546,47 +1575,48 @@ class _DetailRow extends StatelessWidget {
                     color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(icon, size: 18, color: color),
+                  child: Icon(icon, size: (18), color: color),
                 ),
-                const SizedBox(width: 14),
+                SizedBox(width: (14)),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         label,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.g4,
+                          color: context.menudo.textMuted,
                           letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2),
                       Text(
                         value,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.e8,
+                          color: context.menudo.textMain,
                         ),
                       ),
                     ],
                   ),
                 ),
                 if (onTap != null)
-                  const Icon(
-                    LucideIcons.chevronRight,
-                    size: 16,
-                    color: AppColors.g3,
+                  Icon(
+                    MenudoCupertinoIcons.chevronRight,
+                    size: (16),
+                    color: context.menudo.textMuted,
                   ),
               ],
             ),
           ),
           if (!isLast)
-            const Divider(
+            Divider(
               height: 1,
-              color: AppColors.g1,
+              thickness: 0.5,
+              color: context.menudo.surface,
               indent: 56,
               endIndent: 16,
             ),
@@ -1605,11 +1635,11 @@ class _NumpadKey extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isBack = value == 'backspace';
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTapDown: (_) => onTap(),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.menudo.textOnDark,
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
@@ -1621,13 +1651,17 @@ class _NumpadKey extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: isBack
-            ? const Icon(LucideIcons.delete, color: AppColors.e8, size: 22)
+            ? Icon(
+                MenudoCupertinoIcons.delete,
+                color: context.menudo.textMain,
+                size: (22),
+              )
             : Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.e8,
+                  color: context.menudo.textMain,
                 ),
               ),
       ),
@@ -1663,8 +1697,8 @@ class _SimplePickerSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: context.menudo.textOnDark,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
@@ -1675,56 +1709,60 @@ class _SimplePickerSheet extends StatelessWidget {
             width: 40,
             height: 5,
             decoration: BoxDecoration(
-              color: AppColors.g2,
+              color: context.menudo.border,
               borderRadius: BorderRadius.circular(3),
             ),
             margin: const EdgeInsets.only(bottom: 24),
           ),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: AppColors.e8,
+              color: context.menudo.textMain,
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: (24)),
           ...items.map(
-            (item) => GestureDetector(
+            (item) => MenudoGestureDetector(
               onTap: () {
-                HapticFeedback.lightImpact();
+                MenudoHaptics.light();
                 Navigator.pop(context, item.id);
               },
               child: Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: item.id == selectedId ? AppColors.e8 : AppColors.g0,
+                  color: item.id == selectedId
+                      ? context.menudo.primary
+                      : context.menudo.background,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       item.icon,
-                      color: item.id == selectedId ? Colors.white : item.color,
+                      color: item.id == selectedId
+                          ? context.menudo.textOnDark
+                          : item.color,
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: (16)),
                     Expanded(
                       child: Text(
                         item.label,
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           color: item.id == selectedId
-                              ? Colors.white
-                              : AppColors.e8,
+                              ? context.menudo.textOnDark
+                              : context.menudo.textMain,
                         ),
                       ),
                     ),
                     if (item.id == selectedId)
-                      const Icon(
-                        LucideIcons.check,
-                        color: Colors.white,
-                        size: 18,
+                      Icon(
+                        MenudoCupertinoIcons.check,
+                        color: context.menudo.textOnDark,
+                        size: (18),
                       ),
                   ],
                 ),

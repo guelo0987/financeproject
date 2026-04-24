@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 
 import '../../../../core/data/models.dart';
 import '../../../../core/preferences/app_preferences.dart';
+import '../../../../core/preferences/app_preferences_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/error_presenter.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../shared/widgets/menudo_button.dart';
+import '../../auth/auth_state.dart';
 import '../../budgets/budget_providers.dart';
 import '../../categories/providers/category_providers.dart';
 import '../../categories/presentation/category_picker_sheet.dart';
@@ -34,7 +39,8 @@ class RegisterTransactionSheet extends ConsumerStatefulWidget {
 }
 
 class _RegisterTransactionSheetState
-    extends ConsumerState<RegisterTransactionSheet> {
+    extends ConsumerState<RegisterTransactionSheet>
+    with SingleTickerProviderStateMixin {
   String _amount = "";
   int _selectedTypeIndex = 0; // 0: Gasto, 1: Ingreso, 2: Transferencia
   int? _budgetId;
@@ -44,12 +50,25 @@ class _RegisterTransactionSheetState
   int? _toAccountId;
   bool _isSaving = false;
   String? _formMessage;
+  late final AnimationController _shakeController;
+  late final Animation<double> _shakeOffset;
 
   bool get _isEditing => widget.transaction != null;
 
   @override
   void initState() {
     super.initState();
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 460),
+    );
+    _shakeOffset = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0, end: -8), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: -8, end: 8), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: 8, end: -6), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: -6, end: 6), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: 6, end: 0), weight: 1),
+    ]).animate(_shakeController);
 
     if (!_isEditing && widget.initialType != null) {
       _selectedTypeIndex = switch (widget.initialType) {
@@ -95,6 +114,12 @@ class _RegisterTransactionSheetState
     }
   }
 
+  @override
+  void dispose() {
+    _shakeController.dispose();
+    super.dispose();
+  }
+
   Color get _accentColor {
     if (_selectedTypeIndex == 1) {
       return AppColors.e6;
@@ -102,7 +127,7 @@ class _RegisterTransactionSheetState
     if (_selectedTypeIndex == 2) {
       return AppColors.b5;
     }
-    return AppColors.e8;
+    return AppColors.r5;
   }
 
   String get _selectedType {
@@ -141,7 +166,7 @@ class _RegisterTransactionSheetState
   }
 
   void _onKeyTap(String key) {
-    HapticFeedback.lightImpact();
+    MenudoHaptics.light();
     setState(() {
       _formMessage = null;
       if (key == 'backspace') {
@@ -211,6 +236,17 @@ class _RegisterTransactionSheetState
 
     final sourceWallet = _findWallet(_fromAccountId, wallets);
     final destinationWallet = _findWallet(_toAccountId, wallets);
+    final transactionCurrency = _transactionCurrencyFor(wallets);
+    final destinationCurrency = _normalizeCurrency(destinationWallet?.moneda);
+    if (_selectedType == 'transferencia' &&
+        destinationCurrency != null &&
+        destinationCurrency != transactionCurrency) {
+      _showError(
+        'Elige cuentas con la misma moneda para mover dinero entre ellas.',
+      );
+      return;
+    }
+
     final amountValidationMessage = validateTransactionAmountAgainstWallets(
       transactionType: _selectedType,
       amount: amountValue,
@@ -243,18 +279,16 @@ class _RegisterTransactionSheetState
       tipo: _selectedType,
       icono:
           (_selectedType == 'transferencia'
-              ? LucideIcons.arrowLeftRight
+              ? MenudoCupertinoIcons.arrowLeftRight
               : selectedCategory?.icono) ??
           widget.transaction?.icono ??
-          LucideIcons.circle,
+          MenudoCupertinoIcons.circle,
       fromAccountId: _fromAccountId,
       toAccountId: _selectedType == 'transferencia' ? _toAccountId : null,
       nota: _nota,
-      moneda:
-          widget.transaction?.moneda ?? AppFormattingPreferences.currencyCode,
+      moneda: transactionCurrency,
     );
 
-    HapticFeedback.mediumImpact();
     setState(() {
       _formMessage = null;
       _isSaving = true;
@@ -271,6 +305,7 @@ class _RegisterTransactionSheetState
       await ref.read(budgetNotifierProvider.notifier).refresh();
 
       if (!mounted) return;
+      MenudoHaptics.success();
       Navigator.pop(context);
     } catch (error) {
       _showError(presentError(error));
@@ -283,6 +318,17 @@ class _RegisterTransactionSheetState
 
   void _showError(String message) {
     if (!mounted) return;
+    MenudoHaptics.error();
+    _shakeController
+      ..reset()
+      ..animateWith(
+        SpringSimulation(
+          const SpringDescription(mass: 1, stiffness: 620, damping: 24),
+          0,
+          1,
+          0,
+        ),
+      );
     setState(() => _formMessage = message);
   }
 
@@ -292,6 +338,26 @@ class _RegisterTransactionSheetState
       if (wallet.id == id) return wallet;
     }
     return null;
+  }
+
+  String? _normalizeCurrency(String? value) {
+    final normalized = value?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return null;
+    return normalized;
+  }
+
+  String _configuredCurrencyCode() {
+    return _normalizeCurrency(
+          ref.read(appPreferencesProvider).valueOrNull?.currencyCode,
+        ) ??
+        _normalizeCurrency(ref.read(authProvider).profile?.baseCurrency) ??
+        AppFormattingPreferences.currencyCode;
+  }
+
+  String _transactionCurrencyFor(List<WalletAccount> wallets) {
+    return _normalizeCurrency(_findWallet(_fromAccountId, wallets)?.moneda) ??
+        _normalizeCurrency(widget.transaction?.moneda) ??
+        _configuredCurrencyCode();
   }
 
   void _maybeSeedFromAccount(List<WalletAccount> wallets) {
@@ -437,7 +503,7 @@ class _RegisterTransactionSheetState
     required bool isFrom,
     required List<WalletAccount> wallets,
   }) {
-    HapticFeedback.lightImpact();
+    MenudoHaptics.light();
     showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
@@ -501,11 +567,12 @@ class _RegisterTransactionSheetState
     final canSubmit = missingFields.isEmpty && !_isSaving;
     final keypadBottomPadding =
         media.padding.bottom + (compactSheet ? 8.0 : 10.0);
+    final amountPrefix = currencyPrefix(_transactionCurrencyFor(wallets));
 
     return Container(
       height: media.size.height * (compactSheet ? 0.95 : 0.92),
-      decoration: const BoxDecoration(
-        color: AppColors.g0,
+      decoration: BoxDecoration(
+        color: context.menudo.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
       ),
       child: Column(
@@ -516,7 +583,7 @@ class _RegisterTransactionSheetState
               height: 5,
               width: 40,
               decoration: BoxDecoration(
-                color: AppColors.g2,
+                color: context.menudo.border,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -530,7 +597,7 @@ class _RegisterTransactionSheetState
             ),
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.g1,
+                color: context.menudo.surface,
                 borderRadius: BorderRadius.circular(14),
               ),
               padding: const EdgeInsets.all(4),
@@ -570,8 +637,10 @@ class _RegisterTransactionSheetState
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Text(
                             isTransfer
-                                ? 'RD\$'
-                                : (_selectedTypeIndex == 1 ? '+RD\$' : '-RD\$'),
+                                ? amountPrefix
+                                : (_selectedTypeIndex == 1
+                                      ? '+$amountPrefix'
+                                      : '-$amountPrefix'),
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -579,7 +648,7 @@ class _RegisterTransactionSheetState
                             ),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: (10)),
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 160),
                           transitionBuilder: (child, animation) =>
@@ -609,17 +678,17 @@ class _RegisterTransactionSheetState
                     .animate(key: ValueKey(_selectedTypeIndex))
                     .fadeIn()
                     .scale(begin: const Offset(0.95, 0.95)),
-                const SizedBox(height: 10),
+                SizedBox(height: (10)),
                 Text(
                   isTransfer
                       ? 'Mover entre tus cuentas'
                       : _selectedTypeIndex == 1
                       ? 'Registrar ingreso'
                       : 'Registrar gasto',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.g4,
+                    color: context.menudo.textMuted,
                   ),
                 ),
               ],
@@ -635,7 +704,7 @@ class _RegisterTransactionSheetState
                   if (isTransfer) ...[
                     if (stackFieldPairs) ...[
                       _FieldCard(
-                        icon: LucideIcons.arrowUpFromLine,
+                        icon: MenudoCupertinoIcons.arrowUpFromLine,
                         color: AppColors.e6,
                         label: 'Origen',
                         value: _accountName(_fromAccountId, wallets),
@@ -643,9 +712,9 @@ class _RegisterTransactionSheetState
                             _pickAccount(isFrom: true, wallets: wallets),
                         isPlaceholder: _fromAccountId == null,
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: (12)),
                       _FieldCard(
-                        icon: LucideIcons.arrowDownToLine,
+                        icon: MenudoCupertinoIcons.arrowDownToLine,
                         color: AppColors.b5,
                         label: 'Destino',
                         value: _accountName(_toAccountId, wallets),
@@ -658,7 +727,7 @@ class _RegisterTransactionSheetState
                         children: [
                           Expanded(
                             child: _FieldCard(
-                              icon: LucideIcons.arrowUpFromLine,
+                              icon: MenudoCupertinoIcons.arrowUpFromLine,
                               color: AppColors.e6,
                               label: 'Origen',
                               value: _accountName(_fromAccountId, wallets),
@@ -667,10 +736,10 @@ class _RegisterTransactionSheetState
                               isPlaceholder: _fromAccountId == null,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: (12)),
                           Expanded(
                             child: _FieldCard(
-                              icon: LucideIcons.arrowDownToLine,
+                              icon: MenudoCupertinoIcons.arrowDownToLine,
                               color: AppColors.b5,
                               label: 'Destino',
                               value: _accountName(_toAccountId, wallets),
@@ -684,16 +753,16 @@ class _RegisterTransactionSheetState
                   ] else ...[
                     if (stackFieldPairs) ...[
                       _FieldCard(
-                        icon: LucideIcons.tag,
+                        icon: MenudoCupertinoIcons.tag,
                         color: AppColors.o5,
                         label: 'Categoría',
                         value: categoryLabel,
                         onTap: _pickCategory,
                         isPlaceholder: selectedCategory == null,
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: (12)),
                       _FieldCard(
-                        icon: LucideIcons.landmark,
+                        icon: MenudoCupertinoIcons.landmark,
                         color: AppColors.b5,
                         label: 'Cuenta',
                         value: _accountName(_fromAccountId, wallets),
@@ -707,7 +776,7 @@ class _RegisterTransactionSheetState
                         children: [
                           Expanded(
                             child: _FieldCard(
-                              icon: LucideIcons.tag,
+                              icon: MenudoCupertinoIcons.tag,
                               color: AppColors.o5,
                               label: 'Categoría',
                               value: categoryLabel,
@@ -715,10 +784,10 @@ class _RegisterTransactionSheetState
                               isPlaceholder: selectedCategory == null,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: (12)),
                           Expanded(
                             child: _FieldCard(
-                              icon: LucideIcons.landmark,
+                              icon: MenudoCupertinoIcons.landmark,
                               color: AppColors.b5,
                               label: 'Cuenta',
                               value: _accountName(_fromAccountId, wallets),
@@ -730,7 +799,7 @@ class _RegisterTransactionSheetState
                         ],
                       ),
                   ],
-                  const SizedBox(height: 12),
+                  SizedBox(height: (12)),
                   _InfoStrip(
                     isGeneralMode: _budgetId == null,
                     budgetName: budgetLabel,
@@ -738,15 +807,15 @@ class _RegisterTransactionSheetState
                         ? null
                         : () => _pickBudget(budgets),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: (12)),
                   _SecondaryActionCard(
-                    icon: LucideIcons.fileText,
+                    icon: MenudoCupertinoIcons.fileText,
                     color: AppColors.p5,
                     label: 'Nota',
                     value: noteLabel,
                     onTap: _showNoteDialog,
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: (16)),
                 ],
               ),
             ),
@@ -759,47 +828,56 @@ class _RegisterTransactionSheetState
               keypadBottomPadding,
             ),
             decoration: BoxDecoration(
-              color: AppColors.g0,
+              color: context.menudo.background,
               border: Border(
-                top: BorderSide(color: AppColors.g1.withValues(alpha: 0.9)),
+                top: BorderSide(
+                  color: context.menudo.surface.withValues(alpha: 0.9),
+                ),
               ),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 _Numpad(onKeyTap: _onKeyTap),
-                const SizedBox(height: 12),
+                SizedBox(height: (12)),
                 if (_formMessage != null || missingFields.isNotEmpty) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _formMessage != null
-                          ? AppColors.negative.withValues(alpha: 0.08)
-                          : AppColors.g1,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
+                  AnimatedBuilder(
+                    animation: _shakeOffset,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
                         color: _formMessage != null
-                            ? AppColors.negative.withValues(alpha: 0.22)
-                            : AppColors.g2,
+                            ? AppColors.negative.withValues(alpha: 0.08)
+                            : context.menudo.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _formMessage != null
+                              ? AppColors.negative.withValues(alpha: 0.22)
+                              : context.menudo.border,
+                        ),
+                      ),
+                      child: Text(
+                        _formMessage ??
+                            'Falta ${_missingFieldsLabel(missingFields)} para registrar este movimiento.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _formMessage != null
+                              ? AppColors.negative
+                              : context.menudo.textSecondary,
+                        ),
                       ),
                     ),
-                    child: Text(
-                      _formMessage ??
-                          'Falta ${_missingFieldsLabel(missingFields)} para registrar este movimiento.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: _formMessage != null
-                            ? AppColors.negative
-                            : AppColors.g5,
-                      ),
+                    builder: (context, child) => Transform.translate(
+                      offset: Offset(_shakeOffset.value, 0),
+                      child: child,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: (12)),
                 ],
                 MenudoButton(
                   label: _isSaving
@@ -824,14 +902,14 @@ class _RegisterTransactionSheetState
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: context.menudo.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text(
+        title: Text(
           "Nota",
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w900,
-            color: AppColors.e8,
+            color: context.menudo.textMain,
           ),
         ),
         content: TextField(
@@ -841,7 +919,7 @@ class _RegisterTransactionSheetState
           decoration: InputDecoration(
             hintText: "Añade un detalle si lo necesitas",
             filled: true,
-            fillColor: AppColors.g0,
+            fillColor: context.menudo.background,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide.none,
@@ -851,9 +929,9 @@ class _RegisterTransactionSheetState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
+            child: Text(
               "Cancelar",
-              style: TextStyle(color: AppColors.g4),
+              style: TextStyle(color: context.menudo.textMuted),
             ),
           ),
           TextButton(
@@ -864,7 +942,7 @@ class _RegisterTransactionSheetState
               });
               Navigator.pop(context);
             },
-            child: const Text(
+            child: Text(
               "Guardar",
               style: TextStyle(
                 color: AppColors.o5,
@@ -895,16 +973,16 @@ class _TypeSegment extends StatelessWidget {
   Widget build(BuildContext context) {
     final active = index == current;
     return Expanded(
-      child: GestureDetector(
+      child: MenudoGestureDetector(
         onTap: () {
-          HapticFeedback.selectionClick();
+          MenudoHaptics.selection();
           onTap(index);
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: active ? Colors.white : Colors.transparent,
+            color: active ? context.menudo.textOnDark : Colors.transparent,
             borderRadius: BorderRadius.circular(11),
             boxShadow: active
                 ? [
@@ -922,7 +1000,7 @@ class _TypeSegment extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-              color: active ? AppColors.e8 : AppColors.g4,
+              color: active ? context.menudo.primary : context.menudo.textMuted,
             ),
           ),
         ),
@@ -947,15 +1025,17 @@ class _InfoStrip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.menudo.textOnDark,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: context.menudo.border),
       ),
       child: _InfoStripItem(
         label: isGeneralMode ? 'Registro' : 'Presupuesto',
         value: budgetName,
-        icon: isGeneralMode ? LucideIcons.fileText : LucideIcons.layoutGrid,
-        color: isGeneralMode ? AppColors.e6 : AppColors.e8,
+        icon: isGeneralMode
+            ? MenudoCupertinoIcons.fileText
+            : MenudoCupertinoIcons.layoutGrid,
+        color: isGeneralMode ? AppColors.e6 : context.menudo.textMain,
         onTap: onBudgetTap,
       ),
     );
@@ -983,30 +1063,30 @@ class _InfoStripItem extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 30,
-          height: 30,
+          width: (30),
+          height: (30),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(9),
           ),
           alignment: Alignment.center,
-          child: Icon(icon, size: 15, color: color),
+          child: Icon(icon, size: (15), color: color),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: (10)),
         Flexible(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.g4,
+                  color: context.menudo.textMuted,
                   letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(height: 2),
+              SizedBox(height: 2),
               Row(
                 children: [
                   Expanded(
@@ -1017,16 +1097,16 @@ class _InfoStripItem extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w800,
-                        color: color == AppColors.g5 ? AppColors.e8 : color,
+                        color: color,
                       ),
                     ),
                   ),
                   if (onTap != null) ...[
-                    const SizedBox(width: 6),
-                    const Icon(
-                      LucideIcons.chevronRight,
-                      size: 14,
-                      color: AppColors.g3,
+                    SizedBox(width: 6),
+                    Icon(
+                      MenudoCupertinoIcons.chevronRight,
+                      size: (14),
+                      color: context.menudo.textMuted,
                     ),
                   ],
                 ],
@@ -1039,9 +1119,9 @@ class _InfoStripItem extends StatelessWidget {
 
     if (onTap == null) return child;
 
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: () {
-        HapticFeedback.lightImpact();
+        MenudoHaptics.light();
         onTap!();
       },
       behavior: HitTestBehavior.opaque,
@@ -1069,50 +1149,50 @@ class _FieldCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: () {
-        HapticFeedback.lightImpact();
+        MenudoHaptics.light();
         onTap();
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.menudo.textOnDark,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isPlaceholder
                 ? AppColors.o5.withValues(alpha: 0.28)
-                : AppColors.g2,
+                : context.menudo.border,
             width: isPlaceholder ? 1.4 : 1,
           ),
         ),
         child: Row(
           children: [
             Container(
-              width: 32,
-              height: 32,
+              width: (32),
+              height: (32),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               alignment: Alignment.center,
-              child: Icon(icon, size: 16, color: color),
+              child: Icon(icon, size: (16), color: color),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: (12)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.g4,
+                      color: context.menudo.textMuted,
                       letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     value,
                     maxLines: 1,
@@ -1120,14 +1200,20 @@ class _FieldCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: isPlaceholder ? AppColors.g4 : AppColors.e8,
+                      color: isPlaceholder
+                          ? context.menudo.textMuted
+                          : context.menudo.textMain,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 6),
-            Icon(LucideIcons.chevronRight, size: 15, color: AppColors.g3),
+            SizedBox(width: 6),
+            Icon(
+              MenudoCupertinoIcons.chevronRight,
+              size: (15),
+              color: context.menudo.textMuted,
+            ),
           ],
         ),
       ),
@@ -1152,59 +1238,59 @@ class _SecondaryActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: () {
-        HapticFeedback.lightImpact();
+        MenudoHaptics.light();
         onTap();
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.menudo.textOnDark,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.g2),
+          border: Border.all(color: context.menudo.border),
         ),
         child: Row(
           children: [
             Container(
-              width: 30,
-              height: 30,
+              width: (30),
+              height: (30),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(9),
               ),
               alignment: Alignment.center,
-              child: Icon(icon, size: 15, color: color),
+              child: Icon(icon, size: (15), color: color),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: (10)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.g4,
+                      color: context.menudo.textMuted,
                       letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  SizedBox(height: 3),
                   Text(
                     value,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.e8,
+                      color: context.menudo.textMain,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Text(
               'Editar',
               style: TextStyle(
@@ -1252,13 +1338,15 @@ class _NumpadKey extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isBack = value == 'backspace';
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTapDown: (_) => onTap(),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.menudo.textOnDark,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.g2.withValues(alpha: 0.8)),
+          border: Border.all(
+            color: context.menudo.border.withValues(alpha: 0.8),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
@@ -1269,13 +1357,17 @@ class _NumpadKey extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: isBack
-            ? const Icon(LucideIcons.delete, color: AppColors.e8, size: 22)
+            ? Icon(
+                MenudoCupertinoIcons.delete,
+                color: context.menudo.textMain,
+                size: (22),
+              )
             : Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.e8,
+                  color: context.menudo.textMain,
                 ),
               ),
       ),
@@ -1308,8 +1400,8 @@ class _AccountPickerSheet extends StatelessWidget {
           });
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: context.menudo.textOnDark,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
@@ -1320,31 +1412,33 @@ class _AccountPickerSheet extends StatelessWidget {
             width: 40,
             height: 5,
             decoration: BoxDecoration(
-              color: AppColors.g2,
+              color: context.menudo.border,
               borderRadius: BorderRadius.circular(3),
             ),
             margin: const EdgeInsets.only(bottom: 24),
           ),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: AppColors.e8,
+              color: context.menudo.textMain,
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: (24)),
           ...visibleAccounts.map(
-            (wallet) => GestureDetector(
+            (wallet) => MenudoGestureDetector(
               onTap: () {
-                HapticFeedback.lightImpact();
+                MenudoHaptics.light();
                 Navigator.pop(context, wallet.id);
               },
               child: Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: wallet.id == selectedId ? AppColors.e8 : AppColors.g0,
+                  color: wallet.id == selectedId
+                      ? context.menudo.primary
+                      : context.menudo.background,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -1352,10 +1446,10 @@ class _AccountPickerSheet extends StatelessWidget {
                     Icon(
                       wallet.icono,
                       color: wallet.id == selectedId
-                          ? Colors.white
+                          ? context.menudo.textOnDark
                           : wallet.color,
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: (16)),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1370,13 +1464,13 @@ class _AccountPickerSheet extends StatelessWidget {
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     color: wallet.id == selectedId
-                                        ? Colors.white
-                                        : AppColors.e8,
+                                        ? context.menudo.textOnDark
+                                        : context.menudo.textMain,
                                   ),
                                 ),
                               ),
                               if (wallet.esDefault) ...[
-                                const SizedBox(width: 8),
+                                SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 7,
@@ -1384,7 +1478,9 @@ class _AccountPickerSheet extends StatelessWidget {
                                   ),
                                   decoration: BoxDecoration(
                                     color: wallet.id == selectedId
-                                        ? Colors.white.withValues(alpha: 0.16)
+                                        ? context.menudo.textOnDark.withValues(
+                                            alpha: 0.16,
+                                          )
                                         : AppColors.e1,
                                     borderRadius: BorderRadius.circular(999),
                                   ),
@@ -1394,8 +1490,8 @@ class _AccountPickerSheet extends StatelessWidget {
                                       fontSize: 9,
                                       fontWeight: FontWeight.w900,
                                       color: wallet.id == selectedId
-                                          ? Colors.white
-                                          : AppColors.e8,
+                                          ? context.menudo.textOnDark
+                                          : context.menudo.textMain,
                                       letterSpacing: 0.4,
                                     ),
                                   ),
@@ -1403,7 +1499,7 @@ class _AccountPickerSheet extends StatelessWidget {
                               ],
                             ],
                           ),
-                          const SizedBox(height: 3),
+                          SizedBox(height: 3),
                           Text(
                             wallet.tipo == 'deudas'
                                 ? 'Deuda o prestamo'
@@ -1414,8 +1510,10 @@ class _AccountPickerSheet extends StatelessWidget {
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: wallet.id == selectedId
-                                  ? Colors.white.withValues(alpha: 0.76)
-                                  : AppColors.g4,
+                                  ? context.menudo.textOnDark.withValues(
+                                      alpha: 0.76,
+                                    )
+                                  : context.menudo.textMuted,
                             ),
                           ),
                         ],
@@ -1434,7 +1532,7 @@ class _AccountPickerSheet extends StatelessWidget {
                             color: AppColors.r1,
                             borderRadius: BorderRadius.circular(999),
                           ),
-                          child: const Text(
+                          child: Text(
                             'DEUDA',
                             style: TextStyle(
                               fontSize: 9,
@@ -1446,10 +1544,10 @@ class _AccountPickerSheet extends StatelessWidget {
                         ),
                       ),
                     if (wallet.id == selectedId)
-                      const Icon(
-                        LucideIcons.check,
-                        color: Colors.white,
-                        size: 18,
+                      Icon(
+                        MenudoCupertinoIcons.check,
+                        color: context.menudo.textOnDark,
+                        size: (18),
                       ),
                   ],
                 ),
@@ -1479,8 +1577,8 @@ class _BudgetPickerSheet extends StatelessWidget {
       });
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: context.menudo.textOnDark,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: ConstrainedBox(
@@ -1496,30 +1594,30 @@ class _BudgetPickerSheet extends StatelessWidget {
                 width: 40,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: AppColors.g2,
+                  color: context.menudo.border,
                   borderRadius: BorderRadius.circular(3),
                 ),
                 margin: const EdgeInsets.only(bottom: 24),
               ),
-              const Text(
+              Text(
                 'Presupuesto opcional',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.e8,
+                  color: context.menudo.textMain,
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: (24)),
               _BudgetChoiceTile(
                 label: 'General',
                 subtitle: 'Guardar este movimiento como actividad general.',
                 selected: selectedId == null,
                 onTap: () {
-                  HapticFeedback.lightImpact();
+                  MenudoHaptics.light();
                   Navigator.pop(context, 0);
                 },
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: (12)),
               ...sortedBudgets.map(
                 (budget) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -1530,7 +1628,7 @@ class _BudgetPickerSheet extends StatelessWidget {
                         : 'Disponible',
                     selected: budget.id == selectedId,
                     onTap: () {
-                      HapticFeedback.lightImpact();
+                      MenudoHaptics.light();
                       Navigator.pop(context, budget.id);
                     },
                   ),
@@ -1559,12 +1657,12 @@ class _BudgetChoiceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: selected ? AppColors.e8 : AppColors.g0,
+          color: selected ? context.menudo.primary : context.menudo.background,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -1574,18 +1672,20 @@ class _BudgetChoiceTile extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 color: selected
-                    ? Colors.white.withValues(alpha: 0.14)
+                    ? context.menudo.textOnDark.withValues(alpha: 0.14)
                     : AppColors.e1,
                 borderRadius: BorderRadius.circular(12),
               ),
               alignment: Alignment.center,
               child: Icon(
-                LucideIcons.layoutGrid,
-                size: 18,
-                color: selected ? Colors.white : AppColors.e8,
+                MenudoCupertinoIcons.layoutGrid,
+                size: (18),
+                color: selected
+                    ? context.menudo.textOnDark
+                    : context.menudo.textMain,
               ),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: (14)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1596,26 +1696,32 @@ class _BudgetChoiceTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
-                      color: selected ? Colors.white : AppColors.e8,
+                      color: selected
+                          ? context.menudo.textOnDark
+                          : context.menudo.textMain,
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  SizedBox(height: 3),
                   Text(
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: selected
-                          ? Colors.white.withValues(alpha: 0.76)
-                          : AppColors.g4,
+                          ? context.menudo.textOnDark.withValues(alpha: 0.76)
+                          : context.menudo.textMuted,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             if (selected)
-              const Icon(LucideIcons.check, color: Colors.white, size: 18),
+              Icon(
+                MenudoCupertinoIcons.check,
+                color: context.menudo.textOnDark,
+                size: (18),
+              ),
           ],
         ),
       ),

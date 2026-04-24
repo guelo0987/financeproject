@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 
 class AiAdvisorScreen extends StatefulWidget {
@@ -55,8 +57,11 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+        leading: MenudoIconButton(
+          icon: Icon(
+            MenudoCupertinoIcons.arrow_back_ios,
+            color: AppColors.textPrimary,
+          ),
           onPressed: () => context.pop(),
         ),
         title: Row(
@@ -67,13 +72,13 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                 color: AppColors.accent.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.smart_toy,
+              child: Icon(
+                MenudoCupertinoIcons.smart_toy,
                 color: AppColors.accent,
-                size: 20,
+                size: (20),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: (12)),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -124,7 +129,9 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                       child: Text(
                         msg['text'] as String,
                         style: AppTextStyles.bodyMedium.copyWith(
-                          color: isUser ? Colors.white : AppColors.textPrimary,
+                          color: isUser
+                              ? context.menudo.textOnDark
+                              : AppColors.textPrimary,
                         ),
                       ),
                     ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1),
@@ -150,9 +157,9 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const SizedBox(
-                          width: 16,
-                          height: 16,
+                        SizedBox(
+                          width: (16),
+                          height: (16),
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
@@ -160,7 +167,7 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: (12)),
                         Text(
                           'Analizando portafolio...',
                           style: AppTextStyles.bodySmall,
@@ -172,7 +179,7 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
               ),
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.surface,
                 border: Border(top: BorderSide(color: AppColors.cardBorder)),
               ),
@@ -199,19 +206,19 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  GestureDetector(
+                  SizedBox(width: (12)),
+                  MenudoGestureDetector(
                     onTap: _sendMessage,
                     child: Container(
                       padding: const EdgeInsets.all(12),
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: AppColors.accent,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.send_rounded,
-                        color: Colors.white,
-                        size: 20,
+                      child: Icon(
+                        MenudoCupertinoIcons.send_rounded,
+                        color: context.menudo.textOnDark,
+                        size: (20),
                       ),
                     ),
                   ),

@@ -1,9 +1,10 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
 import '../../../core/utils/formatters.dart';
@@ -91,8 +92,8 @@ class _SpendingBreakdownSheetState
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.92,
-      decoration: const BoxDecoration(
-        color: AppColors.g0,
+      decoration: BoxDecoration(
+        color: context.menudo.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: Column(
@@ -100,8 +101,8 @@ class _SpendingBreakdownSheetState
           // ── Dark header ─────────────────────────────────────────────
           Container(
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-            decoration: const BoxDecoration(
-              color: AppColors.e8,
+            decoration: BoxDecoration(
+              color: context.menudo.textMain,
               borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
             ),
             child: Column(
@@ -113,7 +114,7 @@ class _SpendingBreakdownSheetState
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 20),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: context.menudo.textOnDark.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -130,26 +131,30 @@ class _SpendingBreakdownSheetState
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: Colors.white.withValues(alpha: 0.45),
+                              color: context.menudo.textOnDark.withValues(
+                                alpha: 0.45,
+                              ),
                               letterSpacing: 1.5,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
                             _fmt(total),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 36,
                               fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                              color: context.menudo.textOnDark,
                               letterSpacing: -1.5,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
                             widget.periodoLabel,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.white.withValues(alpha: 0.45),
+                              color: context.menudo.textOnDark.withValues(
+                                alpha: 0.45,
+                              ),
                             ),
                           ),
                         ],
@@ -163,9 +168,9 @@ class _SpendingBreakdownSheetState
                       ),
                       child: Icon(
                         widget.isGastos
-                            ? LucideIcons.trendingDown
-                            : LucideIcons.trendingUp,
-                        size: 24,
+                            ? MenudoCupertinoIcons.trendingDown
+                            : MenudoCupertinoIcons.trendingUp,
+                        size: (24),
                         color: widget.isGastos
                             ? const Color(0xFFFCA5A5)
                             : const Color(0xFF6EE7B7),
@@ -173,7 +178,7 @@ class _SpendingBreakdownSheetState
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: (20)),
 
                 // Segmented color bar
                 if (sortedKeys.isNotEmpty) ...[
@@ -188,7 +193,7 @@ class _SpendingBreakdownSheetState
                             (s, t) => s + t.monto.abs(),
                           );
                           final cat = _findCategory(key);
-                          final color = cat?.color ?? AppColors.g4;
+                          final color = cat?.color ?? context.menudo.textMuted;
                           final flex = max(
                             1,
                             (keyTotal / (total > 0 ? total : 1) * 100).round(),
@@ -204,14 +209,14 @@ class _SpendingBreakdownSheetState
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: (12)),
                   // Legend
                   Wrap(
                     spacing: 10,
                     runSpacing: 6,
                     children: sortedKeys.take(4).map((key) {
                       final cat = _findCategory(key);
-                      final color = cat?.color ?? AppColors.g4;
+                      final color = cat?.color ?? context.menudo.textMuted;
                       final label =
                           cat?.nombre ??
                           (key[0].toUpperCase() + key.substring(1));
@@ -233,12 +238,14 @@ class _SpendingBreakdownSheetState
                               shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(width: 4),
+                          SizedBox(width: 4),
                           Text(
                             "$label $pct%",
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.white.withValues(alpha: 0.55),
+                              color: context.menudo.textOnDark.withValues(
+                                alpha: 0.55,
+                              ),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -268,19 +275,19 @@ class _SpendingBreakdownSheetState
                           alignment: Alignment.center,
                           child: Icon(
                             widget.isGastos
-                                ? LucideIcons.trendingDown
-                                : LucideIcons.trendingUp,
-                            size: 26,
+                                ? MenudoCupertinoIcons.trendingDown
+                                : MenudoCupertinoIcons.trendingUp,
+                            size: (26),
                             color: accentColor,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: (12)),
                         Text(
                           "Sin ${widget.isGastos ? 'gastos' : 'ingresos'} ${widget.periodoLabel}",
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.e8,
+                            color: context.menudo.textMain,
                           ),
                         ),
                       ],
@@ -298,16 +305,16 @@ class _SpendingBreakdownSheetState
                       );
                       final pct = total > 0 ? keyTotal / total : 0.0;
                       final cat = _findCategory(key);
-                      final color = cat?.color ?? AppColors.g4;
-                      final icon = cat?.icono ?? LucideIcons.tag;
+                      final color = cat?.color ?? context.menudo.textMuted;
+                      final icon = cat?.icono ?? MenudoCupertinoIcons.tag;
                       final label =
                           cat?.nombre ??
                           (key[0].toUpperCase() + key.substring(1));
                       final isExpanded = _expandedKey == key;
 
-                      return GestureDetector(
+                      return MenudoGestureDetector(
                             onTap: () {
-                              HapticFeedback.lightImpact();
+                              MenudoHaptics.light();
                               setState(
                                 () => _expandedKey = isExpanded ? null : key,
                               );
@@ -315,7 +322,7 @@ class _SpendingBreakdownSheetState
                             child: Container(
                               margin: const EdgeInsets.only(bottom: 10),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: context.menudo.textOnDark,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: isExpanded
@@ -345,11 +352,11 @@ class _SpendingBreakdownSheetState
                                               alignment: Alignment.center,
                                               child: Icon(
                                                 icon,
-                                                size: 22,
+                                                size: (22),
                                                 color: color,
                                               ),
                                             ),
-                                            const SizedBox(width: 12),
+                                            SizedBox(width: (12)),
                                             Expanded(
                                               child: Column(
                                                 crossAxisAlignment:
@@ -357,24 +364,28 @@ class _SpendingBreakdownSheetState
                                                 children: [
                                                   Text(
                                                     label,
-                                                    style: const TextStyle(
+                                                    style: TextStyle(
                                                       fontSize: 15,
                                                       fontWeight:
                                                           FontWeight.w800,
-                                                      color: AppColors.e8,
+                                                      color: context
+                                                          .menudo
+                                                          .textMain,
                                                     ),
                                                   ),
                                                   Text(
                                                     "${keyTxns.length} transacción${keyTxns.length != 1 ? 'es' : ''}",
-                                                    style: const TextStyle(
+                                                    style: TextStyle(
                                                       fontSize: 12,
-                                                      color: AppColors.g4,
+                                                      color: context
+                                                          .menudo
+                                                          .textMuted,
                                                     ),
                                                   ),
                                                 ],
                                               ),
                                             ),
-                                            const SizedBox(width: 8),
+                                            SizedBox(width: 8),
                                             Column(
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.end,
@@ -391,36 +402,39 @@ class _SpendingBreakdownSheetState
                                                 ),
                                                 Text(
                                                   "${(pct * 100).round()}%",
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontSize: 12,
-                                                    color: AppColors.g4,
+                                                    color: context
+                                                        .menudo
+                                                        .textMuted,
                                                     fontWeight: FontWeight.w600,
                                                   ),
                                                 ),
                                               ],
                                             ),
-                                            const SizedBox(width: 6),
+                                            SizedBox(width: 6),
                                             AnimatedRotation(
                                               turns: isExpanded ? 0.5 : 0,
                                               duration: const Duration(
                                                 milliseconds: 220,
                                               ),
                                               child: Icon(
-                                                LucideIcons.chevronDown,
-                                                size: 16,
+                                                MenudoCupertinoIcons
+                                                    .chevronDown,
+                                                size: (16),
                                                 color: isExpanded
                                                     ? color
-                                                    : AppColors.g3,
+                                                    : context.menudo.textMuted,
                                               ),
                                             ),
                                           ],
                                         ),
-                                        const SizedBox(height: 12),
+                                        SizedBox(height: (12)),
                                         // Progress bar
                                         Container(
                                           height: 6,
                                           decoration: BoxDecoration(
-                                            color: AppColors.g1,
+                                            color: context.menudo.surface,
                                             borderRadius: BorderRadius.circular(
                                               3,
                                             ),
@@ -478,18 +492,22 @@ class _SpendingBreakdownSheetState
                                                 children: [
                                                   Text(
                                                     t.desc,
-                                                    style: const TextStyle(
+                                                    style: TextStyle(
                                                       fontSize: 13,
                                                       fontWeight:
                                                           FontWeight.w700,
-                                                      color: AppColors.e8,
+                                                      color: context
+                                                          .menudo
+                                                          .textMain,
                                                     ),
                                                   ),
                                                   Text(
                                                     _fmtDate(t.dateString),
-                                                    style: const TextStyle(
+                                                    style: TextStyle(
                                                       fontSize: 11,
-                                                      color: AppColors.g4,
+                                                      color: context
+                                                          .menudo
+                                                          .textMuted,
                                                     ),
                                                   ),
                                                 ],
@@ -509,7 +527,7 @@ class _SpendingBreakdownSheetState
                                         ),
                                       );
                                     }),
-                                    const SizedBox(height: 4),
+                                    SizedBox(height: 4),
                                   ],
                                 ],
                               ),

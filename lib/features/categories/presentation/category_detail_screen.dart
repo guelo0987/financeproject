@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
 import '../../../shared/widgets/menudo_loading_view.dart';
@@ -36,42 +37,42 @@ class CategoryDetailScreen extends ConsumerWidget {
     final Map<String, Map<String, dynamic>> fallbackMeta = {
       'vivienda': {
         'label': 'Vivienda',
-        'icono': LucideIcons.home,
+        'icono': MenudoCupertinoIcons.home,
         'color': AppColors.e7,
       },
       'comida': {
         'label': 'Comida',
-        'icono': LucideIcons.utensils,
+        'icono': MenudoCupertinoIcons.utensils,
         'color': AppColors.o5,
       },
       'transporte': {
         'label': 'Transporte',
-        'icono': LucideIcons.car,
+        'icono': MenudoCupertinoIcons.car,
         'color': AppColors.p5,
       },
       'estiloVida': {
         'label': 'Estilo de vida',
-        'icono': LucideIcons.sparkles,
+        'icono': MenudoCupertinoIcons.sparkles,
         'color': AppColors.pk,
       },
       'salud': {
         'label': 'Salud',
-        'icono': LucideIcons.heartPulse,
+        'icono': MenudoCupertinoIcons.heartPulse,
         'color': AppColors.e6,
       },
       'educacion': {
         'label': 'Educacion',
-        'icono': LucideIcons.graduationCap,
+        'icono': MenudoCupertinoIcons.graduationCap,
         'color': AppColors.b5,
       },
       'entretenimiento': {
         'label': 'Entretenimiento',
-        'icono': LucideIcons.gamepad2,
+        'icono': MenudoCupertinoIcons.gamepad2,
         'color': AppColors.pk,
       },
       'servicios': {
         'label': 'Servicios',
-        'icono': LucideIcons.wrench,
+        'icono': MenudoCupertinoIcons.wrench,
         'color': AppColors.a5,
       },
     };
@@ -83,11 +84,11 @@ class CategoryDetailScreen extends ConsumerWidget {
     final IconData icono =
         category?.icono ??
         fallbackMeta[catKey]?['icono'] ??
-        LucideIcons.tag;
+        MenudoCupertinoIcons.tag;
     final Color color =
         category?.color ??
         fallbackMeta[catKey]?['color'] ??
-        AppColors.g4;
+        context.menudo.textMuted;
 
     final txns = ref
         .watch(currentMonthTransactionsProvider)
@@ -100,8 +101,8 @@ class CategoryDetailScreen extends ConsumerWidget {
 
     if ((categoriesState.isLoading && categories.isEmpty) ||
         (transactionsState.isLoading && txns.isEmpty)) {
-      return const Scaffold(
-        backgroundColor: AppColors.g0,
+      return Scaffold(
+        backgroundColor: context.menudo.background,
         body: MenudoLoadingView(
           title: 'Cargando categoría',
           message: 'Estamos preparando el detalle de esta categoría.',
@@ -111,19 +112,23 @@ class CategoryDetailScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.g0,
+      backgroundColor: context.menudo.background,
       appBar: AppBar(
-        backgroundColor: AppColors.g0,
+        backgroundColor: context.menudo.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: GestureDetector(
+        leading: MenudoGestureDetector(
           onTap: () {
-            HapticFeedback.lightImpact();
+            MenudoHaptics.light();
             Navigator.pop(context);
           },
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.all(8),
-            child: Icon(LucideIcons.arrowLeft, color: AppColors.e8, size: 22),
+            child: Icon(
+              MenudoCupertinoIcons.arrowLeft,
+              color: context.menudo.textMain,
+              size: (22),
+            ),
           ),
         ),
         title: Row(
@@ -132,23 +137,23 @@ class CategoryDetailScreen extends ConsumerWidget {
             Hero(
               tag: 'cat-icon-$catKey',
               child: Container(
-                width: 28,
-                height: 28,
+                width: (28),
+                height: (28),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.13),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,
-                child: Icon(icono, size: 14, color: color),
+                child: Icon(icono, size: (14), color: color),
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: (10)),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
-                color: AppColors.e8,
+                color: context.menudo.textMain,
               ),
             ),
           ],
@@ -160,9 +165,9 @@ class CategoryDetailScreen extends ConsumerWidget {
           Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.menudo.textOnDark,
                   borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: AppColors.g2),
+                  border: Border.all(color: context.menudo.border),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,28 +182,28 @@ class CategoryDetailScreen extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(16),
                           ),
                           alignment: Alignment.center,
-                          child: Icon(icono, size: 22, color: color),
+                          child: Icon(icono, size: (22), color: color),
                         ),
-                        const SizedBox(width: 14),
+                        SizedBox(width: (14)),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 "Total en ${label.toLowerCase()}",
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.g4,
+                                  color: context.menudo.textMuted,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              SizedBox(height: 4),
                               Text(
                                 fmt(totalSpent),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w900,
-                                  color: AppColors.e8,
+                                  color: context.menudo.textMain,
                                   letterSpacing: -1,
                                 ),
                               ),
@@ -207,7 +212,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: (16)),
                     Row(
                       children: [
                         Expanded(
@@ -216,7 +221,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                             value: '${txns.length}',
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: (10)),
                         Expanded(
                           child: _CategoryStatCard(
                             label: 'Promedio',
@@ -232,38 +237,38 @@ class CategoryDetailScreen extends ConsumerWidget {
               .fadeIn(duration: 400.ms)
               .slideY(begin: 0.05, end: 0, duration: 400.ms),
 
-          const SizedBox(height: 20),
+          SizedBox(height: (20)),
 
           // Transactions header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 "Transacciones",
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.e8,
+                  color: context.menudo.textMain,
                 ),
               ),
               Text(
                 "${txns.length} movimientos",
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.g4,
+                  color: context.menudo.textMuted,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: (10)),
 
           // Transaction list or empty state
           if (txns.isEmpty)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.menudo.textOnDark,
                 border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
                 borderRadius: BorderRadius.circular(22),
               ),
@@ -273,29 +278,32 @@ class CategoryDetailScreen extends ConsumerWidget {
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: AppColors.g1,
+                      color: context.menudo.surface,
                       borderRadius: BorderRadius.circular(18),
                     ),
                     alignment: Alignment.center,
                     child: Icon(
-                      LucideIcons.inbox,
-                      size: 28,
-                      color: AppColors.g3,
+                      MenudoCupertinoIcons.inbox,
+                      size: (28),
+                      color: context.menudo.textMuted,
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  const Text(
+                  SizedBox(height: (14)),
+                  Text(
                     "Todavía no hay movimientos en esta categoría",
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.e8,
+                      color: context.menudo.textMain,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
+                  SizedBox(height: 4),
+                  Text(
                     "Cuando registres uno, lo verás aquí.",
-                    style: TextStyle(fontSize: 13, color: AppColors.g4),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: context.menudo.textMuted,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -304,7 +312,7 @@ class CategoryDetailScreen extends ConsumerWidget {
           else
             Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: context.menudo.textOnDark,
                     border: Border.all(
                       color: const Color(0xFFF3F4F6),
                       width: 1.5,
@@ -335,15 +343,16 @@ class CategoryDetailScreen extends ConsumerWidget {
                       return Column(
                         children: [
                           if (i > 0)
-                            const Divider(
+                            Divider(
                               height: 1,
+                              thickness: 0.5,
                               color: Color(0xFFF3F4F6),
                               indent: 68,
                               endIndent: 16,
                             ),
-                          GestureDetector(
+                          MenudoGestureDetector(
                             onTap: () {
-                              HapticFeedback.lightImpact();
+                              MenudoHaptics.light();
                               showModalBottomSheet(
                                 context: context,
                                 isScrollControlled: true,
@@ -369,11 +378,11 @@ class CategoryDetailScreen extends ConsumerWidget {
                                     alignment: Alignment.center,
                                     child: Icon(
                                       t.icono,
-                                      size: 19,
+                                      size: (19),
                                       color: color,
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  SizedBox(width: (12)),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
@@ -381,26 +390,26 @@ class CategoryDetailScreen extends ConsumerWidget {
                                       children: [
                                         Text(
                                           t.desc,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
-                                            color: AppColors.e8,
+                                            color: context.menudo.textMain,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
-                                        const SizedBox(height: 2),
+                                        SizedBox(height: 2),
                                         Text(
                                           "${dayStr[2]} $monthLabel",
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 12,
-                                            color: AppColors.g4,
+                                            color: context.menudo.textMuted,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
+                                  SizedBox(width: 8),
                                   Text(
                                     t.tipo == "ingreso"
                                         ? "+ ${fmt(t.monto.abs())}"
@@ -410,7 +419,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                                       fontWeight: FontWeight.w800,
                                       color: t.tipo == "ingreso"
                                           ? AppColors.e6
-                                          : AppColors.e8,
+                                          : context.menudo.textMain,
                                     ),
                                   ),
                                 ],
@@ -442,7 +451,7 @@ class _CategoryStatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.g1,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -450,19 +459,19 @@ class _CategoryStatCard extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: AppColors.g5,
+              color: context.menudo.textSecondary,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
-              color: AppColors.e8,
+              color: context.menudo.textMain,
             ),
           ),
         ],

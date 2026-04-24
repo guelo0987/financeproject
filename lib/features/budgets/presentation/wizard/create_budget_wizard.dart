@@ -1,9 +1,11 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 
 import '../../../../core/data/models.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -43,8 +45,8 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
   bool get _isEditing => widget.initialBudget != null;
   bool get _canInviteMembers => !_isEditing;
   List<String> get _steps => _isEditing
-      ? const ["Básico", "Ingresos", "Gastos", "Ahorro"]
-      : const ["Básico", "Ingresos", "Gastos", "Ahorro", "Miembros", "Resumen"];
+      ? ["Básico", "Ingresos", "Gastos", "Ahorro"]
+      : ["Básico", "Ingresos", "Gastos", "Ahorro", "Miembros", "Resumen"];
   int get _lastStepIndex => _steps.length - 1;
 
   @override
@@ -312,7 +314,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
       periodo: _periodo,
       diaInicio: _diaInicio,
       activo: widget.initialBudget?.activo ?? true,
-      miembros: const [],
+      miembros: [],
       ingresos: ing,
       ahorroObjetivo: aho,
       cats: budgetCats,
@@ -337,6 +339,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
         );
       }
       if (!mounted) return;
+      MenudoHaptics.success();
       Navigator.pop(context, true);
     } catch (error) {
       _showError(presentError(error));
@@ -396,7 +399,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
   Widget _buildPeriodStartSelector() {
     if (_periodo == 'semanal') {
       return _BudgetHintCard(
-        icon: LucideIcons.calendarDays,
+        icon: MenudoCupertinoIcons.calendarDays,
         title: 'Semana móvil',
         body: 'Siempre tomará los últimos 7 días.',
       );
@@ -404,14 +407,14 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
 
     if (_periodo == 'unico') {
       return _BudgetHintCard(
-        icon: LucideIcons.flag,
+        icon: MenudoCupertinoIcons.flag,
         title: 'Una sola vez',
         body: 'Empieza cuando lo creas. No necesita un día de inicio.',
       );
     }
 
     final options = _periodo == 'quincenal'
-        ? const [1, 15]
+        ? [1, 15]
         : List<int>.generate(28, (index) => index + 1);
     final title = _periodo == 'quincenal'
         ? 'Inicio del ciclo'
@@ -425,34 +428,38 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: AppColors.g5,
+            color: context.menudo.textSecondary,
           ),
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         Text(
           subtitle,
-          style: const TextStyle(fontSize: 12, color: AppColors.g4),
+          style: TextStyle(fontSize: 12, color: context.menudo.textMuted),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: (10)),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: options.map((day) {
             final selected = _diaInicio == day;
-            return GestureDetector(
+            return MenudoGestureDetector(
               onTap: () => setState(() => _diaInicio = day),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 width: _periodo == 'quincenal' ? 88 : 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: selected ? AppColors.e8 : Colors.white,
+                  color: selected
+                      ? context.menudo.primary
+                      : context.menudo.textOnDark,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: selected ? AppColors.e8 : AppColors.g2,
+                    color: selected
+                        ? context.menudo.primary
+                        : context.menudo.border,
                     width: 2,
                   ),
                 ),
@@ -462,7 +469,9 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: selected ? Colors.white : AppColors.g5,
+                    color: selected
+                        ? context.menudo.textOnDark
+                        : context.menudo.textSecondary,
                   ),
                 ),
               ),
@@ -479,8 +488,8 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.95,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: context.menudo.textOnDark,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Column(
@@ -494,7 +503,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.g2,
+                    color: context.menudo.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                   margin: const EdgeInsets.only(bottom: 14),
@@ -502,7 +511,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    GestureDetector(
+                    MenudoGestureDetector(
                       onTap: () {
                         if (_step == 0) {
                           Navigator.pop(context);
@@ -511,17 +520,19 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                         }
                       },
                       child: Container(
-                        width: 30,
-                        height: 30,
-                        decoration: const BoxDecoration(
-                          color: AppColors.g1,
+                        width: (30),
+                        height: (30),
+                        decoration: BoxDecoration(
+                          color: context.menudo.surface,
                           shape: BoxShape.circle,
                         ),
                         alignment: Alignment.center,
                         child: Icon(
-                          _step == 0 ? Icons.close : Icons.arrow_back,
-                          size: 16,
-                          color: AppColors.g5,
+                          _step == 0
+                              ? MenudoCupertinoIcons.close
+                              : MenudoCupertinoIcons.arrow_back,
+                          size: (16),
+                          color: context.menudo.textSecondary,
                         ),
                       ),
                     ),
@@ -535,10 +546,10 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                           width: index <= _step ? 20 : 8,
                           decoration: BoxDecoration(
                             color: index < _step
-                                ? AppColors.e8
+                                ? context.menudo.primary
                                 : index == _step
                                 ? AppColors.o5
-                                : AppColors.g2,
+                                : context.menudo.border,
                             borderRadius: BorderRadius.circular(100),
                           ),
                         ),
@@ -546,9 +557,9 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                     ),
                     Text(
                       "${_step + 1}/${_steps.length}",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.g4,
+                        color: context.menudo.textMuted,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -558,7 +569,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
             ),
           ),
 
-          const SizedBox(height: 24),
+          SizedBox(height: (24)),
 
           Expanded(
             child: AnimatedPadding(
@@ -583,7 +594,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               20,
               24 + MediaQuery.of(context).viewInsets.bottom,
             ),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(top: BorderSide(color: Color(0xFFF3F4F6))),
             ),
             child: MenudoButton(
@@ -623,7 +634,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
       case 5:
         return _buildStep5();
       default:
-        return const SizedBox();
+        return SizedBox();
     }
   }
 
@@ -636,27 +647,27 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
-            color: AppColors.e8,
+            color: context.menudo.textMain,
           ),
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         Text(
           _isEditing
               ? "Ajusta el nombre o el período cuando lo necesites."
               : "Ponle un nombre y elige cómo quieres organizarlo.",
-          style: const TextStyle(fontSize: 14, color: AppColors.g4),
+          style: TextStyle(fontSize: 14, color: context.menudo.textMuted),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: (24)),
 
-        const Text(
+        Text(
           "Nombre",
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: AppColors.g5,
+            color: context.menudo.textSecondary,
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         TextField(
           onChanged: (v) => setState(() => _nombre = v),
           controller: TextEditingController.fromValue(
@@ -667,42 +678,42 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           ),
           decoration: InputDecoration(
             hintText: "ej: Hogar Abril, Viaje, Personal",
-            hintStyle: const TextStyle(
-              color: AppColors.g3,
+            hintStyle: TextStyle(
+              color: context.menudo.textMuted,
               fontWeight: FontWeight.w600,
             ),
             filled: true,
-            fillColor: AppColors.g0,
+            fillColor: context.menudo.background,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 13,
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.g2, width: 2),
+              borderSide: BorderSide(color: context.menudo.border, width: 2),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.e8, width: 2),
+              borderSide: BorderSide(color: context.menudo.textMain, width: 2),
             ),
           ),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
-            color: AppColors.e8,
+            color: context.menudo.textMain,
           ),
         ),
 
-        const SizedBox(height: 16),
-        const Text(
+        SizedBox(height: (16)),
+        Text(
           "Período",
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: AppColors.g5,
+            color: context.menudo.textSecondary,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
@@ -719,19 +730,19 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                       {"v": "unico", "l": "Puntual"},
                   ]
                   .map(
-                    (p) => GestureDetector(
+                    (p) => MenudoGestureDetector(
                       onTap: () => _setPeriod(p["v"]!),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         decoration: BoxDecoration(
                           color: _periodo == p["v"]
                               ? AppColors.e0
-                              : Colors.white,
+                              : context.menudo.textOnDark,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: _periodo == p["v"]
-                                ? AppColors.e8
-                                : AppColors.g2,
+                                ? context.menudo.primary
+                                : context.menudo.border,
                             width: 2,
                           ),
                         ),
@@ -742,8 +753,8 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: _periodo == p["v"]
-                                ? AppColors.e8
-                                : AppColors.g5,
+                                ? context.menudo.primary
+                                : context.menudo.textSecondary,
                           ),
                         ),
                       ),
@@ -752,7 +763,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   .toList(),
         ),
 
-        const SizedBox(height: 16),
+        SizedBox(height: (16)),
         _buildPeriodStartSelector(),
       ],
     );
@@ -785,7 +796,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 180),
             transitionBuilder: (child, animation) => FadeTransition(
@@ -809,7 +820,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               ),
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(
             subtitle,
             style: TextStyle(
@@ -842,7 +853,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.menudo.textOnDark,
         border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
         borderRadius: BorderRadius.circular(18),
       ),
@@ -858,26 +869,29 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 alignment: Alignment.center,
-                child: Icon(parent.icono, color: parent.color, size: 20),
+                child: Icon(parent.icono, color: parent.color, size: (20)),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: (12)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       parent.nombre,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.e8,
+                        color: context.menudo.textMain,
                       ),
                     ),
                     Text(
                       sortedCategories.isEmpty
                           ? 'Aún no agregas categorías'
                           : '${sortedCategories.length} opciones',
-                      style: const TextStyle(fontSize: 12, color: AppColors.g4),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.menudo.textMuted,
+                      ),
                     ),
                   ],
                 ),
@@ -888,38 +902,42 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   color: parent.color,
                   isSmall: true,
                 ),
-              const SizedBox(width: 8),
-              GestureDetector(
+              SizedBox(width: 8),
+              MenudoGestureDetector(
                 onTap: () => _showAddSubcategory(parent),
                 child: Container(
-                  width: 34,
-                  height: 34,
+                  width: (34),
+                  height: (34),
                   decoration: BoxDecoration(
                     color: parent.color.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   alignment: Alignment.center,
-                  child: Icon(LucideIcons.plus, size: 16, color: parent.color),
+                  child: Icon(
+                    MenudoCupertinoIcons.plus,
+                    size: (16),
+                    color: parent.color,
+                  ),
                 ),
               ),
             ],
           ),
           if (sortedCategories.isEmpty) ...[
-            const SizedBox(height: 14),
+            SizedBox(height: (14)),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.g0,
+                color: context.menudo.background,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Text(
+              child: Text(
                 'Agrega una categoría aquí para poder asignarle un monto.',
-                style: TextStyle(fontSize: 13, color: AppColors.g4),
+                style: TextStyle(fontSize: 13, color: context.menudo.textMuted),
               ),
             ),
           ] else ...[
-            const SizedBox(height: 14),
+            SizedBox(height: (14)),
             ...sortedCategories.map((category) {
               final amount = _parseAmount(values[category.id]);
               final pct = totalBase > 0
@@ -934,7 +952,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.g0,
+                  color: context.menudo.background,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: category.color.withValues(alpha: 0.18),
@@ -952,16 +970,16 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                       textAlign: isCompactAmountLayout
                           ? TextAlign.start
                           : TextAlign.end,
-                      textStyle: const TextStyle(
+                      textStyle: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.e8,
+                        color: context.menudo.textMain,
                       ),
                       prefixText: 'RD\$ ',
-                      prefixStyle: const TextStyle(
+                      prefixStyle: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.g4,
+                        color: context.menudo.textMuted,
                       ),
                       hintText: '',
                       fillColor: Colors.transparent,
@@ -983,8 +1001,8 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Container(
-                                width: 38,
-                                height: 38,
+                                width: (38),
+                                height: (38),
                                 decoration: BoxDecoration(
                                   color: category.color.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
@@ -993,28 +1011,28 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                                 child: Icon(
                                   category.icono,
                                   color: category.color,
-                                  size: 18,
+                                  size: (18),
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              SizedBox(width: (12)),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       category.nombre,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700,
-                                        color: AppColors.e8,
+                                        color: context.menudo.textMain,
                                       ),
                                     ),
                                     if (showPercent && amount > 0)
                                       Text(
                                         '$pct% del total',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 11,
-                                          color: AppColors.g4,
+                                          color: context.menudo.textMuted,
                                         ),
                                       ),
                                   ],
@@ -1022,7 +1040,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
+                          SizedBox(height: (10)),
                           amountEditor,
                         ],
                       )
@@ -1030,8 +1048,8 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Container(
-                            width: 38,
-                            height: 38,
+                            width: (38),
+                            height: (38),
                             decoration: BoxDecoration(
                               color: category.color.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
@@ -1040,34 +1058,34 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                             child: Icon(
                               category.icono,
                               color: category.color,
-                              size: 18,
+                              size: (18),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: (12)),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   category.nombre,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.e8,
+                                    color: context.menudo.textMain,
                                   ),
                                 ),
                                 if (showPercent && amount > 0)
                                   Text(
                                     '$pct% del total',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11,
-                                      color: AppColors.g4,
+                                      color: context.menudo.textMuted,
                                     ),
                                   ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: (12)),
                           amountEditor,
                         ],
                       ),
@@ -1086,20 +1104,20 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           "Ingresos",
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
-            color: AppColors.e8,
+            color: context.menudo.textMain,
           ),
         ),
-        const SizedBox(height: 4),
-        const Text(
+        SizedBox(height: 4),
+        Text(
           "Define de dónde entra el dinero.",
-          style: TextStyle(fontSize: 14, color: AppColors.g4),
+          style: TextStyle(fontSize: 14, color: context.menudo.textMuted),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: (20)),
         _buildPlannedAmountCard(
           label: "MONTO DE INGRESOS",
           subtitle: "Se calcula con las fuentes que agregues abajo.",
@@ -1108,19 +1126,19 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           borderColor: AppColors.e7.withValues(alpha: 0.13),
           textColor: AppColors.e7,
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: (18)),
         if (incomeGroups.isEmpty)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.g0,
+              color: context.menudo.background,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.g2, width: 1.5),
+              border: Border.all(color: context.menudo.border, width: 1.5),
             ),
-            child: const Text(
+            child: Text(
               'Cuando tengas categorías de ingresos, podrás repartir el monto aquí.',
-              style: TextStyle(fontSize: 13, color: AppColors.g4),
+              style: TextStyle(fontSize: 13, color: context.menudo.textMuted),
             ),
           )
         else
@@ -1144,43 +1162,46 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           "Gastos",
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
-            color: AppColors.e8,
+            color: context.menudo.textMain,
           ),
         ),
-        const SizedBox(height: 4),
-        const Text(
+        SizedBox(height: 4),
+        Text(
           "Elige cuánto quieres asignar a cada categoría.",
-          style: TextStyle(fontSize: 14, color: AppColors.g4),
+          style: TextStyle(fontSize: 14, color: context.menudo.textMuted),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: (16)),
 
         if (ing > 0)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
-              color: AppColors.g0,
-              border: Border.all(color: AppColors.g2, width: 1.5),
+              color: context.menudo.background,
+              border: Border.all(color: context.menudo.border, width: 1.5),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   "Ingresos totales",
-                  style: TextStyle(fontSize: 13, color: AppColors.g4),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: context.menudo.textMuted,
+                  ),
                 ),
                 Text(
                   fmt(ing),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.e8,
+                    color: context.menudo.textMain,
                   ),
                 ),
               ],
@@ -1192,13 +1213,13 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.g0,
+              color: context.menudo.background,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.g2, width: 1.5),
+              border: Border.all(color: context.menudo.border, width: 1.5),
             ),
-            child: const Text(
+            child: Text(
               'Cuando tengas categorías de gastos, podrás repartir el plan aquí.',
-              style: TextStyle(fontSize: 13, color: AppColors.g4),
+              style: TextStyle(fontSize: 13, color: context.menudo.textMuted),
             ),
           )
         else
@@ -1219,20 +1240,20 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           "Ahorro",
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
-            color: AppColors.e8,
+            color: context.menudo.textMain,
           ),
         ),
-        const SizedBox(height: 4),
-        const Text(
+        SizedBox(height: 4),
+        Text(
           "¿Cuánto quieres apartar este período?",
-          style: TextStyle(fontSize: 14, color: AppColors.g4),
+          style: TextStyle(fontSize: 14, color: context.menudo.textMuted),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: (20)),
 
         Container(
           width: double.infinity,
@@ -1248,7 +1269,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 "META DE AHORRO",
                 style: TextStyle(
                   fontSize: 11,
@@ -1257,8 +1278,8 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(height: 6),
-              const Text(
+              SizedBox(height: 6),
+              Text(
                 'Escribe cuanto quieres reservar en este periodo.',
                 style: TextStyle(
                   fontSize: 13,
@@ -1267,14 +1288,14 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   height: 1.35,
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: (16)),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.9),
+                  color: context.menudo.textOnDark.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
                     color: AppColors.warning.withValues(alpha: 0.18),
@@ -1291,26 +1312,26 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                         borderRadius: BorderRadius.circular(14),
                       ),
                       alignment: Alignment.center,
-                      child: const Icon(
-                        LucideIcons.wallet,
-                        size: 20,
+                      child: Icon(
+                        MenudoCupertinoIcons.wallet,
+                        size: (20),
                         color: AppColors.a5,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: (12)),
                     Expanded(
                       child: _BudgetAmountField(
                         value: _savingsTarget,
                         onChanged: (value) =>
                             setState(() => _savingsTarget = value),
                         textAlign: TextAlign.start,
-                        textStyle: const TextStyle(
+                        textStyle: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
                           color: AppColors.a5,
                         ),
                         prefixText: 'RD\$ ',
-                        prefixStyle: const TextStyle(
+                        prefixStyle: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
                           color: AppColors.a5,
@@ -1325,45 +1346,45 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-              const Text(
+              SizedBox(height: (12)),
+              Text(
                 'Si lo dejas vacio, este periodo quedara sin meta de ahorro.',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.g4,
+                  color: context.menudo.textMuted,
                 ),
               ),
             ],
           ),
         ),
 
-        const SizedBox(height: 16),
+        SizedBox(height: (16)),
         if (ing > 0)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.menudo.textOnDark,
               border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   "Resumen del período",
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.g5,
+                    color: context.menudo.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: (10)),
                 ...[
                   {
                     'label': 'Gastos planificados',
                     'val': gastos,
-                    'color': AppColors.e8,
+                    'color': context.menudo.textMain,
                   },
                   {'label': 'Ahorro', 'val': aho, 'color': AppColors.a5},
                 ].where((entry) => (entry['val'] as double) > 0).map((entry) {
@@ -1378,26 +1399,26 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                           children: [
                             Text(
                               entry['label'] as String,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.g5,
+                                color: context.menudo.textSecondary,
                               ),
                             ),
                             Text(
                               "$pct%",
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.e8,
+                                color: context.menudo.textMain,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 3),
+                        SizedBox(height: 3),
                         Container(
                           height: 5,
                           decoration: BoxDecoration(
-                            color: AppColors.g1,
+                            color: context.menudo.surface,
                             borderRadius: BorderRadius.circular(3),
                           ),
                           alignment: Alignment.centerLeft,
@@ -1422,15 +1443,18 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                 Container(
                   margin: const EdgeInsets.only(top: 12),
                   padding: const EdgeInsets.only(top: 10),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     border: Border(top: BorderSide(color: Color(0xFFF3F4F6))),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         "Disponible",
-                        style: TextStyle(fontSize: 13, color: AppColors.g4),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: context.menudo.textMuted,
+                        ),
                       ),
                       Text(
                         fmt(sobrante),
@@ -1468,25 +1492,25 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
             borderRadius: BorderRadius.circular(14),
           ),
           alignment: Alignment.center,
-          child: Icon(icon, color: iconColor, size: 20),
+          child: Icon(icon, color: iconColor, size: (20)),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: (12)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.e8,
+                  color: context.menudo.textMain,
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text(
                 subtitle,
-                style: const TextStyle(fontSize: 14, color: AppColors.g4),
+                style: TextStyle(fontSize: 14, color: context.menudo.textMuted),
               ),
             ],
           ),
@@ -1511,15 +1535,15 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildStepHeading(
-          icon: Icons.groups_rounded,
-          iconColor: AppColors.e8,
+          icon: MenudoCupertinoIcons.groups_rounded,
+          iconColor: context.menudo.textMain,
           iconBackgroundColor: AppColors.e1,
           title: "Miembros",
           subtitle: _canInviteMembers
               ? "Agrega hasta 3 correos para compartirlo."
               : "Aquí puedes revisar quién tendrá acceso.",
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: (20)),
 
         if (!_canInviteMembers)
           Container(
@@ -1528,14 +1552,14 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
             decoration: BoxDecoration(
               color: AppColors.e1,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.g2),
+              border: Border.all(color: context.menudo.border),
             ),
-            child: const Text(
+            child: Text(
               "Si luego quieres sumar a alguien, podrás hacerlo desde el presupuesto.",
               style: TextStyle(
                 fontSize: 13,
                 height: 1.35,
-                color: AppColors.e8,
+                color: context.menudo.textMain,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1545,7 +1569,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.menudo.textOnDark,
             border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
             borderRadius: BorderRadius.circular(16),
           ),
@@ -1555,19 +1579,19 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.e8,
+                  color: context.menudo.textMain,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   initials.isEmpty ? 'T' : initials,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: context.menudo.textOnDark,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: (12)),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1576,12 +1600,15 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.e8,
+                      color: context.menudo.textMain,
                     ),
                   ),
                   Text(
                     "Tú",
-                    style: TextStyle(fontSize: 12, color: AppColors.g4),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.menudo.textMuted,
+                    ),
                   ),
                 ],
               ),
@@ -1601,21 +1628,21 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.mail_outline_rounded,
+                Icon(
+                  MenudoCupertinoIcons.mail_outline_rounded,
                   color: AppColors.o5,
-                  size: 18,
+                  size: (18),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: (10)),
                 Expanded(
                   child: Text(
                     _miembros.isEmpty
                         ? "Las invitaciones se enviarán cuando termines de crear el presupuesto."
                         : "${_miembros.length} invitación${_miembros.length == 1 ? '' : 'es'} lista${_miembros.length == 1 ? '' : 's'} para salir cuando lo crees.",
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       height: 1.35,
-                      color: AppColors.g5,
+                      color: context.menudo.textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1630,7 +1657,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.menudo.textOnDark,
               border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
               borderRadius: BorderRadius.circular(16),
             ),
@@ -1646,24 +1673,24 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   alignment: Alignment.center,
                   child: Text(
                     m.isNotEmpty ? m[0].toUpperCase() : "?",
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: context.menudo.textOnDark,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: (12)),
                 Expanded(
                   child: Text(
                     m,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.e8,
+                      color: context.menudo.textMain,
                     ),
                   ),
                 ),
-                GestureDetector(
+                MenudoGestureDetector(
                   onTap: () => setState(() => _miembros.removeAt(i)),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -1674,9 +1701,9 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                       color: AppColors.r1,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
-                      LucideIcons.x,
-                      size: 14,
+                    child: Icon(
+                      MenudoCupertinoIcons.x,
+                      size: (14),
                       color: AppColors.r5,
                     ),
                   ),
@@ -1690,23 +1717,26 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.g0,
-              border: Border.all(color: AppColors.g2, style: BorderStyle.none),
+              color: context.menudo.background,
+              border: Border.all(
+                color: context.menudo.border,
+                style: BorderStyle.none,
+              ),
               borderRadius: BorderRadius.circular(16),
             ),
             // Note: drawing dashed borders is complex in flutter natively without a package, so I'll just use solid border for now
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   "Agregar correo",
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.g5,
+                    color: context.menudo.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
@@ -1723,7 +1753,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                         decoration: InputDecoration(
                           hintText: "correo@ejemplo.com",
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: context.menudo.surface,
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14,
@@ -1731,23 +1761,23 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                              color: AppColors.g2,
+                            borderSide: BorderSide(
+                              color: context.menudo.border,
                               width: 2,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                              color: AppColors.e8,
+                            borderSide: BorderSide(
+                              color: context.menudo.textMain,
                               width: 2,
                             ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
+                    SizedBox(width: 8),
+                    MenudoGestureDetector(
                       onTap: _addMemberEmail,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -1755,14 +1785,14 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                           vertical: 11,
                         ), // matched visually to textfield height roughly
                         decoration: BoxDecoration(
-                          color: AppColors.e8,
+                          color: context.menudo.textMain,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         alignment: Alignment.center,
-                        child: const Text(
+                        child: Text(
                           "+",
                           style: TextStyle(
-                            color: Colors.white,
+                            color: context.menudo.textOnDark,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -1799,19 +1829,19 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildStepHeading(
-          icon: Icons.task_alt_rounded,
+          icon: MenudoCupertinoIcons.task_alt_rounded,
           iconColor: AppColors.o5,
           iconBackgroundColor: AppColors.o1,
           title: "Resumen",
           subtitle: "Revisa lo importante antes de terminar.",
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: (20)),
 
         Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.e8,
+            color: context.menudo.textMain,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
@@ -1822,32 +1852,32 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: context.menudo.textOnDark.withValues(alpha: 0.6),
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text(
                 _nombre.isEmpty ? "Tu presupuesto" : _nombre,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: Colors.white,
+                  color: context.menudo.textOnDark,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Row(
                 children: [
                   MenudoChip.custom(
                     label: _periodSummaryLabel(),
-                    color: Colors.white.withValues(alpha: 0.8),
-                    bgColor: Colors.white.withValues(alpha: 0.15),
+                    color: context.menudo.textOnDark.withValues(alpha: 0.8),
+                    bgColor: context.menudo.textOnDark.withValues(alpha: 0.15),
                     isSmall: true,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   MenudoChip.custom(
                     label: _periodStartSummary(),
-                    color: Colors.white.withValues(alpha: 0.8),
-                    bgColor: Colors.white.withValues(alpha: 0.15),
+                    color: context.menudo.textOnDark.withValues(alpha: 0.8),
+                    bgColor: context.menudo.textOnDark.withValues(alpha: 0.15),
                     isSmall: true,
                   ),
                 ],
@@ -1859,7 +1889,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.menudo.textOnDark,
             border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
             borderRadius: BorderRadius.circular(16),
           ),
@@ -1868,13 +1898,16 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     "Ingresos",
-                    style: TextStyle(fontSize: 13, color: AppColors.g4),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: context.menudo.textMuted,
+                    ),
                   ),
                   Text(
                     fmt(ing),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                       color: AppColors.e6,
@@ -1882,7 +1915,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: (10)),
               ...incomeEntries.map((entry) {
                 final category = categoriesById[entry.key];
                 return Padding(
@@ -1892,14 +1925,14 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                     children: [
                       Text(
                         category?.nombre ?? 'Ingreso #${entry.key}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: AppColors.g4,
+                          color: context.menudo.textMuted,
                         ),
                       ),
                       Text(
                         fmt(entry.value),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: AppColors.e6,
@@ -1910,14 +1943,17 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                 );
               }),
               if (expenseEntries.isNotEmpty) ...[
-                const Divider(height: 20, color: AppColors.g1),
-                const Padding(
+                Divider(height: (20), color: context.menudo.surface),
+                Padding(
                   padding: EdgeInsets.only(bottom: 10),
                   child: Row(
                     children: [
                       Text(
                         "Gastos",
-                        style: TextStyle(fontSize: 13, color: AppColors.g4),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: context.menudo.textMuted,
+                        ),
                       ),
                     ],
                   ),
@@ -1932,17 +1968,17 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                     children: [
                       Text(
                         category?.nombre ?? 'Gasto #${entry.key}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: AppColors.g4,
+                          color: context.menudo.textMuted,
                         ),
                       ),
                       Text(
                         fmt(entry.value),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.e8,
+                          color: context.menudo.textMain,
                         ),
                       ),
                     ],
@@ -1955,13 +1991,16 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         "Ahorro",
-                        style: TextStyle(fontSize: 13, color: AppColors.g4),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: context.menudo.textMuted,
+                        ),
                       ),
                       Text(
                         fmt(aho),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: AppColors.warning,
@@ -1970,16 +2009,16 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                     ],
                   ),
                 ),
-              const Divider(height: 20, color: AppColors.g1),
+              Divider(height: (20), color: context.menudo.surface),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     "Disponible",
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.g5,
+                      color: context.menudo.textSecondary,
                     ),
                   ),
                   Text(
@@ -1997,31 +2036,34 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
         ),
 
         if (_miembros.isNotEmpty) ...[
-          const SizedBox(height: 12),
+          SizedBox(height: (12)),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.menudo.textOnDark,
               border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   "Invitaciones",
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.g5,
+                    color: context.menudo.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 6),
-                const Text(
+                SizedBox(height: 6),
+                Text(
                   "Se enviarán al guardar.",
-                  style: TextStyle(fontSize: 12, color: AppColors.g4),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.menudo.textMuted,
+                  ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: (12)),
                 ..._miembros.map((email) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
@@ -2030,19 +2072,19 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             color: AppColors.o5,
                             shape: BoxShape.circle,
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: (10)),
                         Expanded(
                           child: Text(
                             email,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.e8,
+                              color: context.menudo.textMain,
                             ),
                           ),
                         ),
@@ -2084,35 +2126,35 @@ class _BudgetHintCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: (36),
+            height: (36),
             decoration: BoxDecoration(
               color: AppColors.e1,
               borderRadius: BorderRadius.circular(12),
             ),
             alignment: Alignment.center,
-            child: Icon(icon, size: 18, color: AppColors.e8),
+            child: Icon(icon, size: (18), color: context.menudo.textMain),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: (12)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.e8,
+                    color: context.menudo.textMain,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   body,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     height: 1.35,
-                    color: AppColors.g5,
+                    color: context.menudo.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -2229,13 +2271,13 @@ class _BudgetAmountFieldState extends State<_BudgetAmountField> {
         ? InputBorder.none
         : OutlineInputBorder(
             borderRadius: BorderRadius.circular(widget.borderRadius),
-            borderSide: const BorderSide(color: AppColors.g2, width: 1.8),
+            borderSide: BorderSide(color: context.menudo.border, width: 1.8),
           );
     final focusedBorder = widget.borderless
         ? InputBorder.none
         : OutlineInputBorder(
             borderRadius: BorderRadius.circular(widget.borderRadius),
-            borderSide: const BorderSide(color: AppColors.e8, width: 2),
+            borderSide: BorderSide(color: context.menudo.textMain, width: 2),
           );
 
     return TextField(

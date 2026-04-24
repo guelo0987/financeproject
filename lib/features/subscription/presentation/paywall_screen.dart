@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../../../controllers/auth_controller.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/error_presenter.dart';
 import '../../../core/utils/external_links.dart';
@@ -391,7 +393,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? null : AppColors.e8,
+        backgroundColor: isError ? null : context.menudo.textMain,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -410,7 +412,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     return PopScope(
       canPop: !widget.fromRegistration,
       child: Scaffold(
-        backgroundColor: AppColors.white,
+        backgroundColor: context.menudo.surface,
         body: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(child: _buildHero()),
@@ -428,7 +430,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   Widget _buildHero() {
     return Container(
-      color: AppColors.g0,
+      color: context.menudo.background,
       padding: EdgeInsets.only(
         top: MediaQuery.of(context).padding.top + 12,
         bottom: 28,
@@ -441,7 +443,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           // Top nav bar
           Row(
             children: [
-              GestureDetector(
+              MenudoGestureDetector(
                 onTap: () async {
                   await ref.read(authProvider.notifier).logout();
                   if (mounted) context.go('/login');
@@ -452,23 +454,23 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     vertical: 9,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.white,
+                    color: context.menudo.surface,
                     borderRadius: BorderRadius.circular(100),
-                    border: Border.all(color: AppColors.g2),
+                    border: Border.all(color: context.menudo.border),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: AppColors.e8,
-                        size: 12,
+                      Icon(
+                        MenudoCupertinoIcons.arrow_back_ios_new_rounded,
+                        color: context.menudo.textMain,
+                        size: (12),
                       ),
-                      const SizedBox(width: 6),
+                      SizedBox(width: 6),
                       Text(
                         'Cerrar sesión',
                         style: MenudoTextStyles.bodySmall.copyWith(
-                          color: AppColors.e8,
+                          color: context.menudo.textMain,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -478,7 +480,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               ),
               const Spacer(),
               if (!widget.fromRegistration)
-                GestureDetector(
+                MenudoGestureDetector(
                   onTap: () {
                     ref.read(authProvider.notifier).clearPaywallFlag();
                     if (context.canPop()) {
@@ -488,35 +490,35 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     }
                   },
                   child: Container(
-                    width: 36,
-                    height: 36,
+                    width: (36),
+                    height: (36),
                     decoration: BoxDecoration(
-                      color: AppColors.white,
+                      color: context.menudo.surface,
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.g2),
+                      border: Border.all(color: context.menudo.border),
                     ),
-                    child: const Icon(
-                      Icons.close_rounded,
-                      color: AppColors.e8,
-                      size: 18,
+                    child: Icon(
+                      MenudoCupertinoIcons.close_rounded,
+                      color: context.menudo.textMain,
+                      size: (18),
                     ),
                   ),
                 ),
             ],
           ),
 
-          const SizedBox(height: 32),
+          SizedBox(height: (32)),
 
           // Logo on white card
           Container(
-            width: 100,
-            height: 100,
+            width: (100),
+            height: (100),
             decoration: BoxDecoration(
-              color: AppColors.white,
+              color: context.menudo.surface,
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.e8.withValues(alpha: 0.10),
+                  color: context.menudo.textMain.withValues(alpha: 0.10),
                   blurRadius: 24,
                   offset: const Offset(0, 8),
                 ),
@@ -530,7 +532,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             curve: Curves.easeOutBack,
           ),
 
-          const SizedBox(height: 20),
+          SizedBox(height: (20)),
 
           // PRO badge
           Container(
@@ -542,14 +544,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             child: Text(
               'PRO',
               style: MenudoTextStyles.labelCaps.copyWith(
-                color: AppColors.white,
+                color: context.menudo.surface,
                 fontSize: 11,
                 letterSpacing: 1.2,
               ),
             ),
           ).animate().fadeIn(delay: 200.ms),
 
-          const SizedBox(height: 12),
+          SizedBox(height: (12)),
 
           Text(
             'Finanzas sin límites.',
@@ -557,15 +559,17 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             textAlign: TextAlign.center,
           ).animate().fadeIn(delay: 250.ms),
 
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
 
           Text(
             'Tú decides cuánto crecer.',
-            style: MenudoTextStyles.bodyLarge.copyWith(color: AppColors.g5),
+            style: MenudoTextStyles.bodyLarge.copyWith(
+              color: context.menudo.textSecondary,
+            ),
             textAlign: TextAlign.center,
           ).animate().fadeIn(delay: 300.ms),
 
-          const SizedBox(height: 20),
+          SizedBox(height: (20)),
 
           // Trust pill
           Container(
@@ -578,12 +582,12 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.lock_outline_rounded,
+                Icon(
+                  MenudoCupertinoIcons.lock_outline_rounded,
                   color: AppColors.e6,
-                  size: 14,
+                  size: (14),
                 ),
-                const SizedBox(width: 7),
+                SizedBox(width: 7),
                 Text(
                   _trustMessage(),
                   style: MenudoTextStyles.labelCaps.copyWith(
@@ -605,27 +609,27 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Widget _buildBenefits() {
     final items = [
       (
-        Icons.account_balance_wallet_outlined,
+        MenudoCupertinoIcons.account_balance_wallet_outlined,
         'Billeteras ilimitadas',
         'Registra todas tus cuentas y efectivo',
       ),
       (
-        Icons.pie_chart_outline_rounded,
+        MenudoCupertinoIcons.pie_chart_outline_rounded,
         'Presupuestos avanzados',
         'Con metas, límites y seguimiento real',
       ),
       (
-        Icons.repeat_rounded,
+        MenudoCupertinoIcons.repeat_rounded,
         'Pagos recurrentes',
         'Automatiza tus gastos fijos',
       ),
       (
-        Icons.group_outlined,
+        MenudoCupertinoIcons.group_outlined,
         'Espacios compartidos',
         'Gestiona finanzas en pareja o familia',
       ),
       (
-        Icons.bar_chart_rounded,
+        MenudoCupertinoIcons.bar_chart_rounded,
         'Reportes detallados',
         'Visualiza tus patrones de gasto',
       ),
@@ -635,9 +639,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       margin: const EdgeInsets.fromLTRB(20, 28, 20, 0),
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: context.menudo.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -646,12 +650,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             'Todo lo que necesitas',
             style: MenudoTextStyles.h3,
           ).animate().fadeIn(delay: 500.ms),
-          const SizedBox(height: 2),
+          SizedBox(height: 2),
           Text(
             'Una herramienta completa para tu salud financiera.',
-            style: MenudoTextStyles.bodySmall.copyWith(color: AppColors.g5),
+            style: MenudoTextStyles.bodySmall.copyWith(
+              color: context.menudo.textSecondary,
+            ),
           ).animate().fadeIn(delay: 550.ms),
-          const SizedBox(height: 16),
+          SizedBox(height: (16)),
           ...items.asMap().entries.map(
             (e) => _BenefitRow(
               icon: e.value.$1,
@@ -672,7 +678,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       return Padding(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
         child: _StatusCard(
-          icon: Icons.sync_rounded,
+          icon: MenudoCupertinoIcons.sync_rounded,
           title: 'Cargando planes',
           message: 'Estamos preparando las opciones disponibles para ti.',
           isLoading: true,
@@ -684,7 +690,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       return Padding(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
         child: _StatusCard(
-          icon: Icons.wifi_tethering_error_rounded,
+          icon: MenudoCupertinoIcons.wifi_tethering_error_rounded,
           title: 'No pudimos mostrar los planes',
           message: _offeringError!,
           actionLabel: 'Intentar de nuevo',
@@ -702,12 +708,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             'Elige tu plan',
             style: MenudoTextStyles.h3,
           ).animate().fadeIn(delay: 950.ms),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(
             'Empieza gratis. Sin compromiso.',
-            style: MenudoTextStyles.bodySmall.copyWith(color: AppColors.g5),
+            style: MenudoTextStyles.bodySmall.copyWith(
+              color: context.menudo.textSecondary,
+            ),
           ).animate().fadeIn(delay: 1000.ms),
-          const SizedBox(height: 16),
+          SizedBox(height: (16)),
 
           if (_offering?.annual != null) ...[
             _PlanCard(
@@ -720,7 +728,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               badgeColor: AppColors.o5,
               onTap: () => setState(() => _selected = _Plan.annual),
             ).animate().fadeIn(delay: 1050.ms).slideY(begin: 0.1),
-            const SizedBox(height: 10),
+            SizedBox(height: (10)),
           ],
 
           if (_offering?.monthly != null) ...[
@@ -734,7 +742,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               badgeColor: null,
               onTap: () => setState(() => _selected = _Plan.monthly),
             ).animate().fadeIn(delay: 1100.ms).slideY(begin: 0.1),
-            const SizedBox(height: 10),
+            SizedBox(height: (10)),
           ],
 
           if (_offering?.lifetime != null)
@@ -774,7 +782,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               message: _purchaseFeedback!,
               isError: _purchaseFeedbackIsError,
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: (12)),
           ],
           MenudoPrimaryButton(
             label: label,
@@ -782,10 +790,12 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             isDisabled: !canPurchase,
           ),
           if (helper != null) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: (10)),
             Text(
               helper,
-              style: MenudoTextStyles.bodySmall.copyWith(color: AppColors.g5),
+              style: MenudoTextStyles.bodySmall.copyWith(
+                color: context.menudo.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -805,10 +815,12 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             onPressed: _purchasing ? null : _restore,
             child: Text(
               'Restaurar compras anteriores',
-              style: MenudoTextStyles.bodySmall.copyWith(color: AppColors.g5),
+              style: MenudoTextStyles.bodySmall.copyWith(
+                color: context.menudo.textSecondary,
+              ),
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Wrap(
             alignment: WrapAlignment.center,
             spacing: 2,
@@ -817,7 +829,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               Text(
                 'Al continuar aceptas',
                 style: MenudoTextStyles.labelCaps.copyWith(
-                  color: AppColors.g4,
+                  color: context.menudo.textMuted,
                   fontSize: 10,
                   letterSpacing: 0.3,
                 ),
@@ -827,17 +839,17 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 onPressed: () =>
                     ExternalLinks.openUrlOrNotify(context, AppEnv.termsUrl),
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.g5,
+                  foregroundColor: context.menudo.textSecondary,
                   padding: const EdgeInsets.symmetric(horizontal: 6),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: const Text('Términos'),
+                child: Text('Términos'),
               ),
               Text(
                 'y',
                 style: MenudoTextStyles.labelCaps.copyWith(
-                  color: AppColors.g4,
+                  color: context.menudo.textMuted,
                   fontSize: 10,
                   letterSpacing: 0.3,
                 ),
@@ -848,12 +860,12 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   AppEnv.privacyPolicyUrl,
                 ),
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.g5,
+                  foregroundColor: context.menudo.textSecondary,
                   padding: const EdgeInsets.symmetric(horizontal: 6),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: const Text('Privacidad'),
+                child: Text('Privacidad'),
               ),
             ],
           ),
@@ -885,9 +897,9 @@ class _StatusCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: context.menudo.border),
       ),
       child: Column(
         children: [
@@ -900,30 +912,32 @@ class _StatusCard extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: isLoading
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
+                ? SizedBox(
+                    width: (22),
+                    height: (22),
                     child: CircularProgressIndicator(strokeWidth: 2.2),
                   )
-                : Icon(icon, color: AppColors.e7, size: 24),
+                : Icon(icon, color: AppColors.e7, size: (24)),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: (14)),
           Text(title, style: MenudoTextStyles.h3, textAlign: TextAlign.center),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             message,
-            style: MenudoTextStyles.bodyMedium.copyWith(color: AppColors.g5),
+            style: MenudoTextStyles.bodyMedium.copyWith(
+              color: context.menudo.textSecondary,
+            ),
             textAlign: TextAlign.center,
           ),
           if (actionLabel != null && onTap != null) ...[
-            const SizedBox(height: 18),
+            SizedBox(height: (18)),
             OutlinedButton.icon(
               onPressed: onTap,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
+              icon: Icon(MenudoCupertinoIcons.refresh_rounded, size: (18)),
               label: Text(actionLabel!),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.e8,
-                side: const BorderSide(color: AppColors.g2),
+                foregroundColor: context.menudo.textMain,
+                side: BorderSide(color: context.menudo.border),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -951,9 +965,9 @@ class _InlinePurchaseFeedback extends StatelessWidget {
     final bgColor = isError ? AppColors.r1 : AppColors.e1;
     final borderColor = isError ? AppColors.r5 : AppColors.e6;
     final icon = isError
-        ? Icons.error_outline_rounded
-        : Icons.check_circle_outline_rounded;
-    final textColor = isError ? AppColors.r5 : AppColors.e8;
+        ? MenudoCupertinoIcons.error_outline_rounded
+        : MenudoCupertinoIcons.check_circle_outline_rounded;
+    final textColor = isError ? AppColors.r5 : context.menudo.textMain;
 
     return Container(
       width: double.infinity,
@@ -966,8 +980,8 @@ class _InlinePurchaseFeedback extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: textColor, size: 18),
-          const SizedBox(width: 10),
+          Icon(icon, color: textColor, size: (18)),
+          SizedBox(width: (10)),
           Expanded(
             child: Text(
               message,
@@ -1013,9 +1027,9 @@ class _BenefitRow extends StatelessWidget {
                       color: AppColors.e0,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(icon, color: AppColors.e6, size: 18),
+                    child: Icon(icon, color: AppColors.e6, size: (18)),
                   ),
-                  const SizedBox(width: 14),
+                  SizedBox(width: (14)),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1024,16 +1038,16 @@ class _BenefitRow extends StatelessWidget {
                         Text(
                           subtitle,
                           style: MenudoTextStyles.bodySmall.copyWith(
-                            color: AppColors.g5,
+                            color: context.menudo.textSecondary,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(
-                    Icons.check_circle_rounded,
+                  Icon(
+                    MenudoCupertinoIcons.check_circle_rounded,
                     color: AppColors.e6,
-                    size: 20,
+                    size: (20),
                   ),
                 ],
               )
@@ -1069,22 +1083,22 @@ class _PlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         decoration: BoxDecoration(
-          color: selected ? AppColors.e8 : AppColors.white,
+          color: selected ? context.menudo.primary : context.menudo.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? AppColors.e8 : AppColors.g2,
+            color: selected ? context.menudo.primary : context.menudo.border,
             width: selected ? 2 : 1,
           ),
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: AppColors.e8.withValues(alpha: 0.25),
+                    color: context.menudo.textMain.withValues(alpha: 0.25),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
                   ),
@@ -1102,30 +1116,34 @@ class _PlanCard extends StatelessWidget {
             // Radio
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              width: 22,
-              height: 22,
+              width: (22),
+              height: (22),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: selected ? Colors.white : Colors.transparent,
+                color: selected
+                    ? context.menudo.textOnDark
+                    : Colors.transparent,
                 border: Border.all(
-                  color: selected ? Colors.white : AppColors.g3,
+                  color: selected
+                      ? context.menudo.textOnDark
+                      : context.menudo.textMuted,
                   width: 2,
                 ),
               ),
               child: selected
                   ? Center(
                       child: Container(
-                        width: 10,
-                        height: 10,
+                        width: (10),
+                        height: (10),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: AppColors.e8,
+                          color: context.menudo.textMain,
                         ),
                       ),
                     )
                   : null,
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: (14)),
 
             // Title + detail
             Expanded(
@@ -1137,11 +1155,13 @@ class _PlanCard extends StatelessWidget {
                       Text(
                         title,
                         style: MenudoTextStyles.bodyLarge.copyWith(
-                          color: selected ? Colors.white : AppColors.e8,
+                          color: selected
+                              ? context.menudo.textOnDark
+                              : context.menudo.textMain,
                         ),
                       ),
                       if (badge != null) ...[
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 7,
@@ -1149,14 +1169,18 @@ class _PlanCard extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: selected
-                                ? Colors.white.withValues(alpha: 0.18)
+                                ? context.menudo.textOnDark.withValues(
+                                    alpha: 0.18,
+                                  )
                                 : badgeColor!.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(100),
                           ),
                           child: Text(
                             badge!,
                             style: MenudoTextStyles.labelCaps.copyWith(
-                              color: selected ? Colors.white : badgeColor,
+                              color: selected
+                                  ? context.menudo.textOnDark
+                                  : badgeColor,
                               fontSize: 8,
                               letterSpacing: 0.6,
                             ),
@@ -1165,13 +1189,13 @@ class _PlanCard extends StatelessWidget {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(
                     detail,
                     style: MenudoTextStyles.bodySmall.copyWith(
                       color: selected
-                          ? Colors.white.withValues(alpha: 0.65)
-                          : AppColors.g5,
+                          ? context.menudo.textOnDark.withValues(alpha: 0.65)
+                          : context.menudo.textSecondary,
                     ),
                   ),
                 ],
@@ -1189,7 +1213,9 @@ class _PlanCard extends StatelessWidget {
                     Text(
                       price,
                       style: MenudoTextStyles.amountMedium.copyWith(
-                        color: selected ? Colors.white : AppColors.e8,
+                        color: selected
+                            ? context.menudo.textOnDark
+                            : context.menudo.textMain,
                       ),
                     ),
                     if (period.isNotEmpty)
@@ -1197,8 +1223,10 @@ class _PlanCard extends StatelessWidget {
                         period,
                         style: MenudoTextStyles.bodySmall.copyWith(
                           color: selected
-                              ? Colors.white.withValues(alpha: 0.65)
-                              : AppColors.g5,
+                              ? context.menudo.textOnDark.withValues(
+                                  alpha: 0.65,
+                                )
+                              : context.menudo.textSecondary,
                         ),
                       ),
                   ],

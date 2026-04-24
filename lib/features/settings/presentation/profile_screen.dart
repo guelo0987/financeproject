@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,6 +8,7 @@ import '../../../core/localization/app_copy.dart';
 import '../../../core/preferences/app_preferences.dart';
 import '../../../core/preferences/app_preferences_controller.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/display_utils.dart';
 import '../../../core/utils/error_presenter.dart';
@@ -71,7 +73,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _amountController = TextEditingController();
   final _avatarEmojiController = TextEditingController();
 
-  String _currency = 'DOP';
+  String _currency = AppFormattingPreferences.currencyCode;
   String? _financialGoal;
   DateTime? _goalDate;
   bool _isSaving = false;
@@ -167,10 +169,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.e8,
+            colorScheme: ColorScheme.light(
+              primary: context.menudo.textMain,
               secondary: AppColors.o5,
-              surface: Colors.white,
+              surface: context.menudo.surface,
             ),
           ),
           child: child!,
@@ -273,6 +275,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           .read(appPreferencesProvider.notifier)
           .setMarket(marketFromCurrency(_currency).code);
       if (!mounted) return;
+      MenudoHaptics.success();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Listo. Guardamos los cambios de tu perfil.'),
@@ -303,7 +306,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
 
     if (profile == null) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: MenudoColors.appBg,
         body: SafeArea(
           child: MenudoLoadingView(
@@ -347,10 +350,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 child: Row(
                   children: [
                     _CircleActionButton(
-                      icon: Icons.arrow_back_ios_new_rounded,
+                      icon: MenudoCupertinoIcons.arrow_back_ios_new_rounded,
                       onTap: () => context.pop(),
                     ),
-                    const SizedBox(width: 14),
+                    SizedBox(width: (14)),
                     Text('Mi perfil', style: MenudoTextStyles.h1),
                   ],
                 ),
@@ -362,7 +365,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(22),
                   decoration: BoxDecoration(
-                    color: AppColors.e8,
+                    color: context.menudo.textMain,
                     borderRadius: BorderRadius.circular(28),
                   ),
                   child: Row(
@@ -371,23 +374,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         width: 72,
                         height: 72,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
+                          color: context.menudo.textOnDark.withValues(
+                            alpha: 0.12,
+                          ),
                           borderRadius: BorderRadius.circular(22),
                         ),
                         alignment: Alignment.center,
                         child: avatarEmoji?.isNotEmpty == true
                             ? Text(
                                 avatarDisplay,
-                                style: const TextStyle(fontSize: 34),
+                                style: TextStyle(fontSize: 34),
                               )
                             : Text(
                                 avatarDisplay,
                                 style: MenudoTextStyles.h2.copyWith(
-                                  color: Colors.white,
+                                  color: context.menudo.textOnDark,
                                 ),
                               ),
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(width: (16)),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,25 +400,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             Text(
                               displayName,
                               style: MenudoTextStyles.h3.copyWith(
-                                color: Colors.white,
+                                color: context.menudo.textOnDark,
                               ),
                             ),
-                            const SizedBox(height: 6),
+                            SizedBox(height: 6),
                             Text(
                               profile.email,
                               style: MenudoTextStyles.bodyMedium.copyWith(
-                                color: Colors.white.withValues(alpha: 0.8),
+                                color: context.menudo.textOnDark.withValues(
+                                  alpha: 0.8,
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 10),
+                            SizedBox(height: (10)),
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
                               children: [
                                 MenudoChip.custom(
                                   label: _formatJoined(profile),
-                                  color: Colors.white,
-                                  bgColor: Colors.white.withValues(alpha: 0.12),
+                                  color: context.menudo.textOnDark,
+                                  bgColor: context.menudo.textOnDark.withValues(
+                                    alpha: 0.12,
+                                  ),
                                 ),
                               ],
                             ),
@@ -439,24 +448,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _FieldLabel('Avatar'),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       _ReadOnlyField(
                         value: avatarEmoji?.isNotEmpty == true
                             ? 'Avatar $avatarEmoji'
                             : 'Elegir emoji o usar iniciales',
                         onTap: _pickAvatarEmoji,
                         trailing: Container(
-                          width: 36,
-                          height: 36,
+                          width: (36),
+                          height: (36),
                           decoration: BoxDecoration(
-                            color: AppColors.g1,
+                            color: context.menudo.surface,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           alignment: Alignment.center,
                           child: avatarEmoji?.isNotEmpty == true
                               ? Text(
                                   avatarEmoji!,
-                                  style: const TextStyle(fontSize: 20),
+                                  style: TextStyle(fontSize: 20),
                                 )
                               : Text(
                                   avatarDisplay,
@@ -466,17 +475,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: (16)),
                       _FieldLabel('Nombre'),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       _PlainTextField(
                         controller: _nameController,
                         hintText: 'Tu nombre',
                         textCapitalization: TextCapitalization.words,
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: (16)),
                       _FieldLabel('Correo'),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       _ReadOnlyField(value: profile.email),
                     ],
                   ),
@@ -507,17 +516,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.82),
+                          color: context.menudo.textOnDark.withValues(
+                            alpha: 0.82,
+                          ),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.flag_rounded,
+                        child: Icon(
+                          MenudoCupertinoIcons.flag_rounded,
                           color: AppColors.a5,
-                          size: 20,
+                          size: (20),
                         ),
                       ),
-                      const SizedBox(width: 14),
+                      SizedBox(width: (14)),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -529,7 +540,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 color: AppColors.a5,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
                             Text(
                               goalSummary.isEmpty
                                   ? 'Añade monto y fecha para que Menudo te dé más contexto.'
@@ -560,7 +571,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           color: MenudoColors.textMuted,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: (12)),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -578,9 +589,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             )
                             .toList(),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: (16)),
                       _FieldLabel('Monto objetivo'),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       _PlainTextField(
                         controller: _amountController,
                         hintText: '',
@@ -588,20 +599,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         onChanged: _onAmountChanged,
                         prefixText: '${currencyPrefix(_currency)} ',
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: (16)),
                       _FieldLabel('Fecha objetivo'),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       _ReadOnlyField(
                         value: _formatDate(_goalDate),
                         onTap: _pickGoalDate,
                         trailing: _goalDate == null
                             ? null
-                            : IconButton(
+                            : MenudoIconButton(
                                 onPressed: () =>
                                     setState(() => _goalDate = null),
-                                icon: const Icon(
-                                  Icons.close_rounded,
-                                  size: 18,
+                                icon: Icon(
+                                  MenudoCupertinoIcons.close_rounded,
+                                  size: (18),
                                   color: MenudoColors.textMuted,
                                 ),
                               ),
@@ -631,7 +642,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             color: MenudoColors.textMuted,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: (16)),
                         MenudoSecondaryButton(
                           label: 'Cambiar contraseña',
                           onTap: _openChangePasswordSheet,
@@ -663,7 +674,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                       ),
                       if (subscription.isActive) ...[
-                        const SizedBox(height: 12),
+                        SizedBox(height: (12)),
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
@@ -683,7 +694,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   color: AppColors.a5,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              SizedBox(height: 4),
                               Text(
                                 'Si tienes un plan activo, Apple puede seguir facturando hasta que lo canceles desde la gestión de suscripciones.',
                                 style: MenudoTextStyles.bodySmall.copyWith(
@@ -691,7 +702,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   height: 1.35,
                                 ),
                               ),
-                              const SizedBox(height: 10),
+                              SizedBox(height: (10)),
                               TextButton(
                                 onPressed: () => ExternalLinks.openUrlOrNotify(
                                   context,
@@ -701,15 +712,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   foregroundColor: AppColors.a5,
                                   padding: EdgeInsets.zero,
                                 ),
-                                child: const Text(
-                                  'Abrir gestión de suscripciones',
-                                ),
+                                child: Text('Abrir gestión de suscripciones'),
                               ),
                             ],
                           ),
                         ),
                       ],
-                      const SizedBox(height: 16),
+                      SizedBox(height: (16)),
                       MenudoSecondaryButton(
                         label: _isDeletingAccount
                             ? 'Eliminando cuenta...'
@@ -789,8 +798,8 @@ class _AvatarEmojiSheetState extends State<_AvatarEmojiSheet> {
     return SafeArea(
       top: false,
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: context.menudo.textOnDark,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         constraints: BoxConstraints(maxHeight: media.size.height * 0.84),
@@ -806,21 +815,21 @@ class _AvatarEmojiSheetState extends State<_AvatarEmojiSheet> {
                   width: 40,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: AppColors.g2,
+                    color: context.menudo.border,
                     borderRadius: BorderRadius.circular(99),
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               Text('Tu avatar', style: MenudoTextStyles.h3),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               Text(
                 'Elige uno rápido o escribe otro. Si tu teclado no muestra emojis, usa estas opciones.',
                 style: MenudoTextStyles.bodySmall.copyWith(
                   color: MenudoColors.textMuted,
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               Center(
                 child: Container(
                   width: 84,
@@ -835,20 +844,20 @@ class _AvatarEmojiSheetState extends State<_AvatarEmojiSheet> {
                     style: TextStyle(
                       fontSize: preview == null ? 26 : 40,
                       fontWeight: preview == null ? FontWeight.w900 : null,
-                      color: preview == null ? AppColors.e8 : null,
+                      color: preview == null ? context.menudo.primary : null,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
                 children: widget.suggestions.map((emoji) {
                   final isSelected = emoji == preview;
-                  return GestureDetector(
+                  return MenudoGestureDetector(
                     onTap: () {
-                      HapticFeedback.selectionClick();
+                      MenudoHaptics.selection();
                       setState(() {
                         _selectedEmoji = emoji;
                         _controller.text = emoji;
@@ -859,24 +868,26 @@ class _AvatarEmojiSheetState extends State<_AvatarEmojiSheet> {
                       width: 52,
                       height: 52,
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.e1 : Colors.white,
+                        color: isSelected
+                            ? AppColors.e1
+                            : context.menudo.textOnDark,
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
                           color: isSelected
-                              ? AppColors.e8
+                              ? context.menudo.primary
                               : MenudoColors.border,
                           width: isSelected ? 1.6 : 1,
                         ),
                       ),
                       alignment: Alignment.center,
-                      child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                      child: Text(emoji, style: TextStyle(fontSize: 24)),
                     ),
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               _FieldLabel('Emoji personalizado'),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               _PlainTextField(
                 controller: _controller,
                 hintText: '🙂',
@@ -887,7 +898,7 @@ class _AvatarEmojiSheetState extends State<_AvatarEmojiSheet> {
                   setState(() => _selectedEmoji = _normalizeEmoji(value));
                 },
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               Row(
                 children: [
                   Expanded(
@@ -896,7 +907,7 @@ class _AvatarEmojiSheetState extends State<_AvatarEmojiSheet> {
                       onTap: () => Navigator.of(context).pop(''),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: (12)),
                   Expanded(
                     child: MenudoButton(
                       label: 'Guardar',
@@ -947,8 +958,8 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
     return SafeArea(
       top: false,
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: context.menudo.textOnDark,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         padding: EdgeInsets.fromLTRB(20, 14, 20, 24 + safeBottom),
@@ -962,14 +973,14 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
                   width: 40,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: AppColors.g2,
+                    color: context.menudo.border,
                     borderRadius: BorderRadius.circular(99),
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               Text('Eliminar cuenta', style: MenudoTextStyles.h3),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
                 'Este paso borra tu acceso a Menudo y no se puede deshacer.',
                 style: MenudoTextStyles.bodySmall.copyWith(
@@ -977,7 +988,7 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
                   height: 1.35,
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -996,7 +1007,7 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(
                       'Cuenta: ${widget.email}\nPerfil y preferencias guardadas\nDatos personales asociados a tu acceso',
                       style: MenudoTextStyles.bodySmall.copyWith(
@@ -1005,7 +1016,7 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
                       ),
                     ),
                     if (widget.hasActiveSubscription) ...[
-                      const SizedBox(height: 12),
+                      SizedBox(height: (12)),
                       Text(
                         'Tu suscripción de Apple no se cancela sola. Si quieres evitar cargos futuros, cancélala primero desde la gestión de suscripciones.',
                         style: MenudoTextStyles.bodySmall.copyWith(
@@ -1017,9 +1028,9 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               _FieldLabel('Escribe ELIMINAR para confirmar'),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               _PlainTextField(
                 controller: _confirmationController,
                 hintText: 'ELIMINAR',
@@ -1027,7 +1038,7 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
                 textCapitalization: TextCapitalization.characters,
                 onChanged: (_) => setState(() {}),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               Row(
                 children: [
                   Expanded(
@@ -1036,7 +1047,7 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
                       onTap: () => Navigator.of(context).pop(false),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: (12)),
                   Expanded(
                     child: MenudoButton(
                       label: 'Borrar cuenta',
@@ -1098,18 +1109,20 @@ class _ChoiceTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: () {
-        HapticFeedback.selectionClick();
+        MenudoHaptics.selection();
         onTap();
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? AppColors.o1 : AppColors.g1,
+          color: selected ? AppColors.o1 : context.menudo.surface,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: selected ? AppColors.o5 : AppColors.g2),
+          border: Border.all(
+            color: selected ? AppColors.o5 : context.menudo.border,
+          ),
         ),
         child: Text(
           label,
@@ -1133,13 +1146,13 @@ class _ReadOnlyField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final trailingWidget = trailing;
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.menudo.textOnDark,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: MenudoColors.border),
         ),
@@ -1155,8 +1168,8 @@ class _ReadOnlyField extends StatelessWidget {
             ),
             ...?(trailingWidget == null ? null : [trailingWidget]),
             if (onTap != null && trailing == null)
-              const Icon(
-                Icons.chevron_right_rounded,
+              Icon(
+                MenudoCupertinoIcons.chevron_right_rounded,
                 color: MenudoColors.textMuted,
               ),
           ],
@@ -1213,25 +1226,22 @@ class _PlainTextField extends StatelessWidget {
           color: MenudoColors.textMuted,
         ),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: context.menudo.surface,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: MenudoColors.border),
+          borderSide: BorderSide(color: MenudoColors.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: MenudoColors.border),
+          borderSide: BorderSide(color: MenudoColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(
-            color: MenudoColors.borderActive,
-            width: 2,
-          ),
+          borderSide: BorderSide(color: MenudoColors.borderActive, width: 2),
         ),
       ),
     );
@@ -1246,18 +1256,18 @@ class _CircleActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onTap,
       child: Container(
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.menudo.textOnDark,
           shape: BoxShape.circle,
           border: Border.all(color: MenudoColors.border),
         ),
         alignment: Alignment.center,
-        child: Icon(icon, size: 18, color: MenudoColors.textMain),
+        child: Icon(icon, size: (18), color: MenudoColors.textMain),
       ),
     );
   }
@@ -1330,6 +1340,7 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
           );
       if (!mounted) return;
       Navigator.of(context).pop();
+      MenudoHaptics.success();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Tu contraseña ya fue actualizada.'),
@@ -1348,8 +1359,8 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
     final safeBottom = MediaQuery.of(context).padding.bottom;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: context.menudo.textOnDark,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       padding: EdgeInsets.fromLTRB(20, 14, 20, 24 + safeBottom),
@@ -1362,72 +1373,72 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
               width: 40,
               height: 5,
               decoration: BoxDecoration(
-                color: AppColors.g2,
+                color: context.menudo.border,
                 borderRadius: BorderRadius.circular(99),
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: (18)),
           Text('Cambiar contraseña', style: MenudoTextStyles.h3),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             'Usa tu contraseña actual y define una nueva.',
             style: MenudoTextStyles.bodySmall.copyWith(
               color: MenudoColors.textMuted,
             ),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: (18)),
           _PlainTextField(
             controller: _currentController,
             hintText: 'Contraseña actual',
             textInputAction: TextInputAction.next,
             obscureText: _obscureCurrent,
-            suffixIcon: IconButton(
+            suffixIcon: MenudoIconButton(
               onPressed: () =>
                   setState(() => _obscureCurrent = !_obscureCurrent),
               icon: Icon(
                 _obscureCurrent
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
+                    ? MenudoCupertinoIcons.visibility_off_outlined
+                    : MenudoCupertinoIcons.visibility_outlined,
                 color: MenudoColors.textMuted,
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: (12)),
           _PlainTextField(
             controller: _nextController,
             hintText: 'Nueva contraseña',
             textInputAction: TextInputAction.next,
             obscureText: _obscureNext,
-            suffixIcon: IconButton(
+            suffixIcon: MenudoIconButton(
               onPressed: () => setState(() => _obscureNext = !_obscureNext),
               icon: Icon(
                 _obscureNext
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
+                    ? MenudoCupertinoIcons.visibility_off_outlined
+                    : MenudoCupertinoIcons.visibility_outlined,
                 color: MenudoColors.textMuted,
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: (12)),
           _PlainTextField(
             controller: _confirmController,
             hintText: 'Confirmar nueva contraseña',
             textInputAction: TextInputAction.done,
             obscureText: _obscureConfirm,
             onSubmitted: (_) => _submit(),
-            suffixIcon: IconButton(
+            suffixIcon: MenudoIconButton(
               onPressed: () =>
                   setState(() => _obscureConfirm = !_obscureConfirm),
               icon: Icon(
                 _obscureConfirm
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
+                    ? MenudoCupertinoIcons.visibility_off_outlined
+                    : MenudoCupertinoIcons.visibility_outlined,
                 color: MenudoColors.textMuted,
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: (18)),
           MenudoButton(
             label: _isSaving ? 'Guardando...' : 'Guardar contraseña',
             isFullWidth: true,

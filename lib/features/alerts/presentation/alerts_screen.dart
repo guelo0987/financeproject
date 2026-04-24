@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/error_presenter.dart';
@@ -157,7 +158,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
     final alertsAsync = ref.watch(alertNotifierProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.g0,
+      backgroundColor: context.menudo.background,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _refresh,
@@ -170,17 +171,17 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                   child: Row(
                     children: [
                       _HeaderCircleButton(
-                        icon: LucideIcons.chevronLeft,
+                        icon: MenudoCupertinoIcons.chevronLeft,
                         onTap: () => context.pop(),
                       ),
-                      const SizedBox(width: 14),
-                      const Expanded(
+                      SizedBox(width: (14)),
+                      Expanded(
                         child: Text(
                           'Alertas',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
-                            color: AppColors.e8,
+                            color: context.menudo.textMain,
                             letterSpacing: -0.6,
                           ),
                         ),
@@ -208,7 +209,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(20),
                       child: _StateCard(
-                        icon: LucideIcons.alertCircle,
+                        icon: MenudoCupertinoIcons.alertCircle,
                         title: 'No se pudieron cargar las alertas',
                         body: presentError(error),
                         actionLabel: 'Reintentar',
@@ -229,7 +230,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                         child: Padding(
                           padding: EdgeInsets.all(20),
                           child: _StateCard(
-                            icon: LucideIcons.bell,
+                            icon: MenudoCupertinoIcons.bell,
                             title: 'Por ahora no tienes alertas',
                             body:
                                 'Cuando tengas invitaciones o novedades importantes, aparecerán aquí.',
@@ -249,10 +250,10 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                               unreadCount == 0
                                   ? 'Todo al día'
                                   : '$unreadCount sin leer',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.e8,
+                                color: context.menudo.textMain,
                               ),
                             ),
                             const Spacer(),
@@ -262,14 +263,14 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
                                     ? null
                                     : () => _markAllAsRead(alerts),
                                 child: _markingAll
-                                    ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
+                                    ? SizedBox(
+                                        width: (16),
+                                        height: (16),
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
                                         ),
                                       )
-                                    : const Text('Marcar todo'),
+                                    : Text('Marcar todo'),
                               ),
                           ],
                         ),
@@ -324,18 +325,18 @@ class _HeaderCircleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onTap,
       child: Container(
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.menudo.textOnDark,
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.g2),
+          border: Border.all(color: context.menudo.border),
         ),
         alignment: Alignment.center,
-        child: Icon(icon, color: AppColors.e8, size: 18),
+        child: Icon(icon, color: context.menudo.textMain, size: (18)),
       ),
     );
   }
@@ -361,37 +362,37 @@ class _StateCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.menudo.textOnDark,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: context.menudo.border),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 28, color: AppColors.e8),
-          const SizedBox(height: 14),
+          Icon(icon, size: (28), color: context.menudo.textMain),
+          SizedBox(height: (14)),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w900,
-              color: AppColors.e8,
+              color: context.menudo.textMain,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             body,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               height: 1.4,
-              color: AppColors.g5,
+              color: context.menudo.textSecondary,
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
           ),
           if (actionLabel != null && onTap != null) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: (16)),
             FilledButton(onPressed: onTap, child: Text(actionLabel!)),
           ],
         ],
@@ -420,7 +421,7 @@ class _AlertCard extends StatelessWidget {
     final accent = switch (alert.type) {
       'invitacion_presupuesto' => AppColors.o5,
       'invitacion_aceptada' => AppColors.e6,
-      _ => AppColors.e8,
+      _ => AppColors.b5,
     };
     final dateLabel = alert.createdAt == null
         ? null
@@ -432,10 +433,12 @@ class _AlertCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.menudo.textOnDark,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: alert.isRead ? AppColors.g2 : accent.withValues(alpha: 0.25),
+          color: alert.isRead
+              ? context.menudo.border
+              : accent.withValues(alpha: 0.25),
         ),
       ),
       child: Column(
@@ -454,15 +457,15 @@ class _AlertCard extends StatelessWidget {
                 alignment: Alignment.center,
                 child: Icon(
                   alert.isBudgetInvitation
-                      ? LucideIcons.mailOpen
+                      ? MenudoCupertinoIcons.mailOpen
                       : alert.isAcceptedInvitation
-                      ? LucideIcons.checkCircle2
-                      : LucideIcons.bell,
-                  size: 18,
+                      ? MenudoCupertinoIcons.checkCircle2
+                      : MenudoCupertinoIcons.bell,
+                  size: (18),
                   color: accent,
                 ),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: (14)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -472,10 +475,10 @@ class _AlertCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             alert.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w900,
-                              color: AppColors.e8,
+                              color: context.menudo.textMain,
                             ),
                           ),
                         ),
@@ -490,23 +493,23 @@ class _AlertCard extends StatelessWidget {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     Text(
                       alert.body,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         height: 1.35,
-                        color: AppColors.g5,
+                        color: context.menudo.textSecondary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (dateLabel != null) ...[
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Text(
                         dateLabel,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: AppColors.g4,
+                          color: context.menudo.textMuted,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -519,7 +522,7 @@ class _AlertCard extends StatelessWidget {
           if (alert.extra.budgetName != null ||
               alert.extra.invitedBy != null ||
               alert.extra.budgetId != null) ...[
-            const SizedBox(height: 14),
+            SizedBox(height: (14)),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -534,7 +537,7 @@ class _AlertCard extends StatelessWidget {
           if (onAccept != null ||
               onOpenBudget != null ||
               onMarkAsRead != null) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: (16)),
             Row(
               children: [
                 if (onAccept != null)
@@ -543,54 +546,54 @@ class _AlertCard extends StatelessWidget {
                       onPressed: isBusy ? null : onAccept,
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.o5,
-                        foregroundColor: Colors.white,
+                        foregroundColor: context.menudo.textOnDark,
                       ),
                       child: isBusy
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
+                          ? SizedBox(
+                              width: (16),
+                              height: (16),
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: context.menudo.textOnDark,
                               ),
                             )
-                          : const Text('Aceptar'),
+                          : Text('Aceptar'),
                     ),
                   ),
                 if ((onAccept != null || onOpenBudget != null) &&
                     onMarkAsRead != null)
-                  const SizedBox(width: 10),
+                  SizedBox(width: (10)),
                 if (onOpenBudget != null)
                   Expanded(
                     child: FilledButton(
                       onPressed: isBusy ? null : onOpenBudget,
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.e8,
-                        foregroundColor: Colors.white,
+                        backgroundColor: context.menudo.textMain,
+                        foregroundColor: context.menudo.textOnDark,
                       ),
                       child: isBusy
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
+                          ? SizedBox(
+                              width: (16),
+                              height: (16),
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: context.menudo.textOnDark,
                               ),
                             )
-                          : const Text('Ver presupuesto'),
+                          : Text('Ver presupuesto'),
                     ),
                   ),
                 if (onOpenBudget != null && onMarkAsRead != null)
-                  const SizedBox(width: 10),
+                  SizedBox(width: (10)),
                 if (onMarkAsRead != null)
                   Expanded(
                     child: OutlinedButton(
                       onPressed: isBusy ? null : onMarkAsRead,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.e8,
-                        side: const BorderSide(color: AppColors.g2),
+                        foregroundColor: context.menudo.textMain,
+                        side: BorderSide(color: context.menudo.border),
                       ),
-                      child: const Text('Marcar leída'),
+                      child: Text('Marcar leída'),
                     ),
                   ),
               ],
@@ -612,15 +615,15 @@ class _InfoPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: AppColors.g1,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: AppColors.g5,
+          color: context.menudo.textSecondary,
         ),
       ),
     );

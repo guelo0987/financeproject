@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
 import '../../../core/utils/error_presenter.dart';
@@ -30,7 +31,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     MenudoCategory? parent,
     MenudoCategory? category,
   }) {
-    HapticFeedback.mediumImpact();
+    MenudoHaptics.medium();
     showModalBottomSheet(
       context: context,
       useRootNavigator: true,
@@ -66,8 +67,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         return SafeArea(
           top: false,
           child: Container(
-            decoration: const BoxDecoration(
-              color: AppColors.g0,
+            decoration: BoxDecoration(
+              color: context.menudo.background,
               borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
             ),
             padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + safeBottom),
@@ -80,12 +81,12 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.g3,
+                      color: context.menudo.textMuted,
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: (18)),
                 Row(
                   children: [
                     Container(
@@ -98,29 +99,29 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                       alignment: Alignment.center,
                       child: Icon(
                         category.icono,
-                        size: 20,
+                        size: (20),
                         color: category.color,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: (12)),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             category.nombre,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
-                              color: AppColors.e8,
+                              color: context.menudo.textMain,
                             ),
                           ),
                           Text(
                             'Elige qué quieres hacer con este $label.',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.g5,
+                              color: context.menudo.textSecondary,
                             ),
                           ),
                         ],
@@ -128,16 +129,16 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: (18)),
                 _CategoryActionTile(
-                  icon: LucideIcons.pencil,
+                  icon: MenudoCupertinoIcons.pencil,
                   label: isParent ? 'Editar grupo' : 'Editar categoría',
                   onTap: () =>
                       Navigator.of(sheetContext).pop(_CategoryAction.edit),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: (10)),
                 _CategoryActionTile(
-                  icon: LucideIcons.trash2,
+                  icon: MenudoCupertinoIcons.trash2,
                   label: isParent ? 'Eliminar grupo' : 'Eliminar categoría',
                   isDestructive: true,
                   onTap: () =>
@@ -175,8 +176,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         return SafeArea(
           top: false,
           child: Container(
-            decoration: const BoxDecoration(
-              color: AppColors.g0,
+            decoration: BoxDecoration(
+              color: context.menudo.background,
               borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
             ),
             padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + safeBottom),
@@ -189,48 +190,48 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.g3,
+                      color: context.menudo.textMuted,
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: (18)),
                 Text(
                   isParent ? 'Eliminar grupo' : 'Eliminar categoría',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.e8,
+                    color: context.menudo.textMain,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   'Intentaremos borrar ${category.nombre}. Si ese $label ya tiene movimientos o sigue en uso, no se podrá eliminar.',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     height: 1.4,
-                    color: AppColors.g5,
+                    color: context.menudo.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: (18)),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(sheetContext).pop(false),
-                        child: const Text('Cancelar'),
+                        child: Text('Cancelar'),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: (12)),
                     Expanded(
                       child: FilledButton(
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.r5,
-                          foregroundColor: Colors.white,
+                          foregroundColor: context.menudo.textOnDark,
                         ),
                         onPressed: () => Navigator.of(sheetContext).pop(true),
-                        child: const Text('Eliminar'),
+                        child: Text('Eliminar'),
                       ),
                     ),
                   ],
@@ -288,37 +289,44 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     final entries = _filteredEntries(grouped);
 
     return Scaffold(
-      backgroundColor: AppColors.g0,
+      backgroundColor: context.menudo.background,
       appBar: AppBar(
-        backgroundColor: AppColors.g0,
+        backgroundColor: context.menudo.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(LucideIcons.chevronLeft, color: AppColors.e8),
+        leading: MenudoIconButton(
+          icon: Icon(
+            MenudoCupertinoIcons.chevronLeft,
+            color: context.menudo.textMain,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Categorías',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w900,
-            color: AppColors.e8,
+            color: context.menudo.textMain,
             letterSpacing: -0.8,
           ),
         ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: IconButton(
+            child: MenudoIconButton(
               onPressed: () => _showCategorySheet(context),
               style: IconButton.styleFrom(
-                backgroundColor: Colors.white,
+                backgroundColor: context.menudo.surface,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                side: const BorderSide(color: AppColors.g2),
+                side: BorderSide(color: context.menudo.border),
               ),
-              icon: const Icon(LucideIcons.plus, color: AppColors.e8, size: 18),
+              icon: Icon(
+                MenudoCupertinoIcons.plus,
+                color: context.menudo.textMain,
+                size: (18),
+              ),
             ),
           ),
         ],
@@ -333,45 +341,45 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
                 hintText: 'Buscar categoría o grupo',
-                prefixIcon: const Icon(
-                  LucideIcons.search,
-                  size: 18,
-                  color: AppColors.g4,
+                prefixIcon: Icon(
+                  MenudoCupertinoIcons.search,
+                  size: (18),
+                  color: context.menudo.textMuted,
                 ),
                 suffixIcon: _searchCtrl.text.trim().isEmpty
                     ? null
-                    : IconButton(
+                    : MenudoIconButton(
                         onPressed: () {
                           _searchCtrl.clear();
                           setState(() {});
                         },
-                        icon: const Icon(
-                          LucideIcons.x,
-                          size: 16,
-                          color: AppColors.g4,
+                        icon: Icon(
+                          MenudoCupertinoIcons.x,
+                          size: (16),
+                          color: context.menudo.textMuted,
                         ),
                       ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: context.menudo.surface,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 14,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: const BorderSide(color: AppColors.g2),
+                  borderSide: BorderSide(color: context.menudo.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: const BorderSide(color: AppColors.g2),
+                  borderSide: BorderSide(color: context.menudo.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(18),
-                  borderSide: const BorderSide(color: AppColors.e6, width: 1.5),
+                  borderSide: BorderSide(color: AppColors.e6, width: 1.5),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: (16)),
             Expanded(
               child: entries.isEmpty
                   ? Center(
@@ -379,19 +387,19 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: context.menudo.textOnDark,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.g2),
+                          border: Border.all(color: context.menudo.border),
                         ),
                         child: Text(
                           _searchCtrl.text.trim().isEmpty
                               ? 'Todavía no hay categorías para mostrar.'
                               : 'No encontramos categorías con ese nombre.',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.g4,
+                            color: context.menudo.textMuted,
                           ),
                         ),
                       ),
@@ -471,8 +479,8 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
 
     return Container(
       height: media.size.height * 0.86,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: context.menudo.textOnDark,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + bottomPadding),
@@ -484,26 +492,26 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
               width: 40,
               height: 5,
               decoration: BoxDecoration(
-                color: AppColors.g2,
+                color: context.menudo.border,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          const Text(
+          SizedBox(height: (20)),
+          Text(
             'Nueva categoría',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w900,
-              color: AppColors.e8,
+              color: context.menudo.textMain,
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 8),
+          Text(
             'Elige un grupo para crearla o crea uno nuevo.',
-            style: TextStyle(fontSize: 13, color: AppColors.g4),
+            style: TextStyle(fontSize: 13, color: context.menudo.textMuted),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: (12)),
           Expanded(
             child: parents.isEmpty
                 ? SingleChildScrollView(
@@ -511,29 +519,32 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.g0,
+                        color: context.menudo.background,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.g2),
+                        border: Border.all(color: context.menudo.border),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Todavía no hay grupos aquí. Crea uno para empezar.',
-                        style: TextStyle(fontSize: 13, color: AppColors.g4),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: context.menudo.textMuted,
+                        ),
                       ),
                     ),
                   )
                 : ListView.separated(
                     physics: const BouncingScrollPhysics(),
                     itemCount: parents.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    separatorBuilder: (_, _) => SizedBox(height: (10)),
                     itemBuilder: (context, index) {
                       final parent = parents[index];
-                      return InkWell(
+                      return MenudoInkWell(
                         onTap: () => _openSubcategoryCreator(context, parent),
                         borderRadius: BorderRadius.circular(18),
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.menudo.textOnDark,
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(
                               color: parent.color.withValues(alpha: 0.18),
@@ -551,25 +562,25 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
                                 alignment: Alignment.center,
                                 child: Icon(
                                   parent.icono,
-                                  size: 20,
+                                  size: (20),
                                   color: parent.color,
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              SizedBox(width: (12)),
                               Expanded(
                                 child: Text(
                                   parent.nombre,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w800,
-                                    color: AppColors.e8,
+                                    color: context.menudo.textMain,
                                   ),
                                 ),
                               ),
-                              const Icon(
-                                LucideIcons.chevronRight,
-                                size: 18,
-                                color: AppColors.g4,
+                              Icon(
+                                MenudoCupertinoIcons.chevronRight,
+                                size: (18),
+                                color: context.menudo.textMuted,
                               ),
                             ],
                           ),
@@ -578,20 +589,20 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
                     },
                   ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: (12)),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
               onPressed: () => _openParentCreator(context),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.e8,
-                side: const BorderSide(color: AppColors.g2),
+                foregroundColor: context.menudo.textMain,
+                side: BorderSide(color: context.menudo.border),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text('Nuevo grupo'),
+              child: Text('Nuevo grupo'),
             ),
           ),
         ],
@@ -632,9 +643,9 @@ class _CategoryGroupState extends State<_CategoryGroup> {
     return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GestureDetector(
+            MenudoGestureDetector(
               onTap: () {
-                HapticFeedback.lightImpact();
+                MenudoHaptics.light();
                 setState(() => _expanded = !_expanded);
               },
               child: Container(
@@ -644,9 +655,9 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                 ),
                 margin: const EdgeInsets.only(bottom: 10),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.menudo.textOnDark,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.g2),
+                  border: Border.all(color: context.menudo.border),
                 ),
                 child: Row(
                   children: [
@@ -658,34 +669,38 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                         borderRadius: BorderRadius.circular(14),
                       ),
                       alignment: Alignment.center,
-                      child: Icon(parent.icono, size: 20, color: parent.color),
+                      child: Icon(
+                        parent.icono,
+                        size: (20),
+                        color: parent.color,
+                      ),
                     ),
-                    const SizedBox(width: 14),
+                    SizedBox(width: (14)),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             parent.nombre,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.e8,
+                              color: context.menudo.textMain,
                             ),
                           ),
                           Text(
                             '${subs.length} categoría${subs.length == 1 ? '' : 's'}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.g4,
+                              color: context.menudo.textMuted,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
+                    SizedBox(width: 8),
+                    MenudoGestureDetector(
                       onTap: widget.onAddSub,
                       behavior: HitTestBehavior.opaque,
                       child: Container(
@@ -701,11 +716,11 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              LucideIcons.plus,
-                              size: 14,
+                              MenudoCupertinoIcons.plus,
+                              size: (14),
                               color: parent.color,
                             ),
-                            const SizedBox(width: 6),
+                            SizedBox(width: 6),
                             Text(
                               'Nueva',
                               style: TextStyle(
@@ -719,34 +734,34 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                       ),
                     ),
                     if (widget.onManageParent != null) ...[
-                      const SizedBox(width: 8),
-                      GestureDetector(
+                      SizedBox(width: 8),
+                      MenudoGestureDetector(
                         onTap: widget.onManageParent,
                         behavior: HitTestBehavior.opaque,
                         child: Container(
-                          width: 34,
-                          height: 34,
+                          width: (34),
+                          height: (34),
                           decoration: BoxDecoration(
-                            color: AppColors.g1,
+                            color: context.menudo.surface,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           alignment: Alignment.center,
-                          child: const Icon(
-                            LucideIcons.moreHorizontal,
-                            size: 16,
-                            color: AppColors.g5,
+                          child: Icon(
+                            MenudoCupertinoIcons.moreHorizontal,
+                            size: (16),
+                            color: context.menudo.textSecondary,
                           ),
                         ),
                       ),
                     ],
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     AnimatedRotation(
                       turns: _expanded ? 0 : -0.25,
                       duration: const Duration(milliseconds: 200),
                       child: Icon(
-                        LucideIcons.chevronDown,
-                        size: 18,
-                        color: AppColors.g3,
+                        MenudoCupertinoIcons.chevronDown,
+                        size: (18),
+                        color: context.menudo.textMuted,
                       ),
                     ),
                   ],
@@ -792,7 +807,7 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                 ),
               ),
 
-            const SizedBox(height: 14),
+            SizedBox(height: (14)),
           ],
         )
         .animate()
@@ -809,8 +824,8 @@ class _SubcategoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onManage ?? () => HapticFeedback.lightImpact(),
+    return MenudoGestureDetector(
+      onTap: onManage ?? () => MenudoHaptics.light(),
       child: Column(
         children: [
           Stack(
@@ -820,7 +835,7 @@ class _SubcategoryTile extends StatelessWidget {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.menudo.textOnDark,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
                     color: category.color.withValues(alpha: 0.15),
@@ -834,45 +849,45 @@ class _SubcategoryTile extends StatelessWidget {
                   ],
                 ),
                 alignment: Alignment.center,
-                child: Icon(category.icono, size: 24, color: category.color),
+                child: Icon(category.icono, size: (24), color: category.color),
               ),
               if (onManage != null)
                 Positioned(
                   top: -6,
                   right: -6,
-                  child: GestureDetector(
+                  child: MenudoGestureDetector(
                     onTap: onManage,
                     behavior: HitTestBehavior.opaque,
                     child: Container(
-                      width: 24,
-                      height: 24,
+                      width: (24),
+                      height: (24),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.menudo.textOnDark,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.g2),
+                        border: Border.all(color: context.menudo.border),
                       ),
                       alignment: Alignment.center,
-                      child: const Icon(
-                        LucideIcons.moreHorizontal,
-                        size: 12,
-                        color: AppColors.g5,
+                      child: Icon(
+                        MenudoCupertinoIcons.moreHorizontal,
+                        size: (12),
+                        color: context.menudo.textSecondary,
                       ),
                     ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             category.nombre,
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               height: 1.2,
               fontWeight: FontWeight.w700,
-              color: AppColors.e8,
+              color: context.menudo.textMain,
             ),
           ),
         ],
@@ -887,7 +902,7 @@ class _AddSubcategoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onTap,
       child: Column(
         children: [
@@ -895,20 +910,27 @@ class _AddSubcategoryTile extends StatelessWidget {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: AppColors.g1.withValues(alpha: 0.5),
+              color: context.menudo.surface.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.g2, style: BorderStyle.solid),
+              border: Border.all(
+                color: context.menudo.border,
+                style: BorderStyle.solid,
+              ),
             ),
             alignment: Alignment.center,
-            child: const Icon(LucideIcons.plus, size: 22, color: AppColors.g4),
+            child: Icon(
+              MenudoCupertinoIcons.plus,
+              size: (22),
+              color: context.menudo.textMuted,
+            ),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 8),
+          Text(
             'Nueva',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: AppColors.g4,
+              color: context.menudo.textMuted,
             ),
           ),
         ],
@@ -939,44 +961,43 @@ class AddCategorySheet extends ConsumerStatefulWidget {
 class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
   final _nameCtrl = TextEditingController();
   static const List<IconData> _iconOptions = [
-    LucideIcons.tag,
-    LucideIcons.shoppingCart,
-    LucideIcons.utensils,
-    LucideIcons.coffee,
-    LucideIcons.car,
-    LucideIcons.bus,
-    LucideIcons.plane,
-    LucideIcons.home,
-    LucideIcons.building2,
-    LucideIcons.wallet,
-    LucideIcons.banknote,
-    LucideIcons.walletCards,
-    LucideIcons.piggyBank,
-    LucideIcons.receipt,
-    LucideIcons.landmark,
-    LucideIcons.heart,
-    LucideIcons.heartPulse,
-    LucideIcons.pill,
-    LucideIcons.stethoscope,
-    LucideIcons.bookOpen,
-    LucideIcons.graduationCap,
-    LucideIcons.dumbbell,
-    LucideIcons.shirt,
-    LucideIcons.film,
-    LucideIcons.music,
-    LucideIcons.gamepad2,
-    LucideIcons.gift,
-    LucideIcons.tv,
-    LucideIcons.laptop,
-    LucideIcons.wifi,
-    LucideIcons.droplets,
-    LucideIcons.fuel,
-    LucideIcons.briefcase,
-    LucideIcons.trendingUp,
-    LucideIcons.arrowLeftRight,
+    MenudoCupertinoIcons.tag,
+    MenudoCupertinoIcons.shoppingCart,
+    MenudoCupertinoIcons.utensils,
+    MenudoCupertinoIcons.coffee,
+    MenudoCupertinoIcons.car,
+    MenudoCupertinoIcons.bus,
+    MenudoCupertinoIcons.plane,
+    MenudoCupertinoIcons.home,
+    MenudoCupertinoIcons.building2,
+    MenudoCupertinoIcons.wallet,
+    MenudoCupertinoIcons.banknote,
+    MenudoCupertinoIcons.walletCards,
+    MenudoCupertinoIcons.piggyBank,
+    MenudoCupertinoIcons.receipt,
+    MenudoCupertinoIcons.landmark,
+    MenudoCupertinoIcons.heart,
+    MenudoCupertinoIcons.heartPulse,
+    MenudoCupertinoIcons.pill,
+    MenudoCupertinoIcons.stethoscope,
+    MenudoCupertinoIcons.bookOpen,
+    MenudoCupertinoIcons.graduationCap,
+    MenudoCupertinoIcons.dumbbell,
+    MenudoCupertinoIcons.shirt,
+    MenudoCupertinoIcons.film,
+    MenudoCupertinoIcons.music,
+    MenudoCupertinoIcons.gamepad2,
+    MenudoCupertinoIcons.gift,
+    MenudoCupertinoIcons.tv,
+    MenudoCupertinoIcons.laptop,
+    MenudoCupertinoIcons.wifi,
+    MenudoCupertinoIcons.droplets,
+    MenudoCupertinoIcons.fuel,
+    MenudoCupertinoIcons.briefcase,
+    MenudoCupertinoIcons.trendingUp,
+    MenudoCupertinoIcons.arrowLeftRight,
   ];
   static const List<Color> _colorOptions = [
-    AppColors.e8,
     AppColors.e6,
     AppColors.o5,
     AppColors.a5,
@@ -984,12 +1005,12 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
     AppColors.p5,
     AppColors.pk,
     AppColors.r5,
-    AppColors.g5,
+    AppColors.e7,
   ];
 
-  IconData _icon = LucideIcons.tag;
+  IconData _icon = MenudoCupertinoIcons.tag;
   String _selectedType = 'gasto';
-  Color _color = AppColors.e8;
+  Color _color = AppColors.e6;
   bool _isSaving = false;
   bool _hasCustomIcon = false;
   bool _hasCustomColor = false;
@@ -1046,7 +1067,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
           _color = AppColors.e6;
         }
         if (!_hasCustomIcon || forceDefaultIcon) {
-          _icon = LucideIcons.trendingUp;
+          _icon = MenudoCupertinoIcons.trendingUp;
         }
         break;
       case 'transferencia':
@@ -1054,15 +1075,15 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
           _color = AppColors.b5;
         }
         if (!_hasCustomIcon || forceDefaultIcon) {
-          _icon = LucideIcons.arrowLeftRight;
+          _icon = MenudoCupertinoIcons.arrowLeftRight;
         }
         break;
       default:
         if (!_hasCustomColor || forceDefaultIcon) {
-          _color = AppColors.e8;
+          _color = AppColors.e6;
         }
         if (!_hasCustomIcon || forceDefaultIcon) {
-          _icon = LucideIcons.tag;
+          _icon = MenudoCupertinoIcons.tag;
         }
         break;
     }
@@ -1079,7 +1100,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
   }
 
   void _selectIcon(IconData icon) {
-    HapticFeedback.selectionClick();
+    MenudoHaptics.selection();
     setState(() {
       _hasCustomIcon = true;
       _icon = icon;
@@ -1087,7 +1108,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
   }
 
   void _selectColor(Color color) {
-    HapticFeedback.selectionClick();
+    MenudoHaptics.selection();
     setState(() {
       _hasCustomColor = true;
       _color = color;
@@ -1108,11 +1129,11 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
   IconData _typeIcon(String type) {
     switch (type) {
       case 'ingreso':
-        return LucideIcons.trendingUp;
+        return MenudoCupertinoIcons.trendingUp;
       case 'transferencia':
-        return LucideIcons.arrowLeftRight;
+        return MenudoCupertinoIcons.arrowLeftRight;
       default:
-        return LucideIcons.tag;
+        return MenudoCupertinoIcons.tag;
     }
   }
 
@@ -1168,6 +1189,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
         await ref.read(categoryNotifierProvider.notifier).addCategory(category);
       }
       if (!mounted) return;
+      MenudoHaptics.success();
       Navigator.pop(context, true);
     } catch (error) {
       _showError(presentError(error));
@@ -1188,8 +1210,8 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
     return Container(
       height: media.size.height * 0.86,
       clipBehavior: Clip.antiAlias,
-      decoration: const BoxDecoration(
-        color: AppColors.g0,
+      decoration: BoxDecoration(
+        color: context.menudo.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: Column(
@@ -1202,29 +1224,29 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                   width: 40,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: AppColors.g2,
+                    color: context.menudo.border,
                     borderRadius: BorderRadius.circular(3),
                   ),
                   margin: const EdgeInsets.only(bottom: 24),
                 ),
                 Text(
                   _sheetTitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.e8,
+                    color: context.menudo.textMain,
                     letterSpacing: -0.6,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   _sheetSubtitle,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     height: 1.35,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.g5,
+                    color: context.menudo.textSecondary,
                   ),
                 ),
               ],
@@ -1241,22 +1263,22 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.menudo.textOnDark,
                       borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: AppColors.g2),
+                      border: Border.all(color: context.menudo.border),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           _nameLabel,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w900,
-                            color: AppColors.e8,
+                            color: context.menudo.textMain,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: (12)),
                         TextField(
                           controller: _nameCtrl,
                           autofocus: true,
@@ -1267,15 +1289,15 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                           scrollPadding: EdgeInsets.only(
                             bottom: viewInsets + 120,
                           ),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.e8,
+                            color: context.menudo.textMain,
                           ),
                           decoration: InputDecoration(
-                            prefixIcon: Icon(_icon, color: _color, size: 18),
+                            prefixIcon: Icon(_icon, color: _color, size: (18)),
                             filled: true,
-                            fillColor: AppColors.g0,
+                            fillColor: context.menudo.background,
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 18,
                               vertical: 18,
@@ -1286,7 +1308,9 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(18),
-                              borderSide: const BorderSide(color: AppColors.g1),
+                              borderSide: BorderSide(
+                                color: context.menudo.surface,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(18),
@@ -1297,7 +1321,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 22),
+                  SizedBox(height: (22)),
                   Center(
                     child: Container(
                       width: 88,
@@ -1307,10 +1331,10 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                         borderRadius: BorderRadius.circular(28),
                       ),
                       alignment: Alignment.center,
-                      child: Icon(_icon, size: 36, color: _color),
+                      child: Icon(_icon, size: (36), color: _color),
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: (18)),
                   Center(
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -1318,7 +1342,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.menudo.textOnDark,
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(
                           color: _color.withValues(alpha: 0.14),
@@ -1329,10 +1353,10 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                         children: [
                           Icon(
                             widget.parent?.icono ?? _typeIcon(_effectiveType),
-                            size: 15,
+                            size: (15),
                             color: _color,
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           Text(
                             widget.parent == null
                                 ? _typeLabel(_effectiveType)
@@ -1347,24 +1371,24 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: (24)),
                   if (widget.parent == null &&
                       widget.existingCategory == null) ...[
-                    const Text(
+                    Text(
                       'Tipo',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.g5,
+                        color: context.menudo.textSecondary,
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: (10)),
                     Wrap(
                       spacing: 10,
                       runSpacing: 10,
                       children: [
                         for (final type in _types)
-                          GestureDetector(
+                          MenudoGestureDetector(
                             onTap: widget.lockType
                                 ? null
                                 : () => _selectType(type),
@@ -1377,12 +1401,12 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                               decoration: BoxDecoration(
                                 color: _selectedType == type
                                     ? _color.withValues(alpha: 0.1)
-                                    : Colors.white,
+                                    : context.menudo.textOnDark,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
                                   color: _selectedType == type
                                       ? _color
-                                      : AppColors.g2,
+                                      : context.menudo.border,
                                   width: _selectedType == type ? 1.6 : 1.2,
                                 ),
                               ),
@@ -1391,12 +1415,12 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                                 children: [
                                   Icon(
                                     _typeIcon(type),
-                                    size: 15,
+                                    size: (15),
                                     color: _selectedType == type
                                         ? _color
-                                        : AppColors.g4,
+                                        : context.menudo.textMuted,
                                   ),
-                                  const SizedBox(width: 8),
+                                  SizedBox(width: 8),
                                   Text(
                                     _typeLabel(type),
                                     style: TextStyle(
@@ -1404,7 +1428,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                                       fontWeight: FontWeight.w800,
                                       color: _selectedType == type
                                           ? _color
-                                          : AppColors.g5,
+                                          : context.menudo.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -1413,33 +1437,35 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: (24)),
                   ],
-                  const Text(
+                  Text(
                     'Color',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.g5,
+                      color: context.menudo.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: (10)),
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
                     children: _colorOptions.map((colorOption) {
                       final isSelected = colorOption == _color;
-                      return GestureDetector(
+                      return MenudoGestureDetector(
                         onTap: () => _selectColor(colorOption),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
-                          width: 36,
-                          height: 36,
+                          width: (36),
+                          height: (36),
                           decoration: BoxDecoration(
                             color: colorOption,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: isSelected ? AppColors.e8 : AppColors.g2,
+                              color: isSelected
+                                  ? context.menudo.primary
+                                  : context.menudo.border,
                               width: isSelected ? 2.2 : 1.2,
                             ),
                             boxShadow: isSelected
@@ -1455,32 +1481,32 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                                 : null,
                           ),
                           child: isSelected
-                              ? const Icon(
-                                  LucideIcons.check,
-                                  size: 16,
-                                  color: Colors.white,
+                              ? Icon(
+                                  MenudoCupertinoIcons.check,
+                                  size: (16),
+                                  color: context.menudo.textOnDark,
                                 )
                               : null,
                         ),
                       );
                     }).toList(),
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
+                  SizedBox(height: (24)),
+                  Text(
                     'Icono',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.g5,
+                      color: context.menudo.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: (10)),
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
                     children: _iconOptions.map((icon) {
                       final isSelected = icon == _icon;
-                      return GestureDetector(
+                      return MenudoGestureDetector(
                         onTap: () => _selectIcon(icon),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
@@ -1489,18 +1515,22 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? _color.withValues(alpha: 0.1)
-                                : Colors.white,
+                                : context.menudo.textOnDark,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: isSelected ? _color : AppColors.g2,
+                              color: isSelected
+                                  ? _color
+                                  : context.menudo.border,
                               width: isSelected ? 1.6 : 1.1,
                             ),
                           ),
                           alignment: Alignment.center,
                           child: Icon(
                             icon,
-                            size: 18,
-                            color: isSelected ? _color : AppColors.g4,
+                            size: (18),
+                            color: isSelected
+                                ? _color
+                                : context.menudo.textMuted,
                           ),
                         ),
                       );
@@ -1548,22 +1578,22 @@ class _CategoryActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isDestructive ? AppColors.r5 : AppColors.e8;
+    final color = isDestructive ? AppColors.r5 : context.menudo.textMain;
 
-    return InkWell(
+    return MenudoInkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.menudo.textOnDark,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.g2),
+          border: Border.all(color: context.menudo.border),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: color),
-            const SizedBox(width: 12),
+            Icon(icon, size: (18), color: color),
+            SizedBox(width: (12)),
             Text(
               label,
               style: TextStyle(

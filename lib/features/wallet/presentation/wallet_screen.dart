@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../core/preferences/app_preferences.dart';
@@ -24,8 +25,11 @@ class WalletScreen extends ConsumerStatefulWidget {
 }
 
 class _WalletScreenState extends ConsumerState<WalletScreen> {
-  String _fmt(double val, {String currency = 'DOP'}) {
-    return formatMoney(val, currency: currency);
+  String _fmt(double val, {String? currency}) {
+    return formatMoney(
+      val,
+      currency: currency ?? AppFormattingPreferences.currencyCode,
+    );
   }
 
   String _fmtAggregate(double val, {required String currencyCode}) {
@@ -50,7 +54,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
-          content: const Text('Listo. Tu cuenta ya aparece en la cartera.'),
+          content: Text('Listo. Tu cuenta ya aparece en la cartera.'),
           backgroundColor: AppColors.e6,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -87,8 +91,8 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         preferences?.currencyCode ?? AppFormattingPreferences.currencyCode;
 
     if (walletAsync.isLoading && wallets.isEmpty) {
-      return const Scaffold(
-        backgroundColor: AppColors.g0,
+      return Scaffold(
+        backgroundColor: context.menudo.background,
         body: MenudoLoadingView(
           title: 'Cargando tu cartera',
           message: 'Estamos organizando tus cuentas y balances.',
@@ -98,7 +102,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.g0,
+      backgroundColor: context.menudo.background,
       body: walletAsync.when(
         loading: () => _buildContent(
           context,
@@ -141,17 +145,17 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         .fold(0, (s, w) => s + w.saldo);
     final groups = {
       "cuentas": _WalletGroup(
-        icon: LucideIcons.landmark,
+        icon: MenudoCupertinoIcons.landmark,
         label: "Cuentas",
         color: AppColors.e6,
       ),
       "gastos": _WalletGroup(
-        icon: LucideIcons.creditCard,
+        icon: MenudoCupertinoIcons.creditCard,
         label: "Gastos",
         color: AppColors.b5,
       ),
       "deudas": _WalletGroup(
-        icon: LucideIcons.alertCircle,
+        icon: MenudoCupertinoIcons.alertCircle,
         label: "Deudas",
         color: AppColors.r5,
       ),
@@ -164,7 +168,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           expandedHeight: 120.0,
           floating: false,
           pinned: true,
-          backgroundColor: Colors.white,
+          backgroundColor: context.menudo.surface,
           elevation: 0,
           flexibleSpace: FlexibleSpaceBar(
             titlePadding: const EdgeInsetsDirectional.only(
@@ -172,21 +176,21 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               bottom: 16,
             ),
             centerTitle: false,
-            title: const Text(
+            title: Text(
               'Cartera',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
-                color: AppColors.e8,
+                color: context.menudo.textMain,
                 letterSpacing: -0.8,
               ),
             ),
-            background: Container(color: Colors.white),
+            background: Container(color: context.menudo.surface),
           ),
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: IconButton(
+              child: MenudoIconButton(
                 onPressed: () => _openAddWallet(context),
                 icon: Container(
                   padding: const EdgeInsets.all(8),
@@ -194,10 +198,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     color: AppColors.o5,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    LucideIcons.plus,
-                    color: Colors.white,
-                    size: 18,
+                  child: Icon(
+                    MenudoCupertinoIcons.plus,
+                    color: context.menudo.textOnDark,
+                    size: (18),
                   ),
                 ),
               ),
@@ -222,10 +226,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     .fadeIn(duration: 500.ms)
                     .slideY(begin: 0.1, end: 0, curve: Curves.easeOutBack),
 
-                const SizedBox(height: 28),
+                SizedBox(height: (28)),
 
                 if (isLoading)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(top: 28),
                     child: MenudoInlineLoadingCard(
                       label: 'Actualizando cartera',
@@ -253,14 +257,14 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           children: [
                             Text(
                               errorMessage,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.r5,
                               ),
                             ),
                             if (unauthorized) ...[
-                              const SizedBox(height: 12),
+                              SizedBox(height: (12)),
                               FilledButton(
                                 onPressed: () async {
                                   await ref
@@ -270,10 +274,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                   context.go('/login');
                                 },
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: AppColors.e8,
-                                  foregroundColor: Colors.white,
+                                  backgroundColor: context.menudo.textMain,
+                                  foregroundColor: context.menudo.textOnDark,
                                 ),
-                                child: const Text('Cerrar sesión'),
+                                child: Text('Cerrar sesión'),
                               ),
                             ],
                           ],
@@ -345,15 +349,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.e8, Color(0xFF0A7A5D)],
+          colors: [context.menudo.hero, context.menudo.heroElevated],
         ),
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: AppColors.e8.withValues(alpha: 0.3),
+            color: context.menudo.textMain.withValues(alpha: 0.3),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -369,7 +373,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   "PATRIMONIO NETO",
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.white.withValues(alpha: 0.45),
+                    color: context.menudo.textOnDark.withValues(alpha: 0.45),
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.5,
                   ),
@@ -382,7 +386,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: context.menudo.textOnDark.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
@@ -390,23 +394,23 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white.withValues(alpha: 0.82),
+                      color: context.menudo.textOnDark.withValues(alpha: 0.82),
                     ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: (10)),
           Text(
             netLabel,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 40,
               fontWeight: FontWeight.w900,
-              color: Colors.white,
+              color: context.menudo.textOnDark,
               letterSpacing: -1.8,
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: (24)),
           Row(
             children: [
               Expanded(
@@ -416,7 +420,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   color: const Color(0xFF6EE7B7),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: (12)),
               Expanded(
                 child: _SummaryStat(
                   label: "DEUDAS",
@@ -432,14 +436,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         children: [
@@ -447,38 +453,42 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: AppColors.g1,
+              color: context.menudo.surface,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              LucideIcons.wallet,
-              size: 32,
-              color: AppColors.g3,
+            child: Icon(
+              MenudoCupertinoIcons.wallet,
+              size: (32),
+              color: context.menudo.textMuted,
             ),
           ),
-          const SizedBox(height: 20),
-          const Text(
+          SizedBox(height: (20)),
+          Text(
             "Aún no has agregado cuentas",
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
-              color: AppColors.e8,
+              color: colors.textMain,
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 8),
+          Text(
             "Agrega efectivo, cuentas o deudas para ver todo tu dinero en un solo lugar.",
-            style: TextStyle(fontSize: 14, color: AppColors.g5, height: 1.4),
+            style: TextStyle(
+              fontSize: 14,
+              color: colors.textSecondary,
+              height: 1.4,
+            ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: (20)),
           FilledButton(
             onPressed: () => _openAddWallet(context),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.o5,
-              foregroundColor: Colors.white,
+              foregroundColor: context.menudo.textOnDark,
             ),
-            child: const Text('Agregar primera cuenta'),
+            child: Text('Agregar primera cuenta'),
           ),
         ],
       ),
@@ -501,9 +511,11 @@ class _SummaryStat extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: context.menudo.textOnDark.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(
+          color: context.menudo.textOnDark.withValues(alpha: 0.1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -512,12 +524,12 @@ class _SummaryStat extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 10,
-              color: Colors.white.withValues(alpha: 0.35),
+              color: context.menudo.textOnDark.withValues(alpha: 0.35),
               fontWeight: FontWeight.w800,
               letterSpacing: 0.8,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(
             value,
             style: TextStyle(
@@ -554,6 +566,8 @@ class _WalletGroupSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
@@ -569,9 +583,9 @@ class _WalletGroupSection extends StatelessWidget {
                         color: group.color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(group.icon, size: 16, color: group.color),
+                      child: Icon(group.icon, size: (16), color: group.color),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: (12)),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -580,10 +594,10 @@ class _WalletGroupSection extends StatelessWidget {
                             group.label,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w900,
-                              color: AppColors.e8,
+                              color: colors.textMain,
                               letterSpacing: -0.4,
                             ),
                           ),
@@ -593,7 +607,7 @@ class _WalletGroupSection extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: (12)),
               Flexible(
                 child: Text(
                   isDeuda && totalLabel != 'Multimoneda'
@@ -605,18 +619,18 @@ class _WalletGroupSection extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
-                    color: isDeuda ? AppColors.r5 : AppColors.e8,
+                    color: isDeuda ? AppColors.r5 : colors.textMain,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: (14)),
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colors.surface,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppColors.g2),
+              border: Border.all(color: colors.border),
             ),
             child: Column(
               children: List.generate(items.length, (i) {
@@ -624,10 +638,9 @@ class _WalletGroupSection extends StatelessWidget {
                 return _WalletTile(
                   wallet: w,
                   fmt: fmt,
-                  currencyCode: currencyCode,
                   isLast: i == items.length - 1,
                   onTap: () {
-                    HapticFeedback.lightImpact();
+                    MenudoHaptics.light();
                     showModalBottomSheet(
                       context: context,
                       useRootNavigator: true,
@@ -650,21 +663,21 @@ class _WalletGroupSection extends StatelessWidget {
 class _WalletTile extends StatelessWidget {
   final WalletAccount wallet;
   final String Function(double, {String currency}) fmt;
-  final String currencyCode;
   final bool isLast;
   final VoidCallback onTap;
 
   const _WalletTile({
     required this.wallet,
     required this.fmt,
-    required this.currencyCode,
     required this.isLast,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final colors = context.menudo;
+
+    return MenudoGestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Column(
@@ -680,65 +693,67 @@ class _WalletTile extends StatelessWidget {
                     color: wallet.color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(wallet.icono, size: 20, color: wallet.color),
+                  child: Icon(wallet.icono, size: (20), color: wallet.color),
                 ),
-                const SizedBox(width: 14),
+                SizedBox(width: (14)),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         wallet.nombre,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.e8,
+                          color: colors.textMain,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2),
                       Wrap(
                         spacing: 8,
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           if (wallet.esDefault)
-                            const _WalletPill(
+                            _WalletPill(
                               label: 'PRINCIPAL',
-                              fg: AppColors.e8,
+                              fg: context.menudo.textMain,
                               bg: AppColors.e1,
                             ),
                           if (!wallet.incluirEnPatrimonio)
-                            const _WalletPill(
+                            _WalletPill(
                               label: 'EXCLUIDA',
-                              fg: AppColors.g5,
-                              bg: AppColors.g1,
+                              fg: context.menudo.textSecondary,
+                              bg: context.menudo.surface,
                             ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: (12)),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
                       wallet.saldo < 0
-                          ? '-${fmt(wallet.saldo.abs(), currency: currencyCode)}'
-                          : fmt(wallet.saldo.abs(), currency: currencyCode),
+                          ? '-${fmt(wallet.saldo.abs(), currency: wallet.moneda)}'
+                          : fmt(wallet.saldo.abs(), currency: wallet.moneda),
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w900,
-                        color: wallet.saldo < 0 ? AppColors.r5 : AppColors.e8,
+                        color: wallet.saldo < 0
+                            ? AppColors.r5
+                            : colors.textMain,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    SizedBox(height: 3),
                     Icon(
-                      LucideIcons.chevronRight,
-                      size: 14,
-                      color: AppColors.g3,
+                      MenudoCupertinoIcons.chevronRight,
+                      size: (14),
+                      color: colors.textMuted,
                     ),
                   ],
                 ),
@@ -746,7 +761,13 @@ class _WalletTile extends StatelessWidget {
             ),
           ),
           if (!isLast)
-            Divider(height: 1, color: AppColors.g1, indent: 78, endIndent: 20),
+            Divider(
+              height: 1,
+              thickness: 0.5,
+              color: context.menudo.surface,
+              indent: 78,
+              endIndent: 20,
+            ),
         ],
       ),
     );

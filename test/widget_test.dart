@@ -1,5 +1,6 @@
 import 'package:financeproject/features/auth/presentation/login_screen.dart';
 import 'package:financeproject/features/auth/presentation/register_screen.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import 'package:financeproject/shared/widgets/menudo_button.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:financeproject/main.dart';
@@ -36,7 +37,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.tap(find.byIcon(MenudoCupertinoIcons.arrow_back));
       await tester.pumpAndSettle();
 
       expect(find.widgetWithText(TextButton, 'Crear cuenta'), findsOneWidget);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/menudo_button.dart';
 
@@ -39,7 +40,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const Padding(padding: EdgeInsets.fromLTRB(24, 20, 24, 0)),
+            Padding(padding: EdgeInsets.fromLTRB(24, 20, 24, 0)),
             Expanded(
               child: PageView(
                 controller: _pageController,
@@ -49,18 +50,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     title: 'Tu dinero,\nen un solo lugar.',
                     subtitle:
                         'Cuentas, tarjetas y movimientos en un solo lugar.',
-                    icon: Icons.account_balance_wallet_rounded,
+                    icon: MenudoCupertinoIcons.account_balance_wallet_rounded,
                   ),
                   _buildPage(
                     title: 'Entiende en qué\nse te va el dinero.',
                     subtitle: 'Mira tus ingresos, gastos y movimientos.',
-                    icon: Icons.pie_chart_rounded,
+                    icon: MenudoCupertinoIcons.pie_chart_rounded,
                   ),
                   _buildPage(
                     title: 'Usa presupuestos\nsolo si te ayudan.',
                     subtitle:
                         'Son opcionales. Puedes llevar tus gastos sin armar uno.',
-                    icon: Icons.people_alt_rounded,
+                    icon: MenudoCupertinoIcons.people_alt_rounded,
                   ),
                 ],
               ),
@@ -86,22 +87,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: (24)),
                   MenudoPrimaryButton(
                     label: _currentPage < 2 ? 'Siguiente' : 'Crear cuenta',
                     onTap: _nextPage,
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: (12)),
                   if (_currentPage == 2)
                     TextButton(
                       onPressed: () => context.go('/login'),
                       style: TextButton.styleFrom(
                         foregroundColor: MenudoColors.textSecondary,
                       ),
-                      child: const Text('Ya tengo cuenta'),
+                      child: Text('Ya tengo cuenta'),
                     )
                   else
-                    const SizedBox(height: 48), // Spacer to prevent jumps
+                    SizedBox(height: 48), // Spacer to prevent jumps
                 ],
               ),
             ),
@@ -126,9 +127,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             size: 96,
             color: MenudoColors.cardBg.withValues(alpha: 0.1),
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: (32)),
           Text(title, style: MenudoTextStyles.h1, textAlign: TextAlign.center),
-          const SizedBox(height: 16),
+          SizedBox(height: (16)),
           Text(
             subtitle,
             style: MenudoTextStyles.bodyLarge.copyWith(

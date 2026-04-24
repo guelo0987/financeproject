@@ -16,7 +16,7 @@ final effectiveWalletsProvider = Provider<List<WalletAccount>>((ref) {
   if (demoMode) {
     return mockWallets;
   }
-  return wallets ?? const [];
+  return wallets ?? [];
 });
 
 final defaultWalletProvider = Provider<WalletAccount?>((ref) {

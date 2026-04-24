@@ -1,5 +1,250 @@
 import 'package:flutter/material.dart';
 
+@immutable
+class MenudoPalette extends ThemeExtension<MenudoPalette> {
+  const MenudoPalette({
+    required this.background,
+    required this.surface,
+    required this.surfaceElevated,
+    required this.surfaceMuted,
+    required this.hero,
+    required this.heroElevated,
+    required this.textMain,
+    required this.textSecondary,
+    required this.textMuted,
+    required this.textOnDark,
+    required this.textOnDarkSub,
+    required this.primary,
+    required this.primaryLight,
+    required this.primaryDark,
+    required this.primaryGlow,
+    required this.success,
+    required this.successLight,
+    required this.danger,
+    required this.dangerLight,
+    required this.warning,
+    required this.warningLight,
+    required this.border,
+    required this.borderActive,
+    required this.divider,
+    required this.tabActive,
+    required this.tabInactive,
+    required this.glassBorder,
+    required this.glassGradient,
+    required this.navBar,
+    required this.navBarBorder,
+  });
+
+  final Color background;
+  final Color surface;
+  final Color surfaceElevated;
+  final Color surfaceMuted;
+  final Color hero;
+  final Color heroElevated;
+  final Color textMain;
+  final Color textSecondary;
+  final Color textMuted;
+  final Color textOnDark;
+  final Color textOnDarkSub;
+  final Color primary;
+  final Color primaryLight;
+  final Color primaryDark;
+  final Color primaryGlow;
+  final Color success;
+  final Color successLight;
+  final Color danger;
+  final Color dangerLight;
+  final Color warning;
+  final Color warningLight;
+  final Color border;
+  final Color borderActive;
+  final Color divider;
+  final Color tabActive;
+  final Color tabInactive;
+  final Color glassBorder;
+  final List<Color> glassGradient;
+  final Color navBar;
+  final Color navBarBorder;
+
+  static const light = MenudoPalette(
+    background: AppColors.g0,
+    surface: AppColors.white,
+    surfaceElevated: AppColors.white,
+    surfaceMuted: AppColors.e0,
+    hero: AppColors.e8,
+    heroElevated: AppColors.e7,
+    textMain: AppColors.e8,
+    textSecondary: AppColors.g5,
+    textMuted: AppColors.g4,
+    textOnDark: AppColors.white,
+    textOnDarkSub: AppColors.g3,
+    primary: AppColors.o5,
+    primaryLight: AppColors.o1,
+    primaryDark: Color(0xFFEA580C),
+    primaryGlow: AppColors.primaryGlow,
+    success: AppColors.e6,
+    successLight: AppColors.e1,
+    danger: AppColors.r5,
+    dangerLight: AppColors.r1,
+    warning: AppColors.a5,
+    warningLight: AppColors.a1,
+    border: AppColors.g2,
+    borderActive: AppColors.o5,
+    divider: AppColors.g1,
+    tabActive: AppColors.e8,
+    tabInactive: AppColors.g4,
+    glassBorder: AppColors.g1,
+    glassGradient: [Colors.white24, Colors.white10],
+    navBar: Color(0xCCFFFFFF),
+    navBarBorder: Color(0x80E5E7EB),
+  );
+
+  static const dark = MenudoPalette(
+    background: Color(0xFF1C1C1E),
+    surface: Color(0xFF2C2C2E),
+    surfaceElevated: Color(0xFF3A3A3C),
+    surfaceMuted: Color(0xFF183A32),
+    hero: Color(0xFF0B3D32),
+    heroElevated: Color(0xFF145346),
+    textMain: Color(0xFFF5F5F7),
+    textSecondary: Color(0xFFAEAEB2),
+    textMuted: Color(0xFF8E8E93),
+    textOnDark: AppColors.white,
+    textOnDarkSub: Color(0xFFE5E5EA),
+    primary: Color(0xFFFF9F0A),
+    primaryLight: Color(0xFF3D2A14),
+    primaryDark: Color(0xFFFFB340),
+    primaryGlow: Color(0x40FF9F0A),
+    success: Color(0xFF30D158),
+    successLight: Color(0xFF13351F),
+    danger: Color(0xFFFF453A),
+    dangerLight: Color(0xFF3A1717),
+    warning: Color(0xFFFFD60A),
+    warningLight: Color(0xFF3A310C),
+    border: Color(0xFF3A3A3C),
+    borderActive: Color(0xFFFF9F0A),
+    divider: Color(0xFF38383A),
+    tabActive: Color(0xFFF5F5F7),
+    tabInactive: Color(0xFF8E8E93),
+    glassBorder: Color(0x40FFFFFF),
+    glassGradient: [Color(0x22FFFFFF), Color(0x0FFFFFFF)],
+    navBar: Color(0xBF1C1C1E),
+    navBarBorder: Color(0x663A3A3C),
+  );
+
+  @override
+  MenudoPalette copyWith({
+    Color? background,
+    Color? surface,
+    Color? surfaceElevated,
+    Color? surfaceMuted,
+    Color? hero,
+    Color? heroElevated,
+    Color? textMain,
+    Color? textSecondary,
+    Color? textMuted,
+    Color? textOnDark,
+    Color? textOnDarkSub,
+    Color? primary,
+    Color? primaryLight,
+    Color? primaryDark,
+    Color? primaryGlow,
+    Color? success,
+    Color? successLight,
+    Color? danger,
+    Color? dangerLight,
+    Color? warning,
+    Color? warningLight,
+    Color? border,
+    Color? borderActive,
+    Color? divider,
+    Color? tabActive,
+    Color? tabInactive,
+    Color? glassBorder,
+    List<Color>? glassGradient,
+    Color? navBar,
+    Color? navBarBorder,
+  }) {
+    return MenudoPalette(
+      background: background ?? this.background,
+      surface: surface ?? this.surface,
+      surfaceElevated: surfaceElevated ?? this.surfaceElevated,
+      surfaceMuted: surfaceMuted ?? this.surfaceMuted,
+      hero: hero ?? this.hero,
+      heroElevated: heroElevated ?? this.heroElevated,
+      textMain: textMain ?? this.textMain,
+      textSecondary: textSecondary ?? this.textSecondary,
+      textMuted: textMuted ?? this.textMuted,
+      textOnDark: textOnDark ?? this.textOnDark,
+      textOnDarkSub: textOnDarkSub ?? this.textOnDarkSub,
+      primary: primary ?? this.primary,
+      primaryLight: primaryLight ?? this.primaryLight,
+      primaryDark: primaryDark ?? this.primaryDark,
+      primaryGlow: primaryGlow ?? this.primaryGlow,
+      success: success ?? this.success,
+      successLight: successLight ?? this.successLight,
+      danger: danger ?? this.danger,
+      dangerLight: dangerLight ?? this.dangerLight,
+      warning: warning ?? this.warning,
+      warningLight: warningLight ?? this.warningLight,
+      border: border ?? this.border,
+      borderActive: borderActive ?? this.borderActive,
+      divider: divider ?? this.divider,
+      tabActive: tabActive ?? this.tabActive,
+      tabInactive: tabInactive ?? this.tabInactive,
+      glassBorder: glassBorder ?? this.glassBorder,
+      glassGradient: glassGradient ?? this.glassGradient,
+      navBar: navBar ?? this.navBar,
+      navBarBorder: navBarBorder ?? this.navBarBorder,
+    );
+  }
+
+  @override
+  MenudoPalette lerp(ThemeExtension<MenudoPalette>? other, double t) {
+    if (other is! MenudoPalette) return this;
+    return MenudoPalette(
+      background: Color.lerp(background, other.background, t)!,
+      surface: Color.lerp(surface, other.surface, t)!,
+      surfaceElevated: Color.lerp(surfaceElevated, other.surfaceElevated, t)!,
+      surfaceMuted: Color.lerp(surfaceMuted, other.surfaceMuted, t)!,
+      hero: Color.lerp(hero, other.hero, t)!,
+      heroElevated: Color.lerp(heroElevated, other.heroElevated, t)!,
+      textMain: Color.lerp(textMain, other.textMain, t)!,
+      textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
+      textMuted: Color.lerp(textMuted, other.textMuted, t)!,
+      textOnDark: Color.lerp(textOnDark, other.textOnDark, t)!,
+      textOnDarkSub: Color.lerp(textOnDarkSub, other.textOnDarkSub, t)!,
+      primary: Color.lerp(primary, other.primary, t)!,
+      primaryLight: Color.lerp(primaryLight, other.primaryLight, t)!,
+      primaryDark: Color.lerp(primaryDark, other.primaryDark, t)!,
+      primaryGlow: Color.lerp(primaryGlow, other.primaryGlow, t)!,
+      success: Color.lerp(success, other.success, t)!,
+      successLight: Color.lerp(successLight, other.successLight, t)!,
+      danger: Color.lerp(danger, other.danger, t)!,
+      dangerLight: Color.lerp(dangerLight, other.dangerLight, t)!,
+      warning: Color.lerp(warning, other.warning, t)!,
+      warningLight: Color.lerp(warningLight, other.warningLight, t)!,
+      border: Color.lerp(border, other.border, t)!,
+      borderActive: Color.lerp(borderActive, other.borderActive, t)!,
+      divider: Color.lerp(divider, other.divider, t)!,
+      tabActive: Color.lerp(tabActive, other.tabActive, t)!,
+      tabInactive: Color.lerp(tabInactive, other.tabInactive, t)!,
+      glassBorder: Color.lerp(glassBorder, other.glassBorder, t)!,
+      glassGradient: [
+        Color.lerp(glassGradient.first, other.glassGradient.first, t)!,
+        Color.lerp(glassGradient.last, other.glassGradient.last, t)!,
+      ],
+      navBar: Color.lerp(navBar, other.navBar, t)!,
+      navBarBorder: Color.lerp(navBarBorder, other.navBarBorder, t)!,
+    );
+  }
+}
+
+extension MenudoThemeColors on BuildContext {
+  MenudoPalette get menudo =>
+      Theme.of(this).extension<MenudoPalette>() ?? MenudoPalette.light;
+}
+
 abstract class AppColors {
   // Base
   static const Color white = Color(0xFFFFFFFF); // w

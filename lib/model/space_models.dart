@@ -127,7 +127,10 @@ class SpaceDetail {
       creadoEn: _parseDateTime(json['creado_en']),
       actualizadoEn: _parseDateTime(json['actualizado_en']),
       miembros: membersJson
-          .map((member) => SpaceMember.fromJson(Map<String, dynamic>.from(member as Map)))
+          .map(
+            (member) =>
+                SpaceMember.fromJson(Map<String, dynamic>.from(member as Map)),
+          )
           .toList(),
       invitaciones: invitaciones,
     );

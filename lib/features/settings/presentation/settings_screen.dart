@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +12,7 @@ import '../../../core/localization/app_copy.dart';
 import '../../../core/preferences/app_preferences.dart';
 import '../../../core/preferences/app_preferences_controller.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/display_utils.dart';
 import '../../../core/utils/external_links.dart';
@@ -154,11 +156,11 @@ class SettingsScreen extends ConsumerWidget {
                       tr(context, es: 'Ajustes', en: 'Settings'),
                       style: MenudoTextStyles.h1,
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: (24)),
                     Container(
                       padding: const EdgeInsets.all(22),
                       decoration: BoxDecoration(
-                        color: AppColors.e8,
+                        color: context.menudo.textMain,
                         borderRadius: BorderRadius.circular(28),
                       ),
                       child: Row(
@@ -167,23 +169,25 @@ class SettingsScreen extends ConsumerWidget {
                             width: 68,
                             height: 68,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.12),
+                              color: context.menudo.textOnDark.withValues(
+                                alpha: 0.12,
+                              ),
                               borderRadius: BorderRadius.circular(22),
                             ),
                             alignment: Alignment.center,
                             child: avatarEmoji != null && avatarEmoji.isNotEmpty
                                 ? Text(
                                     avatarEmoji,
-                                    style: const TextStyle(fontSize: 32),
+                                    style: TextStyle(fontSize: 32),
                                   )
                                 : Text(
                                     initials.isEmpty ? 'M' : initials,
                                     style: MenudoTextStyles.h2.copyWith(
-                                      color: Colors.white,
+                                      color: context.menudo.textOnDark,
                                     ),
                                   ),
                           ),
-                          const SizedBox(width: 16),
+                          SizedBox(width: (16)),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,10 +201,10 @@ class SettingsScreen extends ConsumerWidget {
                                         )
                                       : displayName,
                                   style: MenudoTextStyles.h3.copyWith(
-                                    color: Colors.white,
+                                    color: context.menudo.textOnDark,
                                   ),
                                 ),
-                                const SizedBox(height: 6),
+                                SizedBox(height: 6),
                                 Text(
                                   profile?.email ??
                                       tr(
@@ -209,14 +213,18 @@ class SettingsScreen extends ConsumerWidget {
                                         en: 'Active session',
                                       ),
                                   style: MenudoTextStyles.bodyMedium.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.82),
+                                    color: context.menudo.textOnDark.withValues(
+                                      alpha: 0.82,
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(height: 10),
+                                SizedBox(height: (10)),
                                 MenudoChip.custom(
                                   label: currentMarket.currencyCode,
-                                  color: Colors.white,
-                                  bgColor: Colors.white.withValues(alpha: 0.12),
+                                  color: context.menudo.textOnDark,
+                                  bgColor: context.menudo.textOnDark.withValues(
+                                    alpha: 0.12,
+                                  ),
                                 ),
                               ],
                             ),
@@ -240,7 +248,7 @@ class SettingsScreen extends ConsumerWidget {
                       child: Column(
                         children: [
                           _SettingsTile(
-                            icon: Icons.person_outline_rounded,
+                            icon: MenudoCupertinoIcons.person_outline_rounded,
                             title: tr(
                               context,
                               es: 'Mi perfil',
@@ -253,9 +261,14 @@ class SettingsScreen extends ConsumerWidget {
                             ),
                             onTap: () => context.push('/profile'),
                           ),
-                          const Divider(height: 1, color: MenudoColors.divider),
+                          Divider(
+                            height: 1,
+                            thickness: 0.5,
+                            color: MenudoColors.divider,
+                          ),
                           _SettingsTile(
-                            icon: Icons.notifications_none_rounded,
+                            icon:
+                                MenudoCupertinoIcons.notifications_none_rounded,
                             title: tr(context, es: 'Alertas', en: 'Alerts'),
                             subtitle: unreadAlerts > 0
                                 ? tr(
@@ -279,7 +292,7 @@ class SettingsScreen extends ConsumerWidget {
                         ],
                       ),
                     ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.04),
-                    const SizedBox(height: 24),
+                    SizedBox(height: (24)),
                     _SectionHeader(
                       tr(context, es: 'Preferencias', en: 'Preferences'),
                     ),
@@ -288,7 +301,7 @@ class SettingsScreen extends ConsumerWidget {
                       child: Column(
                         children: [
                           _SettingsTile(
-                            icon: Icons.language_rounded,
+                            icon: MenudoCupertinoIcons.language_rounded,
                             title: tr(context, es: 'Idioma', en: 'Language'),
                             subtitle: currentLanguage.label(
                               isEnglishLocale(context),
@@ -298,9 +311,13 @@ class SettingsScreen extends ConsumerWidget {
                                 : () =>
                                       _pickLanguage(context, ref, preferences),
                           ),
-                          const Divider(height: 1, color: MenudoColors.divider),
+                          Divider(
+                            height: 1,
+                            thickness: 0.5,
+                            color: MenudoColors.divider,
+                          ),
                           _SettingsTile(
-                            icon: Icons.public_rounded,
+                            icon: MenudoCupertinoIcons.public_rounded,
                             title: tr(
                               context,
                               es: 'País y moneda',
@@ -321,7 +338,7 @@ class SettingsScreen extends ConsumerWidget {
                         ],
                       ),
                     ).animate().fadeIn(delay: 140.ms).slideY(begin: 0.04),
-                    const SizedBox(height: 24),
+                    SizedBox(height: (24)),
                     _SectionHeader(
                       tr(context, es: 'Herramientas', en: 'Tools'),
                     ),
@@ -330,7 +347,7 @@ class SettingsScreen extends ConsumerWidget {
                       child: Column(
                         children: [
                           _SettingsTile(
-                            icon: Icons.repeat_rounded,
+                            icon: MenudoCupertinoIcons.repeat_rounded,
                             title: tr(
                               context,
                               es: 'Transacciones automáticas',
@@ -343,9 +360,13 @@ class SettingsScreen extends ConsumerWidget {
                             ),
                             onTap: () => context.push('/recurring'),
                           ),
-                          const Divider(height: 1, color: MenudoColors.divider),
+                          Divider(
+                            height: 1,
+                            thickness: 0.5,
+                            color: MenudoColors.divider,
+                          ),
                           _SettingsTile(
-                            icon: Icons.grid_view_rounded,
+                            icon: MenudoCupertinoIcons.grid_view_rounded,
                             title: tr(
                               context,
                               es: 'Herramientas de categorías',
@@ -361,7 +382,7 @@ class SettingsScreen extends ConsumerWidget {
                         ],
                       ),
                     ).animate().fadeIn(delay: 180.ms).slideY(begin: 0.04),
-                    const SizedBox(height: 24),
+                    SizedBox(height: (24)),
                     _SectionHeader(
                       tr(context, es: 'Suscripción', en: 'Subscription'),
                     ),
@@ -399,12 +420,13 @@ class SettingsScreen extends ConsumerWidget {
                           if (subscription.expiresAt != null &&
                               !subscription.hasVerificationIssue &&
                               subscription.isActive) ...[
-                            const Divider(
+                            Divider(
                               height: 1,
+                              thickness: 0.5,
                               color: MenudoColors.divider,
                             ),
                             _SettingsTile(
-                              icon: Icons.calendar_today_rounded,
+                              icon: MenudoCupertinoIcons.calendar_today_rounded,
                               title: subscription.estado == 'prueba'
                                   ? tr(
                                       context,
@@ -436,12 +458,12 @@ class SettingsScreen extends ConsumerWidget {
                         ],
                       ),
                     ).animate().fadeIn(delay: 240.ms).slideY(begin: 0.04),
-                    const SizedBox(height: 24),
+                    SizedBox(height: (24)),
                     _SectionHeader(tr(context, es: 'Contacto', en: 'Contact')),
                     MenudoCard(
                       padding: EdgeInsets.zero,
                       child: _SettingsTile(
-                        icon: Icons.chat_bubble_outline_rounded,
+                        icon: MenudoCupertinoIcons.chat_bubble_outline_rounded,
                         title: tr(
                           context,
                           es: 'Reportes y sugerencias',
@@ -455,7 +477,7 @@ class SettingsScreen extends ConsumerWidget {
                         onTap: () => context.push('/contact'),
                       ),
                     ).animate().fadeIn(delay: 260.ms).slideY(begin: 0.04),
-                    const SizedBox(height: 24),
+                    SizedBox(height: (24)),
                     _SectionHeader(
                       tr(context, es: 'Ayuda y legal', en: 'Help and legal'),
                     ),
@@ -464,7 +486,7 @@ class SettingsScreen extends ConsumerWidget {
                       child: Column(
                         children: [
                           _SettingsTile(
-                            icon: Icons.support_agent_rounded,
+                            icon: MenudoCupertinoIcons.support_agent_rounded,
                             title: tr(
                               context,
                               es: 'Centro de ayuda',
@@ -480,9 +502,13 @@ class SettingsScreen extends ConsumerWidget {
                               AppEnv.supportUrl,
                             ),
                           ),
-                          const Divider(height: 1, color: MenudoColors.divider),
+                          Divider(
+                            height: 1,
+                            thickness: 0.5,
+                            color: MenudoColors.divider,
+                          ),
                           _SettingsTile(
-                            icon: Icons.privacy_tip_outlined,
+                            icon: MenudoCupertinoIcons.privacy_tip_outlined,
                             title: tr(
                               context,
                               es: 'Política de privacidad',
@@ -498,9 +524,13 @@ class SettingsScreen extends ConsumerWidget {
                               AppEnv.privacyPolicyUrl,
                             ),
                           ),
-                          const Divider(height: 1, color: MenudoColors.divider),
+                          Divider(
+                            height: 1,
+                            thickness: 0.5,
+                            color: MenudoColors.divider,
+                          ),
                           _SettingsTile(
-                            icon: Icons.description_outlined,
+                            icon: MenudoCupertinoIcons.description_outlined,
                             title: tr(
                               context,
                               es: 'Términos de servicio',
@@ -519,7 +549,7 @@ class SettingsScreen extends ConsumerWidget {
                         ],
                       ),
                     ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.04),
-                    const SizedBox(height: 40),
+                    SizedBox(height: 40),
                     MenudoSecondaryButton(
                       label: tr(context, es: 'Cerrar sesión', en: 'Sign out'),
                       onTap: () {
@@ -527,7 +557,7 @@ class SettingsScreen extends ConsumerWidget {
                         context.go('/login');
                       },
                     ).animate().fadeIn(delay: 340.ms),
-                    const SizedBox(height: 120),
+                    SizedBox(height: (120)),
                   ],
                 ),
               ),
@@ -575,7 +605,7 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return MenudoInkWell(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -585,13 +615,13 @@ class _SettingsTile extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: AppColors.g1,
+                color: context.menudo.surface,
                 borderRadius: BorderRadius.circular(14),
               ),
               alignment: Alignment.center,
-              child: Icon(icon, size: 20, color: MenudoColors.textSecondary),
+              child: Icon(icon, size: (20), color: MenudoColors.textSecondary),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: (14)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -602,7 +632,7 @@ class _SettingsTile extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     subtitle,
                     maxLines: 1,
@@ -614,10 +644,10 @@ class _SettingsTile extends StatelessWidget {
                 ],
               ),
             ),
-            if (trailing != null) ...[trailing!, const SizedBox(width: 10)],
+            if (trailing != null) ...[trailing!, SizedBox(width: (10))],
             if (onTap != null)
-              const Icon(
-                Icons.chevron_right_rounded,
+              Icon(
+                MenudoCupertinoIcons.chevron_right_rounded,
                 color: MenudoColors.textMuted,
               ),
           ],
@@ -629,11 +659,11 @@ class _SettingsTile extends StatelessWidget {
 
 IconData _subscriptionIcon(String? estado) {
   return switch (estado) {
-    'prueba' => Icons.access_time_rounded,
-    'activa' => Icons.star_rounded,
-    'cancelada' => Icons.cancel_outlined,
-    'vencida' => Icons.error_outline_rounded,
-    _ => Icons.star_outline_rounded,
+    'prueba' => MenudoCupertinoIcons.access_time_rounded,
+    'activa' => MenudoCupertinoIcons.star_rounded,
+    'cancelada' => MenudoCupertinoIcons.cancel_outlined,
+    'vencida' => MenudoCupertinoIcons.error_outline_rounded,
+    _ => MenudoCupertinoIcons.star_outline_rounded,
   };
 }
 
@@ -689,8 +719,8 @@ class _PreferencesSheet<T> extends StatelessWidget {
 
     return Container(
       constraints: BoxConstraints(maxHeight: maxHeight),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: context.menudo.textOnDark,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: SafeArea(
@@ -708,15 +738,18 @@ class _PreferencesSheet<T> extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               Text(title, style: MenudoTextStyles.h3),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               Flexible(
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: options.length,
-                  separatorBuilder: (context, index) =>
-                      const Divider(height: 1, color: MenudoColors.divider),
+                  separatorBuilder: (context, index) => Divider(
+                    height: 1,
+                    thickness: 0.5,
+                    color: MenudoColors.divider,
+                  ),
                   itemBuilder: (context, index) => _PreferenceRow<T>(
                     option: options[index],
                     selected: options[index].value == selectedValue,
@@ -751,7 +784,7 @@ class _PreferenceRow<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return MenudoInkWell(
       onTap: () => Navigator.of(context).pop(option.value),
       borderRadius: BorderRadius.circular(18),
       child: Padding(
@@ -770,7 +803,7 @@ class _PreferenceRow<T> extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     option.subtitle,
                     maxLines: 1,
@@ -782,7 +815,11 @@ class _PreferenceRow<T> extends StatelessWidget {
                 ],
               ),
             ),
-            if (selected) const Icon(Icons.check_rounded, color: AppColors.e8),
+            if (selected)
+              Icon(
+                MenudoCupertinoIcons.check_rounded,
+                color: context.menudo.textMain,
+              ),
           ],
         ),
       ),

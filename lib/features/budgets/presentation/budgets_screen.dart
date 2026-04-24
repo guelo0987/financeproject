@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../core/utils/error_presenter.dart';
@@ -35,7 +36,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   String _fmt(double val) => formatMoney(val);
 
   void _showDetail(MenudoBudget b) {
-    HapticFeedback.lightImpact();
+    MenudoHaptics.light();
     showModalBottomSheet(
       context: context,
       useRootNavigator: true,
@@ -46,7 +47,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   }
 
   void _showCreate() {
-    HapticFeedback.mediumImpact();
+    MenudoHaptics.medium();
     showModalBottomSheet(
       context: context,
       useRootNavigator: true,
@@ -67,7 +68,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
   }
 
   Future<void> _selectBudget(MenudoBudget budget) async {
-    HapticFeedback.mediumImpact();
+    MenudoHaptics.medium();
     try {
       await ref
           .read(budgetNotifierProvider.notifier)
@@ -92,13 +93,13 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               .toList();
 
     return Scaffold(
-      backgroundColor: AppColors.g0,
+      backgroundColor: context.menudo.background,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
           SliverAppBar(
             pinned: true,
-            backgroundColor: AppColors.g0,
+            backgroundColor: context.menudo.background,
             surfaceTintColor: Colors.transparent,
             elevation: 0,
             toolbarHeight: 82,
@@ -107,24 +108,24 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const Text(
+                Text(
                   'Presupuestos',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.e8,
+                    color: context.menudo.textMain,
                     letterSpacing: -0.8,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   activeBudget == null
                       ? '${budgets.length} presupuesto${budgets.length == 1 ? '' : 's'}'
                       : 'Activo: ${activeBudget.nombre}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.g4,
+                    color: context.menudo.textMuted,
                   ),
                 ),
               ],
@@ -132,19 +133,19 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
             actions: [
               Padding(
                 padding: const EdgeInsets.only(right: 16),
-                child: IconButton(
+                child: MenudoIconButton(
                   onPressed: _showCreate,
                   style: IconButton.styleFrom(
-                    backgroundColor: Colors.white,
+                    backgroundColor: context.menudo.surface,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    side: const BorderSide(color: AppColors.g2),
+                    side: BorderSide(color: context.menudo.border),
                   ),
-                  icon: const Icon(
-                    LucideIcons.plus,
-                    color: AppColors.e8,
-                    size: 18,
+                  icon: Icon(
+                    MenudoCupertinoIcons.plus,
+                    color: context.menudo.textMain,
+                    size: (18),
                   ),
                 ),
               ),
@@ -160,7 +161,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                     duration: 400.ms,
                     delay: 100.ms,
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: (18)),
 
                   if (filteredBudgets.isEmpty)
                     _buildEmptyState()
@@ -183,7 +184,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                           .slideY(begin: 0.05, end: 0, curve: Curves.easeOut);
                     }),
 
-                  const SizedBox(height: 120),
+                  SizedBox(height: (120)),
                 ],
               ),
             ),
@@ -195,18 +196,18 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
 
   Widget _buildFilters() {
     return SizedBox(
-      height: 34,
+      height: (34),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: _filtros.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        separatorBuilder: (_, _) => SizedBox(width: (10)),
         itemBuilder: (_, i) {
           final p = _filtros[i];
           final selected = p == _filtro;
-          return GestureDetector(
+          return MenudoGestureDetector(
             onTap: () {
-              HapticFeedback.selectionClick();
+              MenudoHaptics.selection();
               setState(() => _filtro = p);
             },
             child: AnimatedContainer(
@@ -214,17 +215,21 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
               curve: Curves.easeOutCubic,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: selected ? AppColors.e8 : AppColors.g1,
+                color: selected
+                    ? context.menudo.primary
+                    : context.menudo.surface,
                 borderRadius: BorderRadius.circular(100),
                 border: Border.all(
-                  color: selected ? AppColors.e8 : Colors.transparent,
+                  color: selected ? context.menudo.primary : Colors.transparent,
                 ),
               ),
               alignment: Alignment.center,
               child: Text(
                 p,
                 style: TextStyle(
-                  color: selected ? Colors.white : AppColors.g5,
+                  color: selected
+                      ? context.menudo.textOnDark
+                      : context.menudo.textSecondary,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                   fontSize: 13,
                 ),
@@ -241,28 +246,32 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.menudo.textOnDark,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: context.menudo.border),
       ),
       child: Column(
         children: [
-          const Icon(LucideIcons.clipboardList, size: 36, color: AppColors.g3),
-          const SizedBox(height: 14),
-          const Text(
+          Icon(
+            MenudoCupertinoIcons.clipboardList,
+            size: (36),
+            color: context.menudo.textMuted,
+          ),
+          SizedBox(height: (14)),
+          Text(
             "Todavía no tienes presupuestos aquí",
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w800,
-              color: AppColors.e8,
+              color: context.menudo.textMain,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             _filtro == "Todos"
                 ? "Cuando crees uno, aparecerá aquí."
                 : "No encontramos presupuestos en la vista '$_filtro'.",
-            style: const TextStyle(fontSize: 14, color: AppColors.g5),
+            style: TextStyle(fontSize: 14, color: context.menudo.textSecondary),
             textAlign: TextAlign.center,
           ),
         ],
@@ -292,18 +301,18 @@ class _BudgetCard extends StatelessWidget {
     final double remaining = budget.availableToSpend;
     final isShared = budget.miembros.isNotEmpty || budget.espacioId != null;
 
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.menudo.textOnDark,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isDashboardActive
                 ? AppColors.e6.withValues(alpha: 0.28)
-                : AppColors.g2,
+                : context.menudo.border,
           ),
         ),
         child: Padding(
@@ -334,13 +343,13 @@ class _BudgetCard extends StatelessWidget {
                             if (isDashboardActive) const _BudgetActivePill(),
                           ],
                         ),
-                        const SizedBox(height: 10),
+                        SizedBox(height: (10)),
                         Text(
                           budget.nombre,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.e8,
+                            color: context.menudo.textMain,
                             letterSpacing: -0.4,
                           ),
                         ),
@@ -349,24 +358,25 @@ class _BudgetCard extends StatelessWidget {
                   ),
                   if (budget.miembros.isNotEmpty ||
                       budget.espacioId != null) ...[
-                    const SizedBox(width: 12),
+                    SizedBox(width: (12)),
                     _buildAvatars(
+                      context,
                       budget.miembros,
                       isShared: budget.espacioId != null,
                     ),
                   ],
                 ],
               ),
-              const SizedBox(height: 18),
-              const Text(
+              SizedBox(height: (18)),
+              Text(
                 'Disponible',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.g4,
+                  color: context.menudo.textMuted,
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               SizedBox(
                 height: 40,
                 child: FittedBox(
@@ -377,22 +387,24 @@ class _BudgetCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w900,
-                      color: remaining < 0 ? AppColors.r5 : AppColors.e8,
+                      color: remaining < 0
+                          ? AppColors.r5
+                          : context.menudo.textMain,
                       letterSpacing: -1,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               Text(
                 'Plan ${fmt(budget.ingresos)} · Gastado ${fmt(spent)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.g5,
+                  color: context.menudo.textSecondary,
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               Row(
                 children: [
                   Expanded(
@@ -401,33 +413,33 @@ class _BudgetCard extends StatelessWidget {
                       value: fmt(budget.ingresos),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: (10)),
                   Expanded(
                     child: _BudgetFact(label: 'Gastado', value: fmt(spent)),
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: onTap,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.e8,
-                        side: const BorderSide(color: AppColors.g2),
+                        foregroundColor: context.menudo.textMain,
+                        side: BorderSide(color: context.menudo.border),
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Ver detalle',
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: (10)),
                   _DashboardToggleButton(
                     isActive: isDashboardActive,
                     onToggle: onSetActive,
@@ -441,19 +453,27 @@ class _BudgetCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatars(List<BudgetMember> miembros, {required bool isShared}) {
+  Widget _buildAvatars(
+    BuildContext context,
+    List<BudgetMember> miembros, {
+    required bool isShared,
+  }) {
     if (miembros.isEmpty) {
       if (!isShared) return const SizedBox.shrink();
       return Container(
-        width: 32,
-        height: 32,
+        width: (32),
+        height: (32),
         decoration: BoxDecoration(
           color: AppColors.e1,
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 2),
+          border: Border.all(color: context.menudo.textOnDark, width: 2),
         ),
         alignment: Alignment.center,
-        child: const Icon(LucideIcons.users, size: 14, color: AppColors.e8),
+        child: Icon(
+          MenudoCupertinoIcons.users,
+          size: (14),
+          color: context.menudo.textMain,
+        ),
       );
     }
 
@@ -464,12 +484,12 @@ class _BudgetCard extends StatelessWidget {
         return Align(
           widthFactor: 0.7,
           child: Container(
-            width: 32,
-            height: 32,
+            width: (32),
+            height: (32),
             decoration: BoxDecoration(
               color: m.c,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
+              border: Border.all(color: context.menudo.textOnDark, width: 2),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
@@ -480,8 +500,8 @@ class _BudgetCard extends StatelessWidget {
             alignment: Alignment.center,
             child: Text(
               m.i,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: context.menudo.textOnDark,
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
               ),
@@ -504,7 +524,7 @@ class _BudgetFact extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.g0,
+        color: context.menudo.background,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -512,21 +532,21 @@ class _BudgetFact extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w700,
-              color: AppColors.g4,
+              color: context.menudo.textMuted,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w800,
-              color: AppColors.e8,
+              color: context.menudo.textMain,
             ),
           ),
         ],
@@ -546,30 +566,38 @@ class _DashboardToggleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onToggle,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.e8 : Colors.white,
+          color: isActive ? context.menudo.primary : context.menudo.textOnDark,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isActive ? AppColors.e8 : AppColors.g2),
+          border: Border.all(
+            color: isActive ? context.menudo.primary : context.menudo.border,
+          ),
         ),
         child: Row(
           children: [
             Icon(
-              isActive ? LucideIcons.checkCircle : LucideIcons.layoutDashboard,
-              size: 14,
-              color: isActive ? Colors.white : AppColors.g5,
+              isActive
+                  ? MenudoCupertinoIcons.checkCircle
+                  : MenudoCupertinoIcons.layoutDashboard,
+              size: (14),
+              color: isActive
+                  ? context.menudo.textOnDark
+                  : context.menudo.textSecondary,
             ),
-            const SizedBox(width: 6),
+            SizedBox(width: 6),
             Text(
               isActive ? "Activo" : "Usar",
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
-                color: isActive ? Colors.white : AppColors.g5,
+                color: isActive
+                    ? context.menudo.textOnDark
+                    : context.menudo.textSecondary,
               ),
             ),
           ],
@@ -589,15 +617,15 @@ class _BudgetMetaTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.g1,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w800,
-          color: AppColors.g5,
+          color: context.menudo.textSecondary,
           letterSpacing: 0.3,
         ),
       ),
@@ -616,7 +644,7 @@ class _BudgetActivePill extends StatelessWidget {
         color: AppColors.e1,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: const Text(
+      child: Text(
         'Activo',
         style: TextStyle(
           fontSize: 10,

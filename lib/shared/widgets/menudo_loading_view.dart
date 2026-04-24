@@ -18,6 +18,8 @@ class MenudoLoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -25,27 +27,27 @@ class MenudoLoadingView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             MenudoLogo(size: logoSize),
-            const SizedBox(height: 18),
+            SizedBox(height: (18)),
             SizedBox(
-              width: 24,
-              height: 24,
+              width: (24),
+              height: (24),
               child: CircularProgressIndicator(
                 strokeWidth: 2.4,
-                color: AppColors.e8,
+                color: colors.primary,
               ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: (18)),
             Text(
               title,
-              style: MenudoTextStyles.h3.copyWith(color: AppColors.e8),
+              style: MenudoTextStyles.h3.copyWith(color: colors.textMain),
               textAlign: TextAlign.center,
             ),
             if (message != null) ...[
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
                 message!,
                 style: MenudoTextStyles.bodyMedium.copyWith(
-                  color: MenudoColors.textMuted,
+                  color: colors.textMuted,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -69,6 +71,8 @@ class MenudoInlineLoadingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
@@ -76,26 +80,26 @@ class MenudoInlineLoadingCard extends StatelessWidget {
         vertical: compact ? 14 : 18,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(compact ? 18 : 22),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: colors.border, width: 0.5),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SizedBox(
-            width: 18,
-            height: 18,
+            width: (18),
+            height: (18),
             child: CircularProgressIndicator(
               strokeWidth: 2.2,
-              color: AppColors.e8,
+              color: colors.primary,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: (12)),
           Text(
             label,
             style: MenudoTextStyles.bodyMedium.copyWith(
-              color: MenudoColors.textMuted,
+              color: colors.textMuted,
               fontWeight: FontWeight.w700,
             ),
           ),

@@ -55,6 +55,8 @@ class MenudoApp extends ConsumerWidget {
       title: 'Menudo',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.system,
       locale: locale,
       supportedLocales: const [
         Locale('es', 'DO'),
@@ -67,8 +69,25 @@ class MenudoApp extends ConsumerWidget {
       ],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: router,
-      builder: (context, child) =>
-          IosShortcutsCoordinator(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: isDark
+                ? Brightness.light
+                : Brightness.dark,
+            statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+            systemNavigationBarColor: Colors.transparent,
+            systemNavigationBarIconBrightness: isDark
+                ? Brightness.light
+                : Brightness.dark,
+          ),
+          child: IosShortcutsCoordinator(
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+      },
     );
   }
 }

@@ -3,12 +3,14 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/data/mock_data.dart';
 
 import '../../../shared/widgets/glass_card.dart';
 import '../../../shared/widgets/asset_category_icon.dart';
 import '../../../shared/widgets/variation_badge.dart';
+import '../../../shared/widgets/menudo_tap_target.dart';
 
 class AssetDetailScreen extends StatelessWidget {
   final String assetId;
@@ -27,8 +29,11 @@ class AssetDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(asset.name),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+        leading: MenudoIconButton(
+          icon: Icon(
+            MenudoCupertinoIcons.arrow_back_ios_new_rounded,
+            size: (20),
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -46,7 +51,7 @@ class AssetDetailScreen extends StatelessWidget {
                   Row(
                     children: [
                       AssetCategoryIcon(category: asset.category, size: 48),
-                      const SizedBox(width: 16),
+                      SizedBox(width: (16)),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,14 +95,14 @@ class AssetDetailScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: (24)),
                   Text('VALOR ACTUAL', style: AppTextStyles.sectionTitle),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     '$prefix ${formatter.format(asset.currentValue)}',
                     style: AppTextStyles.displayMedium,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -105,12 +110,12 @@ class AssetDetailScreen extends StatelessWidget {
                       if (asset.lastSynced != null)
                         Row(
                           children: [
-                            const Icon(
-                              Icons.sync,
+                            Icon(
+                              MenudoCupertinoIcons.sync,
                               color: AppColors.textTertiary,
-                              size: 14,
+                              size: (14),
                             ),
-                            const SizedBox(width: 4),
+                            SizedBox(width: 4),
                             Text(
                               'Sincronizado hace ${DateTime.now().difference(asset.lastSynced!).inMinutes} min',
                               style: AppTextStyles.bodySmall.copyWith(
@@ -125,7 +130,7 @@ class AssetDetailScreen extends StatelessWidget {
               ),
             ).animate().fadeIn(duration: 400.ms),
 
-            const SizedBox(height: 20),
+            SizedBox(height: (20)),
 
             // ── History Chart ──
             GlassCard(
@@ -133,9 +138,9 @@ class AssetDetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('HISTORIAL', style: AppTextStyles.sectionTitle),
-                  const SizedBox(height: 16),
+                  SizedBox(height: (16)),
                   SizedBox(
-                    height: 200,
+                    height: (200),
                     child: LineChart(
                       LineChartData(
                         gridData: FlGridData(
@@ -202,7 +207,7 @@ class AssetDetailScreen extends StatelessWidget {
               ),
             ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
 
-            const SizedBox(height: 20),
+            SizedBox(height: (20)),
 
             // ── Details ──
             GlassCard(
@@ -227,7 +232,7 @@ class AssetDetailScreen extends StatelessWidget {
               ),
             ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
 
-            const SizedBox(height: 20),
+            SizedBox(height: (20)),
 
             // ── Notes ──
             GlassCard(
@@ -235,7 +240,7 @@ class AssetDetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('NOTAS', style: AppTextStyles.sectionTitle),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     'Sin notas agregadas. Toca para agregar una nota sobre este activo.',
                     style: AppTextStyles.bodyMedium,
@@ -244,7 +249,7 @@ class AssetDetailScreen extends StatelessWidget {
               ),
             ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
 
-            const SizedBox(height: 40),
+            SizedBox(height: 40),
           ],
         ),
       ),

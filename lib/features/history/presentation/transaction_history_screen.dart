@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 
 import '../../../core/data/models.dart';
 import '../../../core/preferences/app_preferences.dart';
@@ -239,7 +240,7 @@ class _TransactionHistoryScreenState
             label: label.isEmpty ? 'Sin categoría' : label,
             parentLabel: parentLabel,
             icon: category?.icono ?? transaction.icono,
-            color: category?.color ?? AppColors.g4,
+            color: category?.color ?? context.menudo.textMuted,
           );
 
       seed.total += transaction.monto.abs();
@@ -272,7 +273,7 @@ class _TransactionHistoryScreenState
       builder: (sheetContext) {
         return _SelectionSheet<_HistoryDateFilter>(
           title: 'Filtrar por fecha',
-          options: const [
+          options: [
             _SelectionOption(
               value: _HistoryDateFilter.thisMonth,
               title: 'Este mes',
@@ -447,9 +448,11 @@ class _TransactionHistoryScreenState
         ? null
         : categoriesById[_selectedCategoryId!];
 
+    final colors = context.menudo;
+
     if (transactionsAsync.isLoading && transactions.isEmpty) {
-      return const Scaffold(
-        backgroundColor: AppColors.g0,
+      return Scaffold(
+        backgroundColor: colors.background,
         body: MenudoLoadingView(
           title: 'Cargando historial',
           message: 'Estamos organizando tus movimientos recientes.',
@@ -459,17 +462,20 @@ class _TransactionHistoryScreenState
     }
 
     return Scaffold(
-      backgroundColor: AppColors.g0,
+      backgroundColor: colors.background,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
           SliverAppBar(
             expandedHeight: 118,
             pinned: true,
-            backgroundColor: Colors.white,
+            backgroundColor: colors.surface,
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(LucideIcons.chevronLeft, color: AppColors.e8),
+            leading: MenudoIconButton(
+              icon: Icon(
+                MenudoCupertinoIcons.chevronLeft,
+                color: colors.textMain,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
             flexibleSpace: FlexibleSpaceBar(
@@ -478,16 +484,16 @@ class _TransactionHistoryScreenState
                 bottom: 16,
               ),
               centerTitle: false,
-              title: const Text(
+              title: Text(
                 'Historial',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.e8,
+                  color: colors.textMain,
                   letterSpacing: -0.8,
                 ),
               ),
-              background: Container(color: Colors.white),
+              background: Container(color: colors.surface),
             ),
           ),
           SliverToBoxAdapter(
@@ -504,28 +510,28 @@ class _TransactionHistoryScreenState
                       setState(() => _searchQuery = '');
                     },
                   ).animate().fadeIn(duration: 260.ms),
-                  const SizedBox(height: 14),
+                  SizedBox(height: (14)),
                   _HistoryTypeFilters(
                     selectedFilter: _typeFilter,
                     onChanged: (filter) {
-                      HapticFeedback.selectionClick();
+                      MenudoHaptics.selection();
                       setState(() => _typeFilter = filter);
                     },
                   ).animate().fadeIn(duration: 260.ms, delay: 40.ms),
-                  const SizedBox(height: 12),
+                  SizedBox(height: (12)),
                   Row(
                     children: [
                       Expanded(
                         child: _HistoryActionChip(
-                          icon: LucideIcons.calendarRange,
+                          icon: MenudoCupertinoIcons.calendarRange,
                           label: _dateFilterLabel(),
                           onTap: _pickDateFilter,
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: (10)),
                       Expanded(
                         child: _HistoryActionChip(
-                          icon: LucideIcons.tags,
+                          icon: MenudoCupertinoIcons.tags,
                           label: selectedCategory?.nombre ?? 'Categorías',
                           onTap: () => _pickCategoryFilter(categories),
                         ),
@@ -533,7 +539,7 @@ class _TransactionHistoryScreenState
                     ],
                   ).animate().fadeIn(duration: 260.ms, delay: 80.ms),
                   if (filteredTransactions.isNotEmpty) ...[
-                    const SizedBox(height: 18),
+                    SizedBox(height: (18)),
                     _HistoryOverviewCard(
                       balance: balance,
                       income: totalIncome,
@@ -541,10 +547,10 @@ class _TransactionHistoryScreenState
                       currencyCode: activeCurrency,
                     ).animate().fadeIn(duration: 320.ms, delay: 120.ms),
                     if (expenseBreakdown.isNotEmpty) ...[
-                      const SizedBox(height: 18),
+                      SizedBox(height: (18)),
                       _HistoryBreakdownCard(
                         title: 'Gastos por categoría',
-                        icon: LucideIcons.trendingDown,
+                        icon: MenudoCupertinoIcons.trendingDown,
                         accentColor: AppColors.o5,
                         totalLabel: _formatHistoryMoney(
                           totalExpense,
@@ -555,10 +561,10 @@ class _TransactionHistoryScreenState
                       ).animate().fadeIn(duration: 320.ms, delay: 180.ms),
                     ],
                     if (incomeBreakdown.isNotEmpty) ...[
-                      const SizedBox(height: 14),
+                      SizedBox(height: (14)),
                       _HistoryBreakdownCard(
                         title: 'Ingresos por categoría',
-                        icon: LucideIcons.trendingUp,
+                        icon: MenudoCupertinoIcons.trendingUp,
                         accentColor: AppColors.e6,
                         totalLabel: _formatHistoryMoney(
                           totalIncome,
@@ -568,7 +574,7 @@ class _TransactionHistoryScreenState
                         currencyCode: activeCurrency,
                       ).animate().fadeIn(duration: 320.ms, delay: 220.ms),
                     ],
-                    const SizedBox(height: 22),
+                    SizedBox(height: (22)),
                   ],
                 ],
               ),
@@ -644,24 +650,36 @@ class _HistorySearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surfaceElevated,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: colors.border),
       ),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
         textInputAction: TextInputAction.search,
+        style: TextStyle(color: colors.textMain, fontWeight: FontWeight.w700),
         decoration: InputDecoration(
           hintText: 'Buscar movimientos',
-          prefixIcon: const Icon(LucideIcons.search, size: 18),
+          hintStyle: TextStyle(color: colors.textMuted),
+          prefixIcon: Icon(
+            MenudoCupertinoIcons.search,
+            size: (18),
+            color: colors.textMuted,
+          ),
           suffixIcon: controller.text.trim().isEmpty
               ? null
-              : IconButton(
+              : MenudoIconButton(
                   onPressed: onClear,
-                  icon: const Icon(LucideIcons.x, size: 16),
+                  icon: Icon(
+                    MenudoCupertinoIcons.x,
+                    size: (16),
+                    color: colors.textSecondary,
+                  ),
                 ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
@@ -695,21 +713,21 @@ class _HistoryTypeFilters extends StatelessWidget {
             selected: selectedFilter == _HistoryTypeFilter.all,
             onTap: () => onChanged(_HistoryTypeFilter.all),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           _HistoryTypeChip(
             label: 'Gastos',
             color: AppColors.o5,
             selected: selectedFilter == _HistoryTypeFilter.expense,
             onTap: () => onChanged(_HistoryTypeFilter.expense),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           _HistoryTypeChip(
             label: 'Ingresos',
             color: AppColors.e6,
             selected: selectedFilter == _HistoryTypeFilter.income,
             onTap: () => onChanged(_HistoryTypeFilter.income),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           _HistoryTypeChip(
             label: 'Transferencias',
             color: AppColors.b5,
@@ -727,7 +745,7 @@ class _HistoryTypeChip extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
-    this.color = AppColors.e8,
+    this.color = AppColors.e6,
   });
 
   final String label;
@@ -737,23 +755,27 @@ class _HistoryTypeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final colors = context.menudo;
+
+    return MenudoGestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.12) : Colors.white,
+          color: selected
+              ? color.withValues(alpha: 0.12)
+              : colors.surfaceElevated,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: selected ? color : AppColors.g2),
+          border: Border.all(color: selected ? color : colors.border),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 12,
             fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
-            color: selected ? color : AppColors.g5,
+            color: selected ? color : colors.textSecondary,
           ),
         ),
       ),
@@ -774,33 +796,39 @@ class _HistoryActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final colors = context.menudo;
+
+    return MenudoGestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.surfaceElevated,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.g2),
+          border: Border.all(color: colors.border),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: AppColors.e8),
-            const SizedBox(width: 10),
+            Icon(icon, size: (16), color: colors.textMain),
+            SizedBox(width: (10)),
             Expanded(
               child: Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.e8,
+                  color: colors.textMain,
                 ),
               ),
             ),
-            const SizedBox(width: 10),
-            const Icon(LucideIcons.chevronDown, size: 16, color: AppColors.g4),
+            SizedBox(width: (10)),
+            Icon(
+              MenudoCupertinoIcons.chevronDown,
+              size: (16),
+              color: colors.textMuted,
+            ),
           ],
         ),
       ),
@@ -824,26 +852,27 @@ class _HistoryOverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final balanceColor = balance >= 0 ? AppColors.e6 : AppColors.r5;
+    final colors = context.menudo;
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Balance',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
-              color: AppColors.g4,
+              color: colors.textSecondary,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: (10)),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
@@ -857,15 +886,15 @@ class _HistoryOverviewCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          const Divider(height: 1, color: AppColors.g2),
-          const SizedBox(height: 14),
+          SizedBox(height: (16)),
+          Divider(height: 1, thickness: 0.5, color: colors.border),
+          SizedBox(height: (14)),
           _HistoryInlineMetric(
             label: 'Ingresos',
             value: _formatHistoryMoney(income, currencyCode),
             color: AppColors.e6,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: (12)),
           _HistoryInlineMetric(
             label: 'Gastos',
             value: _formatHistoryMoney(expense, currencyCode),
@@ -890,14 +919,16 @@ class _HistoryInlineMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Row(
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: AppColors.g5,
+            color: colors.textSecondary,
           ),
         ),
         const Spacer(),
@@ -933,6 +964,8 @@ class _HistoryMicroStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
@@ -944,13 +977,13 @@ class _HistoryMicroStat extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: AppColors.g4,
+              color: colors.textSecondary,
             ),
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: 6),
           Text(
             value,
             style: TextStyle(
@@ -984,12 +1017,14 @@ class _HistoryBreakdownCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -997,26 +1032,26 @@ class _HistoryBreakdownCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: (36),
+                height: (36),
                 decoration: BoxDecoration(
                   color: accentColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
-                child: Icon(icon, size: 16, color: accentColor),
+                child: Icon(icon, size: (16), color: accentColor),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: (12)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.e8,
+                        color: colors.textMain,
                       ),
                     ),
                   ],
@@ -1032,7 +1067,7 @@ class _HistoryBreakdownCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: (14)),
           if (items.isEmpty)
             const _BreakdownEmptyState()
           else
@@ -1064,15 +1099,15 @@ class _BreakdownEmptyState extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.g0,
+        color: context.menudo.background,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: const Text(
+      child: Text(
         'Sin datos suficientes en esta vista.',
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: AppColors.g4,
+          color: context.menudo.textMuted,
         ),
       ),
     );
@@ -1092,25 +1127,27 @@ class _BreakdownRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.g0,
+        color: colors.background,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: (36),
+            height: (36),
             decoration: BoxDecoration(
               color: item.color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             alignment: Alignment.center,
-            child: Icon(item.icon, size: 16, color: item.color),
+            child: Icon(item.icon, size: (16), color: item.color),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: (12)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1119,10 +1156,10 @@ class _BreakdownRow extends StatelessWidget {
                   item.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.e8,
+                    color: colors.textMain,
                   ),
                 ),
                 Text(
@@ -1132,16 +1169,16 @@ class _BreakdownRow extends StatelessWidget {
                   ]),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.g4,
+                    color: colors.textSecondary,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: (12)),
           Text(
             _formatHistoryMoney(item.total, currencyCode),
             style: TextStyle(
@@ -1167,6 +1204,7 @@ class _HistoryEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
     final title = hasTransactions
         ? (hasFilters
               ? 'No hay movimientos con estos filtros'
@@ -1180,9 +1218,9 @@ class _HistoryEmptyState extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1191,29 +1229,33 @@ class _HistoryEmptyState extends StatelessWidget {
             width: 68,
             height: 68,
             decoration: BoxDecoration(
-              color: AppColors.g1,
+              color: context.menudo.surface,
               shape: BoxShape.circle,
             ),
-            child: const Icon(LucideIcons.inbox, size: 30, color: AppColors.g4),
+            child: Icon(
+              MenudoCupertinoIcons.inbox,
+              size: (30),
+              color: context.menudo.textMuted,
+            ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: (16)),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: AppColors.e8,
+              color: colors.textMain,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             body,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppColors.g5,
+              color: colors.textSecondary,
             ),
           ),
         ],
@@ -1307,6 +1349,7 @@ class _HistoryDaySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final net = income - expense;
+    final colors = context.menudo;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1321,10 +1364,10 @@ class _HistoryDaySection extends StatelessWidget {
                   Expanded(
                     child: Text(
                       dateKey,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
-                        color: AppColors.e8,
+                        color: colors.textMain,
                         letterSpacing: -0.3,
                       ),
                     ),
@@ -1340,7 +1383,7 @@ class _HistoryDaySection extends StatelessWidget {
                 ],
               ),
               if (income > 0 || expense > 0) ...[
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -1365,9 +1408,9 @@ class _HistoryDaySection extends StatelessWidget {
         ),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colors.surface,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.g2),
+            border: Border.all(color: colors.border),
           ),
           child: Column(
             children: List.generate(transactions.length, (index) {
@@ -1420,10 +1463,13 @@ class _HistoryDaySection extends StatelessWidget {
                     ? AppColors.e6
                     : transaction.tipo == 'transferencia'
                     ? AppColors.b5
-                    : AppColors.e8,
+                    : AppColors.o5,
                 amount: _formatHistoryMoney(
                   transaction.monto.abs(),
-                  currencyCode,
+                  transactionCurrencyCode(
+                    transaction,
+                    fallbackCurrencyCode: currencyCode,
+                  ),
                 ),
                 prefix: presentation.prefix,
                 isLast: index == transactions.length - 1,
@@ -1461,9 +1507,11 @@ class _HistoryTransactionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final colors = context.menudo;
+
+    return MenudoGestureDetector(
       onTap: () {
-        HapticFeedback.lightImpact();
+        MenudoHaptics.light();
         showModalBottomSheet(
           context: context,
           useRootNavigator: true,
@@ -1486,9 +1534,9 @@ class _HistoryTransactionTile extends StatelessWidget {
                     borderRadius: BorderRadius.circular(13),
                   ),
                   alignment: Alignment.center,
-                  child: Icon(icon, size: 17, color: color),
+                  child: Icon(icon, size: (17), color: color),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: (12)),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1497,29 +1545,29 @@ class _HistoryTransactionTile extends StatelessWidget {
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.e8,
+                          color: colors.textMain,
                         ),
                       ),
                       if (subtitle.isNotEmpty) ...[
-                        const SizedBox(height: 2),
+                        SizedBox(height: 2),
                         Text(
                           subtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.g4,
+                            color: colors.textSecondary,
                           ),
                         ),
                       ],
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: (10)),
                 Flexible(
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
@@ -1538,9 +1586,10 @@ class _HistoryTransactionTile extends StatelessWidget {
             ),
           ),
           if (!isLast)
-            const Divider(
+            Divider(
               height: 1,
-              color: AppColors.g1,
+              thickness: 0.5,
+              color: colors.border,
               indent: 68,
               endIndent: 16,
             ),
@@ -1563,9 +1612,11 @@ class _SelectionSheet<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: colors.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: SafeArea(
@@ -1581,36 +1632,36 @@ class _SelectionSheet<T> extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.g2,
+                    color: colors.border,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.e8,
+                  color: colors.textMain,
                 ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: (14)),
               ...options.map((option) {
                 final selected = option.value == selectedValue;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: GestureDetector(
+                  child: MenudoGestureDetector(
                     onTap: () => Navigator.of(context).pop(option.value),
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: selected
-                            ? AppColors.e8.withValues(alpha: 0.08)
-                            : AppColors.g0,
+                            ? colors.primary.withValues(alpha: 0.1)
+                            : colors.surfaceElevated,
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: selected ? AppColors.e8 : AppColors.g2,
+                          color: selected ? colors.primary : colors.border,
                         ),
                       ),
                       child: Row(
@@ -1623,15 +1674,17 @@ class _SelectionSheet<T> extends StatelessWidget {
                                 fontWeight: selected
                                     ? FontWeight.w800
                                     : FontWeight.w700,
-                                color: selected ? AppColors.e8 : AppColors.g5,
+                                color: selected
+                                    ? colors.textMain
+                                    : colors.textSecondary,
                               ),
                             ),
                           ),
                           if (selected)
-                            const Icon(
-                              LucideIcons.check,
-                              size: 16,
-                              color: AppColors.e8,
+                            Icon(
+                              MenudoCupertinoIcons.check,
+                              size: (16),
+                              color: colors.primary,
                             ),
                         ],
                       ),
@@ -1658,13 +1711,14 @@ class _CategoryFilterSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
     final categoriesById = {
       for (final category in categories) category.id: category,
     };
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: colors.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: SafeArea(
@@ -1680,21 +1734,21 @@ class _CategoryFilterSheet extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.g2,
+                    color: colors.border,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
-              const Text(
+              SizedBox(height: (18)),
+              Text(
                 'Filtrar por categoría',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.e8,
+                  color: colors.textMain,
                 ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: (14)),
               ConstrainedBox(
                 constraints: BoxConstraints(
                   maxHeight: MediaQuery.of(context).size.height * 0.62,
@@ -1708,7 +1762,7 @@ class _CategoryFilterSheet extends StatelessWidget {
                       selected: selectedCategoryId == null,
                       onTap: () => Navigator.of(context).pop(null),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: (10)),
                     ...categories.map((category) {
                       final parent = category.categoriaParadreId == null
                           ? null
@@ -1748,8 +1802,8 @@ class _CategoryFilterRow extends StatelessWidget {
     required this.subtitle,
     required this.selected,
     required this.onTap,
-    this.icon = LucideIcons.tags,
-    this.color = AppColors.e8,
+    this.icon = MenudoCupertinoIcons.tags,
+    this.color = AppColors.e6,
   });
 
   final String title;
@@ -1761,28 +1815,32 @@ class _CategoryFilterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final colors = context.menudo;
+
+    return MenudoGestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.08) : AppColors.g0,
+          color: selected
+              ? color.withValues(alpha: 0.08)
+              : colors.surfaceElevated,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: selected ? color : AppColors.g2),
+          border: Border.all(color: selected ? color : colors.border),
         ),
         child: Row(
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: (36),
+              height: (36),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               alignment: Alignment.center,
-              child: Icon(icon, size: 16, color: color),
+              child: Icon(icon, size: (16), color: color),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: (12)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1792,24 +1850,25 @@ class _CategoryFilterRow extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
-                      color: selected ? color : AppColors.e8,
+                      color: selected ? color : colors.textMain,
                     ),
                   ),
                   if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.g4,
+                        color: colors.textSecondary,
                       ),
                     ),
                   ],
                 ],
               ),
             ),
-            if (selected) Icon(LucideIcons.check, size: 16, color: color),
+            if (selected)
+              Icon(MenudoCupertinoIcons.check, size: (16), color: color),
           ],
         ),
       ),

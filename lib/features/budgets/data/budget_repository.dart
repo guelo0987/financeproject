@@ -37,8 +37,8 @@ class BudgetRepository {
     );
     final data = response.requireData();
     final result = <String, double>{};
-    final categories = asJsonList(data['categorias'] ?? const []);
-    final others = asJsonList(data['otros_gastos'] ?? const []);
+    final categories = asJsonList(data['categorias'] ?? []);
+    final others = asJsonList(data['otros_gastos'] ?? []);
 
     for (final row in categories) {
       final map = asJsonMap(row);
@@ -195,8 +195,8 @@ class BudgetRepository {
   }
 
   MenudoBudget _budgetFromApi(Map<String, dynamic> row) {
-    final categories = asJsonList(row['categorias'] ?? const []);
-    final otherExpensesRaw = asJsonList(row['otros_gastos'] ?? const []);
+    final categories = asJsonList(row['categorias'] ?? []);
+    final otherExpensesRaw = asJsonList(row['otros_gastos'] ?? []);
     final cats = <String, BudgetCategory>{};
     final otherExpenses = <BudgetCategory>[];
     final incomePlan = <int, double>{};
@@ -242,10 +242,10 @@ class BudgetRepository {
 
     final actualIncomePayload = row['ingresos_actuales'];
     final incomeDetails = actualIncomePayload is Map<String, dynamic>
-        ? asJsonList(actualIncomePayload['detalle'] ?? const [])
-        : asJsonList(row['ingresos_detalle'] ?? const []);
+        ? asJsonList(actualIncomePayload['detalle'] ?? [])
+        : asJsonList(row['ingresos_detalle'] ?? []);
     final otherIncomeDetails = actualIncomePayload is Map<String, dynamic>
-        ? asJsonList(actualIncomePayload['otros_ingresos'] ?? const [])
+        ? asJsonList(actualIncomePayload['otros_ingresos'] ?? [])
         : const <dynamic>[];
 
     for (final item in incomeDetails) {

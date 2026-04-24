@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/menudo_button.dart';
@@ -30,10 +32,10 @@ class SubscriptionDetailScreen extends ConsumerWidget {
                 child: Row(
                   children: [
                     _CircleActionButton(
-                      icon: Icons.arrow_back_ios_new_rounded,
+                      icon: MenudoCupertinoIcons.arrow_back_ios_new_rounded,
                       onTap: () => context.pop(),
                     ),
-                    const SizedBox(width: 14),
+                    SizedBox(width: (14)),
                     Text('Menudo Pro', style: MenudoTextStyles.h1),
                   ],
                 ),
@@ -45,7 +47,7 @@ class SubscriptionDetailScreen extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.all(22),
                   decoration: BoxDecoration(
-                    color: AppColors.e8,
+                    color: context.menudo.textMain,
                     borderRadius: BorderRadius.circular(28),
                   ),
                   child: Column(
@@ -53,47 +55,53 @@ class SubscriptionDetailScreen extends ConsumerWidget {
                     children: [
                       MenudoChip.custom(
                         label: _statusChipLabel(subscription),
-                        color: Colors.white,
-                        bgColor: Colors.white.withValues(alpha: 0.12),
+                        color: context.menudo.textOnDark,
+                        bgColor: context.menudo.textOnDark.withValues(
+                          alpha: 0.12,
+                        ),
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: (14)),
                       Text(
                         _headline(subscription),
                         style: MenudoTextStyles.h2.copyWith(
-                          color: Colors.white,
+                          color: context.menudo.textOnDark,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Text(
                         _subtitle(subscription),
                         style: MenudoTextStyles.bodyMedium.copyWith(
-                          color: Colors.white.withValues(alpha: 0.82),
+                          color: context.menudo.textOnDark.withValues(
+                            alpha: 0.82,
+                          ),
                         ),
                       ),
                       if (subscription.expiresAt != null) ...[
-                        const SizedBox(height: 16),
+                        SizedBox(height: (16)),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: context.menudo.textOnDark.withValues(
+                              alpha: 0.1,
+                            ),
                             borderRadius: BorderRadius.circular(18),
                           ),
                           child: Row(
                             children: [
-                              const Icon(
-                                Icons.calendar_today_rounded,
-                                size: 16,
-                                color: Colors.white,
+                              Icon(
+                                MenudoCupertinoIcons.calendar_today_rounded,
+                                size: (16),
+                                color: context.menudo.textOnDark,
                               ),
-                              const SizedBox(width: 10),
+                              SizedBox(width: (10)),
                               Expanded(
                                 child: Text(
                                   _dateLabel(subscription),
                                   style: MenudoTextStyles.bodySmall.copyWith(
-                                    color: Colors.white,
+                                    color: context.menudo.textOnDark,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -113,23 +121,23 @@ class SubscriptionDetailScreen extends ConsumerWidget {
                 child: MenudoCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: const [
+                    children: [
                       _BenefitRow(
-                        icon: Icons.tune_rounded,
+                        icon: MenudoCupertinoIcons.tune_rounded,
                         title: 'Todo en un solo lugar',
                         subtitle:
                             'Aquí ves tu estado, fecha importante y la acción correcta.',
                       ),
-                      SizedBox(height: 16),
+                      SizedBox(height: (16)),
                       _BenefitRow(
-                        icon: Icons.verified_outlined,
+                        icon: MenudoCupertinoIcons.verified_outlined,
                         title: 'Más claridad',
                         subtitle:
                             'Te mostramos si tu acceso sigue activo, en prueba o si ya necesita atención.',
                       ),
-                      SizedBox(height: 16),
+                      SizedBox(height: (16)),
                       _BenefitRow(
-                        icon: Icons.credit_card_rounded,
+                        icon: MenudoCupertinoIcons.credit_card_rounded,
                         title: 'Gestión segura',
                         subtitle:
                             'Los cambios del plan y la facturación se manejan desde tu cuenta de Apple.',
@@ -200,9 +208,9 @@ class _BenefitRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
           ),
           alignment: Alignment.center,
-          child: Icon(icon, size: 20, color: AppColors.e8),
+          child: Icon(icon, size: (20), color: context.menudo.textMain),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: (12)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,7 +221,7 @@ class _BenefitRow extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text(
                 subtitle,
                 style: MenudoTextStyles.bodySmall.copyWith(
@@ -236,18 +244,18 @@ class _CircleActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onTap,
       child: Container(
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.menudo.textOnDark,
           shape: BoxShape.circle,
           border: Border.all(color: MenudoColors.border),
         ),
         alignment: Alignment.center,
-        child: Icon(icon, size: 18, color: MenudoColors.textMain),
+        child: Icon(icon, size: (18), color: MenudoColors.textMain),
       ),
     );
   }

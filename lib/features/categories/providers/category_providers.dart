@@ -19,14 +19,14 @@ final effectiveCategoriesProvider = Provider<List<MenudoCategory>>((ref) {
   if (demoMode) {
     return mockCategories;
   }
-  return categories ?? const [];
+  return categories ?? [];
 });
 
 final parentCategoriesProvider =
     FutureProvider.family<List<MenudoCategory>, String?>((ref, tipo) async {
       final userId = ref.watch(authProvider).userId;
       if (userId == null) {
-        return const [];
+        return [];
       }
       return ref
           .read(categoryServiceProvider)

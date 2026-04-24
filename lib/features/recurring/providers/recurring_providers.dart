@@ -18,7 +18,7 @@ final effectiveRecurringProvider = Provider<List<RecurringTransaction>>((ref) {
   if (demoMode) {
     return mockRecurring;
   }
-  return recurring ?? const [];
+  return recurring ?? [];
 });
 
 final selectedBudgetRecurringProvider = Provider<List<RecurringTransaction>>((

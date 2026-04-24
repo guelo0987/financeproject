@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/formatters.dart';
@@ -23,28 +25,28 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
   double? _iaConfidence;
 
   static const _incomeCategories = [
-    _LogCategory('Salario', Icons.work),
-    _LogCategory('Dividendos', Icons.trending_up),
-    _LogCategory('Venta', Icons.sell),
-    _LogCategory('Freelance', Icons.laptop),
-    _LogCategory('Regalo', Icons.card_giftcard),
-    _LogCategory('Otro', Icons.more_horiz),
+    _LogCategory('Salario', MenudoCupertinoIcons.work),
+    _LogCategory('Dividendos', MenudoCupertinoIcons.trending_up),
+    _LogCategory('Venta', MenudoCupertinoIcons.sell),
+    _LogCategory('Freelance', MenudoCupertinoIcons.laptop),
+    _LogCategory('Regalo', MenudoCupertinoIcons.card_giftcard),
+    _LogCategory('Otro', MenudoCupertinoIcons.more_horiz),
   ];
 
   static const _expenseCategories = [
-    _LogCategory('Vivienda', Icons.home),
-    _LogCategory('Alimentación', Icons.restaurant),
-    _LogCategory('Transporte', Icons.directions_car),
-    _LogCategory('Entretenimiento', Icons.movie),
-    _LogCategory('Salud', Icons.health_and_safety),
-    _LogCategory('Servicios', Icons.electrical_services),
-    _LogCategory('Inversión', Icons.trending_up),
-    _LogCategory('Transferencia', Icons.swap_horiz),
-    _LogCategory('Otro', Icons.more_horiz),
+    _LogCategory('Vivienda', MenudoCupertinoIcons.home),
+    _LogCategory('Alimentación', MenudoCupertinoIcons.restaurant),
+    _LogCategory('Transporte', MenudoCupertinoIcons.directions_car),
+    _LogCategory('Entretenimiento', MenudoCupertinoIcons.movie),
+    _LogCategory('Salud', MenudoCupertinoIcons.health_and_safety),
+    _LogCategory('Servicios', MenudoCupertinoIcons.electrical_services),
+    _LogCategory('Inversión', MenudoCupertinoIcons.trending_up),
+    _LogCategory('Transferencia', MenudoCupertinoIcons.swap_horiz),
+    _LogCategory('Otro', MenudoCupertinoIcons.more_horiz),
   ];
 
   void _onKeyTap(String key) {
-    HapticFeedback.lightImpact();
+    MenudoHaptics.light();
     setState(() {
       if (key == 'DEL') {
         if (_amount.length > 1) {
@@ -109,14 +111,14 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
           _iaConfidence = 0.65;
         }
       });
-      HapticFeedback.lightImpact();
+      MenudoHaptics.light();
     });
   }
 
   void _onSave() {
-    HapticFeedback.mediumImpact();
     final value = double.tryParse(_amount) ?? 0;
     if (value > 0 && _selectedCategory != null) {
+      MenudoHaptics.success();
       // Mock save — show confirmation
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -155,7 +157,7 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
               child: Column(
                 children: [
                   Text('Registro Rápido', style: AppTextStyles.headlineLarge),
-                  const SizedBox(height: 16),
+                  SizedBox(height: (16)),
                   // Toggle
                   Container(
                     height: 48,
@@ -169,9 +171,9 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: GestureDetector(
+                          child: MenudoGestureDetector(
                             onTap: () {
-                              HapticFeedback.selectionClick();
+                              MenudoHaptics.selection();
                               setState(() {
                                 _isIncome = true;
                                 _selectedCategory = null;
@@ -201,9 +203,9 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                           ),
                         ),
                         Expanded(
-                          child: GestureDetector(
+                          child: MenudoGestureDetector(
                             onTap: () {
-                              HapticFeedback.selectionClick();
+                              MenudoHaptics.selection();
                               setState(() {
                                 _isIncome = false;
                                 _selectedCategory = null;
@@ -245,10 +247,10 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
               child: Column(
                 children: [
                   Text(
-                    'RD\$',
+                    currentCurrencyPrefix(),
                     style: AppTextStyles.bodyMedium.copyWith(fontSize: 16),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     parsedAmount > 0 ? formatter.format(parsedAmount) : '0',
                     style: AppTextStyles.displayLarge.copyWith(
@@ -290,7 +292,7 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                       ),
                     ),
                     if (_description.isNotEmpty)
-                      GestureDetector(
+                      MenudoGestureDetector(
                         onTap: _isRecommendingCategory
                             ? null
                             : _suggestCategoryWithIa,
@@ -308,9 +310,9 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                             ),
                           ),
                           child: _isRecommendingCategory
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
+                              ? SizedBox(
+                                  width: (16),
+                                  height: (16),
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                     color: AppColors.accent,
@@ -318,12 +320,12 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                                 )
                               : Row(
                                   children: [
-                                    const Icon(
-                                      Icons.smart_toy,
-                                      size: 16,
+                                    Icon(
+                                      MenudoCupertinoIcons.smart_toy,
+                                      size: (16),
                                       color: AppColors.accent,
                                     ),
-                                    const SizedBox(width: 4),
+                                    SizedBox(width: 4),
                                     Text(
                                       'Sugerir con IA',
                                       style: AppTextStyles.labelSmall.copyWith(
@@ -339,7 +341,7 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
               ),
             ).animate().fadeIn(duration: 300.ms, delay: 150.ms),
 
-            const SizedBox(height: 24),
+            SizedBox(height: (24)),
 
             // ── Category Selector ──
             SizedBox(
@@ -348,13 +350,13 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 itemCount: categories.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 10),
+                separatorBuilder: (_, _) => SizedBox(width: (10)),
                 itemBuilder: (context, index) {
                   final cat = categories[index];
                   final isSelected = _selectedCategory == cat.label;
-                  return GestureDetector(
+                  return MenudoGestureDetector(
                     onTap: () {
-                      HapticFeedback.selectionClick();
+                      MenudoHaptics.selection();
                       setState(() => _selectedCategory = cat.label);
                     },
                     child: AnimatedContainer(
@@ -381,14 +383,14 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                         children: [
                           Icon(
                             cat.icon,
-                            size: 22,
+                            size: (22),
                             color: isSelected
                                 ? (_isIncome
                                       ? AppColors.positive
                                       : AppColors.negative)
                                 : AppColors.textSecondary,
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
                             cat.label,
                             style: AppTextStyles.labelSmall.copyWith(
@@ -401,7 +403,7 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           if (isSelected && _iaConfidence != null) ...[
-                            const SizedBox(height: 2),
+                            SizedBox(height: 2),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 4,
@@ -457,7 +459,7 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                               ),
                               child: Material(
                                 color: Colors.transparent,
-                                child: InkWell(
+                                child: MenudoInkWell(
                                   onTap: () => _onKeyTap(key),
                                   borderRadius: BorderRadius.circular(14),
                                   splashColor: AppColors.accent.withValues(
@@ -474,10 +476,11 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                                     ),
                                     child: Center(
                                       child: key == 'DEL'
-                                          ? const Icon(
-                                              Icons.backspace_outlined,
+                                          ? Icon(
+                                              MenudoCupertinoIcons
+                                                  .backspace_outlined,
                                               color: AppColors.textSecondary,
-                                              size: 22,
+                                              size: (22),
                                             )
                                           : Text(
                                               key,

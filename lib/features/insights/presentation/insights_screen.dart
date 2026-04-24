@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/menudo_card.dart';
 import '../../../shared/widgets/menudo_chip.dart';
@@ -40,7 +42,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(
                       'Lee tendencias, compara meses y detecta dónde tu dinero cambia de ritmo.',
                       style: MenudoTextStyles.bodySmall.copyWith(
@@ -48,9 +50,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         height: 1.4,
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: (24)),
                     const _InsightsIntroCard(),
-                    const SizedBox(height: 18),
+                    SizedBox(height: (18)),
                     // Tabs
                     Container(
                       padding: const EdgeInsets.all(4),
@@ -80,7 +82,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 ),
               ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            const SliverToBoxAdapter(child: SizedBox(height: (100))),
           ],
         ),
       ),
@@ -90,14 +92,14 @@ class _InsightsScreenState extends State<InsightsScreen> {
   Widget _buildTab(int index, String label) {
     final isSelected = _selectedTab == index;
     return Expanded(
-      child: GestureDetector(
+      child: MenudoGestureDetector(
         onTap: () => setState(() => _selectedTab = index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           constraints: const BoxConstraints(minHeight: 48),
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
+            color: isSelected ? context.menudo.textOnDark : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             boxShadow: isSelected
                 ? [
@@ -148,9 +150,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Evolución (6 meses)', style: MenudoTextStyles.h3),
-              const SizedBox(height: 24),
+              SizedBox(height: (24)),
               SizedBox(
-                height: 200,
+                height: (200),
                 child: BarChart(
                   BarChartData(
                     alignment: BarChartAlignment.spaceAround,
@@ -225,23 +227,31 @@ class _InsightsScreenState extends State<InsightsScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: (16)),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(width: 12, height: 12, color: MenudoColors.success),
-                  const SizedBox(width: 6),
-                  const Text(
+                  Container(
+                    width: (12),
+                    height: (12),
+                    color: MenudoColors.success,
+                  ),
+                  SizedBox(width: 6),
+                  Text(
                     'Ingresos',
                     style: TextStyle(
                       fontSize: 12,
                       color: MenudoColors.textMuted,
                     ),
                   ),
-                  const SizedBox(width: 20),
-                  Container(width: 12, height: 12, color: MenudoColors.danger),
-                  const SizedBox(width: 6),
-                  const Text(
+                  SizedBox(width: (20)),
+                  Container(
+                    width: (12),
+                    height: (12),
+                    color: MenudoColors.danger,
+                  ),
+                  SizedBox(width: 6),
+                  Text(
                     'Gastos',
                     style: TextStyle(
                       fontSize: 12,
@@ -289,9 +299,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Gastos por categoría', style: MenudoTextStyles.h3),
-              const SizedBox(height: 24),
+              SizedBox(height: (24)),
               SizedBox(
-                height: 200,
+                height: (200),
                 child: PieChart(
                   PieChartData(
                     sectionsSpace: 2,
@@ -302,10 +312,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         value: 40,
                         title: '40%',
                         radius: 30,
-                        titleStyle: const TextStyle(
+                        titleStyle: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: context.menudo.textOnDark,
                         ),
                       ),
                       PieChartSectionData(
@@ -313,10 +323,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         value: 30,
                         title: '30%',
                         radius: 30,
-                        titleStyle: const TextStyle(
+                        titleStyle: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: context.menudo.textOnDark,
                         ),
                       ),
                       PieChartSectionData(
@@ -324,10 +334,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         value: 15,
                         title: '15%',
                         radius: 30,
-                        titleStyle: const TextStyle(
+                        titleStyle: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: context.menudo.textOnDark,
                         ),
                       ),
                       PieChartSectionData(
@@ -335,31 +345,31 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         value: 15,
                         title: '15%',
                         radius: 30,
-                        titleStyle: const TextStyle(
+                        titleStyle: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: context.menudo.textOnDark,
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: (16)),
               _buildExpenseLegend(
                 'Vivienda',
                 MenudoColors.danger,
                 'RD\$25,000',
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               _buildExpenseLegend('Comida', MenudoColors.warning, 'RD\$18,000'),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               _buildExpenseLegend(
                 'Transporte',
                 MenudoColors.primary,
                 'RD\$9,000',
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               _buildExpenseLegend('Ocio', MenudoColors.success, 'RD\$9,000'),
             ],
           ),
@@ -375,14 +385,14 @@ class _InsightsScreenState extends State<InsightsScreen> {
         Row(
           children: [
             Container(
-              width: 12,
-              height: 12,
+              width: (12),
+              height: (12),
               decoration: BoxDecoration(
                 color: color,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Text(
               title,
               style: MenudoTextStyles.bodyMedium.copyWith(
@@ -412,17 +422,17 @@ class _InsightsScreenState extends State<InsightsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Rendimiento global', style: MenudoTextStyles.h3),
-              const SizedBox(height: 4),
-              const Text(
+              SizedBox(height: 4),
+              Text(
                 '+12.4% este año',
                 style: TextStyle(
                   color: MenudoColors.success,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: (24)),
               SizedBox(
-                height: 200,
+                height: (200),
                 child: LineChart(
                   LineChartData(
                     gridData: FlGridData(
@@ -444,7 +454,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     borderData: FlBorderData(show: false),
                     lineBarsData: [
                       LineChartBarData(
-                        spots: const [
+                        spots: [
                           FlSpot(0, 1),
                           FlSpot(1, 1.2),
                           FlSpot(2, 1.1),
@@ -481,10 +491,10 @@ class _InsightsIntroCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.e0, Colors.white],
+          colors: [AppColors.e0, context.menudo.textOnDark],
         ),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: AppColors.e1),
@@ -499,13 +509,13 @@ class _InsightsIntroCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
             ),
             alignment: Alignment.center,
-            child: const Icon(
-              Icons.insights_rounded,
-              size: 20,
-              color: AppColors.e8,
+            child: Icon(
+              MenudoCupertinoIcons.insights_rounded,
+              size: (20),
+              color: context.menudo.textMain,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: (12)),
           Expanded(
             child: Text(
               'Usa estas vistas para detectar gasto desordenado, comparar flujo de caja y entender si tu presupuesto va mejorando.',

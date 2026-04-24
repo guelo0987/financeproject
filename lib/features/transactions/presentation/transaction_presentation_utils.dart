@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 
 import '../../../core/data/models.dart';
+import '../../../core/preferences/app_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 
@@ -79,8 +80,13 @@ String formatTransactionAmountLabel(
   MenudoTransaction transaction, {
   String currencyCode = '',
 }) {
+  final effectiveCurrency = transactionCurrencyCode(
+    transaction,
+    fallbackCurrencyCode: currencyCode,
+  );
+
   if (transaction.tipo == 'transferencia') {
-    return formatMoney(transaction.monto.abs(), currency: currencyCode);
+    return formatMoney(transaction.monto.abs(), currency: effectiveCurrency);
   }
 
   final signedAmount = switch (transaction.tipo) {
@@ -89,7 +95,18 @@ String formatTransactionAmountLabel(
     _ => transaction.monto,
   };
 
-  return formatMoney(signedAmount, currency: currencyCode, signed: true);
+  return formatMoney(signedAmount, currency: effectiveCurrency, signed: true);
+}
+
+String transactionCurrencyCode(
+  MenudoTransaction transaction, {
+  String fallbackCurrencyCode = '',
+}) {
+  final transactionCurrency = transaction.moneda.trim();
+  if (transactionCurrency.isNotEmpty) return transactionCurrency.toUpperCase();
+
+  final fallback = fallbackCurrencyCode.trim();
+  return fallback.isEmpty ? fallback : fallback.toUpperCase();
 }
 
 Color _fallbackWalletColor(String? type) {
@@ -106,11 +123,11 @@ Color _fallbackWalletColor(String? type) {
 IconData _fallbackWalletIcon(String? type) {
   switch (type) {
     case 'deudas':
-      return LucideIcons.alertCircle;
+      return MenudoCupertinoIcons.alertCircle;
     case 'gastos':
-      return LucideIcons.creditCard;
+      return MenudoCupertinoIcons.creditCard;
     default:
-      return LucideIcons.landmark;
+      return MenudoCupertinoIcons.landmark;
   }
 }
 
@@ -130,7 +147,7 @@ WalletAccount? resolveTransactionWallet(
     saldo: 0,
     color: _fallbackWalletColor(snapshot.tipo),
     icono: _fallbackWalletIcon(snapshot.tipo),
-    moneda: snapshot.moneda ?? 'DOP',
+    moneda: snapshot.moneda ?? AppFormattingPreferences.currencyCode,
   );
 }
 
@@ -177,7 +194,7 @@ TransactionViewPresentation buildTransactionPresentation(
         prefix: '-',
         amountColor: contextWallet.tipo == 'deudas'
             ? AppColors.r5
-            : AppColors.e8,
+            : AppColors.b5,
         sourceWallet: sourceWallet,
         destinationWallet: destinationWallet,
         contextTitle: contextWallet.tipo == 'deudas'

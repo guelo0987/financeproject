@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
@@ -19,13 +19,15 @@ class MenudoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: color ?? Colors.white,
+        color: color ?? colors.surface,
         borderRadius: BorderRadius.circular(MenudoRadius.card),
-        border: border ?? Border.all(color: MenudoColors.border),
-        boxShadow: const [MenudoShadows.cardShadow],
+        border: border ?? Border.all(color: colors.border, width: 0.5),
+        boxShadow: [MenudoShadows.cardShadow],
       ),
       child: child,
     );
@@ -39,12 +41,14 @@ class MenudoHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: MenudoColors.cardBg, // Emerald 800
+        color: colors.hero,
         borderRadius: BorderRadius.circular(MenudoRadius.hero),
-        boxShadow: const [MenudoShadows.heroShadow],
+        boxShadow: [MenudoShadows.heroShadow],
       ),
       child: Stack(
         clipBehavior: Clip.none,
@@ -54,9 +58,9 @@ class MenudoHeroCard extends StatelessWidget {
             right: -20,
             top: -20,
             child: Icon(
-              Icons.pie_chart_sharp,
-              size: 120,
-              color: Colors.white.withValues(alpha: 0.08),
+              CupertinoIcons.chart_pie_fill,
+              size: (120),
+              color: colors.textOnDark.withValues(alpha: 0.08),
             ),
           ),
           // Content

@@ -5,10 +5,12 @@ import 'package:go_router/go_router.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/error_presenter.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_logo.dart';
+import '../../../shared/widgets/menudo_tap_target.dart';
 import '../auth_state.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -60,7 +62,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       SnackBar(
         content: Text(message),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: success ? AppColors.e8 : null,
+        backgroundColor: success ? context.menudo.primary : null,
       ),
     );
   }
@@ -163,16 +165,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Center(
-                  child: MenudoLogo(size: 120, hero: true),
+                Center(
+                  child: MenudoLogo(size: (120), hero: true),
                 ).animate().scale(delay: 120.ms, duration: 360.ms),
-                const SizedBox(height: 24),
+                SizedBox(height: (24)),
                 Text(
                   'Entrar en Menudo',
                   style: MenudoTextStyles.h1,
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 200.ms),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   _appleAvailable
                       ? 'Continúa con Apple o entra con tu correo.'
@@ -182,7 +184,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 260.ms),
-                const SizedBox(height: 28),
+                SizedBox(height: (28)),
                 if (_appleAvailable) ...[
                   IgnorePointer(
                     ignoring: _isLoading,
@@ -198,7 +200,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                   ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.04),
-                  const SizedBox(height: 14),
+                  SizedBox(height: (14)),
                   TextButton(
                     onPressed: _isLoading
                         ? null
@@ -211,16 +213,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       _showEmailForm
                           ? 'Ocultar correo y contraseña'
                           : 'Usar correo y contraseña',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
+                      style: TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ).animate().fadeIn(delay: 340.ms),
                 ],
                 if (!_appleAvailable || _showEmailForm) ...[
-                  const SizedBox(height: 18),
+                  SizedBox(height: (18)),
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.menudo.textOnDark,
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: MenudoColors.border),
                     ),
@@ -234,7 +236,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const SizedBox(height: 14),
+                          SizedBox(height: (14)),
                         ],
                         _AuthField(
                           controller: _emailController,
@@ -242,24 +244,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           hintText: 'correo@ejemplo.com',
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
-                          autofillHints: const [AutofillHints.email],
+                          autofillHints: [AutofillHints.email],
                         ),
-                        const SizedBox(height: 14),
+                        SizedBox(height: (14)),
                         _AuthField(
                           controller: _passwordController,
                           label: 'Contraseña',
                           hintText: 'Tu contraseña',
                           obscureText: _obscurePassword,
                           textInputAction: TextInputAction.done,
-                          autofillHints: const [AutofillHints.password],
-                          suffixIcon: IconButton(
+                          autofillHints: [AutofillHints.password],
+                          suffixIcon: MenudoIconButton(
                             onPressed: () => setState(
                               () => _obscurePassword = !_obscurePassword,
                             ),
                             icon: Icon(
                               _obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
+                                  ? MenudoCupertinoIcons.visibility_off_outlined
+                                  : MenudoCupertinoIcons.visibility_outlined,
                               color: MenudoColors.textMuted,
                             ),
                           ),
@@ -275,13 +277,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               foregroundColor: MenudoColors.primary,
                               padding: const EdgeInsets.only(top: 4),
                             ),
-                            child: const Text(
+                            child: Text(
                               'Olvidé mi contraseña',
                               style: TextStyle(fontWeight: FontWeight.w700),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: (12)),
                         MenudoPrimaryButton(
                           label: _isLoading ? 'Entrando...' : 'Entrar',
                           onTap: _handleEmailLogin,
@@ -291,7 +293,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ).animate().fadeIn(delay: 380.ms).slideY(begin: 0.08),
                 ],
-                const SizedBox(height: 24),
+                SizedBox(height: (24)),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -304,7 +306,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       style: TextButton.styleFrom(
                         foregroundColor: MenudoColors.primary,
                       ),
-                      child: const Text(
+                      child: Text(
                         'Crear cuenta',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
@@ -357,7 +359,7 @@ class _AuthField extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         TextField(
           controller: controller,
           autofocus: autofocus,
@@ -375,19 +377,19 @@ class _AuthField extends StatelessWidget {
               color: MenudoColors.textMuted,
             ),
             filled: true,
-            fillColor: AppColors.g0,
+            fillColor: context.menudo.background,
             suffixIcon: suffixIcon,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: AppColors.g2),
+              borderSide: BorderSide(color: context.menudo.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: AppColors.g2),
+              borderSide: BorderSide(color: context.menudo.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: AppColors.e6, width: 1.5),
+              borderSide: BorderSide(color: AppColors.e6, width: 1.5),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
@@ -466,8 +468,8 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
     return SafeArea(
       top: false,
       child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: context.menudo.textOnDark,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         constraints: BoxConstraints(maxHeight: media.size.height * 0.52),
@@ -483,21 +485,21 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
                   width: 40,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: AppColors.g2,
+                    color: context.menudo.border,
                     borderRadius: BorderRadius.circular(99),
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               Text('Recuperar contraseña', style: MenudoTextStyles.h3),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               Text(
                 'Escribe tu correo y te mandamos el acceso para cambiar tu contraseña.',
                 style: MenudoTextStyles.bodySmall.copyWith(
                   color: MenudoColors.textMuted,
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               _AuthField(
                 controller: _emailController,
                 label: 'Correo',
@@ -507,7 +509,7 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
                 autofocus: true,
                 onSubmitted: (_) => _submit(),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: (18)),
               MenudoPrimaryButton(
                 label: _isSending ? 'Enviando...' : 'Continuar',
                 onTap: _submit,

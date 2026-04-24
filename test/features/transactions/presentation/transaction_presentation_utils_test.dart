@@ -8,6 +8,7 @@ MenudoTransaction _transaction({
   required int id,
   required String tipo,
   required double monto,
+  String moneda = 'DOP',
 }) {
   return MenudoTransaction(
     id: id,
@@ -17,6 +18,7 @@ MenudoTransaction _transaction({
     monto: monto,
     tipo: tipo,
     icono: Icons.circle,
+    moneda: moneda,
   );
 }
 
@@ -60,6 +62,20 @@ void main() {
     final transaction = _transaction(id: 3, tipo: 'transferencia', monto: 500);
 
     expect(formatTransactionAmountLabel(transaction), 'RD\$500');
+  });
+
+  test('formatTransactionAmountLabel prioriza la moneda de la transacción', () {
+    final transaction = _transaction(
+      id: 4,
+      tipo: 'gasto',
+      monto: 500,
+      moneda: 'USD',
+    );
+
+    expect(
+      formatTransactionAmountLabel(transaction, currencyCode: 'DOP'),
+      '-US\$500',
+    );
   });
 
   test('valida gastos mayores que el saldo disponible', () {

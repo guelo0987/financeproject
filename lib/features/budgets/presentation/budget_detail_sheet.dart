@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../core/utils/error_presenter.dart';
@@ -33,10 +34,10 @@ class BudgetDetailSheet extends ConsumerStatefulWidget {
 
 class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   String _tab = "resumen"; // plan, resumen, insights
-  List<BudgetMember> _members = const [];
+  List<BudgetMember> _members = [];
   bool _isLoadingMembers = false;
   String? _membersError;
-  List<BudgetHistorySnapshot> _history = const [];
+  List<BudgetHistorySnapshot> _history = [];
   bool _isLoadingHistory = false;
   bool _isLoadingMoreHistory = false;
   bool _historyLoaded = false;
@@ -98,7 +99,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   }
 
   Future<void> _openBudgetEditor() async {
-    HapticFeedback.lightImpact();
+    MenudoHaptics.light();
     final navigator = Navigator.of(context);
     MenudoBudget latestBudget = widget.budget;
     for (final budget in ref.read(effectiveBudgetsProvider)) {
@@ -130,8 +131,8 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         return SafeArea(
           top: false,
           child: Container(
-            decoration: const BoxDecoration(
-              color: AppColors.g0,
+            decoration: BoxDecoration(
+              color: context.menudo.background,
               borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
             ),
             padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + safeBottom),
@@ -144,35 +145,35 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.g3,
+                      color: context.menudo.textMuted,
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
-                const Center(
+                SizedBox(height: (18)),
+                Center(
                   child: Text(
                     'Eliminar presupuesto',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w900,
-                      color: AppColors.e8,
+                      color: context.menudo.textMain,
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   'Esto borrará ${widget.budget.nombre} y todo lo relacionado.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     height: 1.4,
-                    color: AppColors.g5,
+                    color: context.menudo.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: (16)),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
@@ -183,7 +184,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                       color: AppColors.o5.withValues(alpha: 0.14),
                     ),
                   ),
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -191,7 +192,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w900,
-                          color: AppColors.e8,
+                          color: context.menudo.textMain,
                         ),
                       ),
                       SizedBox(height: 8),
@@ -200,14 +201,14 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                         style: TextStyle(
                           fontSize: 13,
                           height: 1.45,
-                          color: AppColors.g5,
+                          color: context.menudo.textSecondary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: (18)),
                 Row(
                   children: [
                     Expanded(
@@ -216,19 +217,19 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                           minimumSize: const Size.fromHeight(52),
                         ),
                         onPressed: () => Navigator.of(sheetContext).pop(false),
-                        child: const Text('Cancelar'),
+                        child: Text('Cancelar'),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: (12)),
                     Expanded(
                       child: FilledButton(
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.r5,
-                          foregroundColor: Colors.white,
+                          foregroundColor: context.menudo.textOnDark,
                           minimumSize: const Size.fromHeight(52),
                         ),
                         onPressed: () => Navigator.of(sheetContext).pop(true),
-                        child: const Text('Sí, eliminar'),
+                        child: Text('Sí, eliminar'),
                       ),
                     ),
                   ],
@@ -269,8 +270,8 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         return SafeArea(
           top: false,
           child: Container(
-            decoration: const BoxDecoration(
-              color: AppColors.g0,
+            decoration: BoxDecoration(
+              color: context.menudo.background,
               borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
             ),
             padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + safeBottom),
@@ -283,86 +284,86 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.g3,
+                      color: context.menudo.textMuted,
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
-                const Text(
+                SizedBox(height: (18)),
+                Text(
                   'Salir del presupuesto',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.e8,
+                    color: context.menudo.textMain,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   'Se quitará de tu lista, pero seguirá intacto para quien lo creó y para el resto del equipo.',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     height: 1.4,
-                    color: AppColors.g5,
+                    color: context.menudo.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: (14)),
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: context.menudo.surface,
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: AppColors.g2),
+                    border: Border.all(color: context.menudo.border),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        width: 34,
-                        height: 34,
+                        width: (34),
+                        height: (34),
                         decoration: BoxDecoration(
-                          color: AppColors.g1,
+                          color: context.menudo.surface,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         alignment: Alignment.center,
-                        child: const Icon(
-                          LucideIcons.users,
-                          size: 15,
-                          color: AppColors.e8,
+                        child: Icon(
+                          MenudoCupertinoIcons.users,
+                          size: (15),
+                          color: context.menudo.textMain,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: (12)),
                       Expanded(
                         child: Text(
                           _currentBudget().nombre,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.e8,
+                            color: context.menudo.textMain,
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: (18)),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(sheetContext).pop(false),
-                        child: const Text('Quedarme'),
+                        child: Text('Quedarme'),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: (12)),
                     Expanded(
                       child: FilledButton(
                         style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.e8,
-                          foregroundColor: Colors.white,
+                          backgroundColor: context.menudo.primary,
+                          foregroundColor: context.menudo.textOnDark,
                         ),
                         onPressed: () => Navigator.of(sheetContext).pop(true),
-                        child: const Text('Salir'),
+                        child: Text('Salir'),
                       ),
                     ),
                   ],
@@ -394,7 +395,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   }
 
   Future<void> _openBudgetActions() async {
-    HapticFeedback.lightImpact();
+    MenudoHaptics.light();
     final currentBudget = _currentBudget();
     final currentUserId = int.tryParse(ref.read(authProvider).userId ?? '');
     final isOwner = _isCurrentUserOwner(currentBudget, currentUserId);
@@ -406,8 +407,8 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.g0,
+        decoration: BoxDecoration(
+          color: context.menudo.background,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: SafeArea(
@@ -421,28 +422,28 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.g3,
+                    color: context.menudo.textMuted,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: (20)),
                 _BudgetActionOption(
-                  icon: LucideIcons.pencil,
+                  icon: MenudoCupertinoIcons.pencil,
                   label: 'Editar presupuesto',
                   onTap: () => Navigator.pop(sheetContext, 'edit'),
                 ),
                 if (isOwner) ...[
-                  const SizedBox(height: 10),
+                  SizedBox(height: (10)),
                   _BudgetActionOption(
-                    icon: LucideIcons.trash2,
+                    icon: MenudoCupertinoIcons.trash2,
                     label: 'Eliminar presupuesto',
                     color: AppColors.r5,
                     onTap: () => Navigator.pop(sheetContext, 'delete'),
                   ),
                 ] else if (canLeave) ...[
-                  const SizedBox(height: 10),
+                  SizedBox(height: (10)),
                   _BudgetActionOption(
-                    icon: LucideIcons.logOut,
+                    icon: MenudoCupertinoIcons.logOut,
                     label: 'Salir del presupuesto',
                     color: AppColors.o5,
                     onTap: () => Navigator.pop(sheetContext, 'leave'),
@@ -497,7 +498,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   }
 
   Future<void> _openMembersManager() async {
-    HapticFeedback.lightImpact();
+    MenudoHaptics.light();
     final updatedMembers = await showModalBottomSheet<List<BudgetMember>>(
       context: context,
       useRootNavigator: true,
@@ -522,7 +523,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   }
 
   void _resetHistoryState() {
-    _history = const [];
+    _history = [];
     _isLoadingHistory = false;
     _isLoadingMoreHistory = false;
     _historyLoaded = false;
@@ -581,7 +582,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   }
 
   void _onTabChanged(String value) {
-    HapticFeedback.selectionClick();
+    MenudoHaptics.selection();
     setState(() => _tab = value);
     if (value == 'insights') {
       _ensureHistoryLoaded();
@@ -603,11 +604,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     }
   }
 
-  String _fmtAmount(
-    double value, {
-    String currency = 'DOP',
-    bool signed = false,
-  }) {
+  String _fmtAmount(double value, {String currency = '', bool signed = false}) {
     return formatMoney(value, currency: currency, signed: signed);
   }
 
@@ -711,7 +708,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
             label: resolvedCategory?.nombre ?? 'Sin categoría',
             parentLabel: parentLabel,
             icon: resolvedCategory?.icono ?? transaction.icono,
-            color: resolvedCategory?.color ?? AppColors.g4,
+            color: resolvedCategory?.color ?? context.menudo.textMuted,
           );
 
       seed.total += transaction.monto.abs();
@@ -741,7 +738,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     List<_BudgetExpenseBreakdownItem> items,
   ) {
     if (items.isEmpty) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.only(top: 18),
         child: _InlineInfoCard(
           text:
@@ -758,9 +755,9 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       margin: const EdgeInsets.only(top: 18),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: context.menudo.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -768,38 +765,38 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: (36),
+                height: (36),
                 decoration: BoxDecoration(
                   color: AppColors.o5.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
-                child: const Icon(
-                  LucideIcons.pieChart,
-                  size: 16,
+                child: Icon(
+                  MenudoCupertinoIcons.pieChart,
+                  size: (16),
                   color: AppColors.o5,
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: (12)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Gasto por categoría',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.e8,
+                        color: context.menudo.textMain,
                       ),
                     ),
                     Text(
                       '$totalMovements movimiento${totalMovements == 1 ? '' : 's'} en el ciclo actual',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.g4,
+                        color: context.menudo.textMuted,
                       ),
                     ),
                   ],
@@ -807,7 +804,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
               ),
               Text(
                 _fmt(totalSpent),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
                   color: AppColors.o5,
@@ -815,7 +812,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: (16)),
           ...visibleItems.asMap().entries.map((entry) {
             final item = entry.value;
             final share = totalSpent <= 0 ? 0.0 : item.total / totalSpent;
@@ -837,13 +834,13 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
             );
           }),
           if (items.length > visibleItems.length) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: (12)),
             Text(
               '+${items.length - visibleItems.length} categoría${items.length - visibleItems.length == 1 ? '' : 's'} más',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: AppColors.g4,
+                color: context.menudo.textMuted,
               ),
             ),
           ],
@@ -863,7 +860,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
           ..sort((a, b) => b.actual.compareTo(a.actual));
 
     if (visibleSources.isEmpty) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.only(top: 18),
         child: _InlineInfoCard(
           text:
@@ -881,9 +878,9 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       margin: const EdgeInsets.only(top: 18),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: context.menudo.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -891,33 +888,33 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: (36),
+                height: (36),
                 decoration: BoxDecoration(
                   color: AppColors.e6.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
-                child: const Icon(
-                  LucideIcons.trendingUp,
-                  size: 16,
+                child: Icon(
+                  MenudoCupertinoIcons.trendingUp,
+                  size: (16),
                   color: AppColors.e6,
                 ),
               ),
-              const SizedBox(width: 12),
-              const Expanded(
+              SizedBox(width: (12)),
+              Expanded(
                 child: Text(
                   'Ingresos por categoría',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.e8,
+                    color: context.menudo.textMain,
                   ),
                 ),
               ),
               Text(
                 _fmt(totalActual),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
                   color: AppColors.e6,
@@ -925,7 +922,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: (16)),
           ...visibleSources.take(6).toList().asMap().entries.map((entry) {
             final source = entry.value;
             final visibleCount = min(visibleSources.length, 6);
@@ -960,13 +957,13 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
             );
           }),
           if (visibleSources.length > 6) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: (12)),
             Text(
               '+${visibleSources.length - 6} categoría${visibleSources.length - 6 == 1 ? '' : 's'} más',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: AppColors.g4,
+                color: context.menudo.textMuted,
               ),
             ),
           ],
@@ -1017,19 +1014,21 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     final double left = displayBudget.availableToSpend;
     final bool isShared =
         _members.length > 1 || displayBudget.espacioId != null;
+    final currentUserId = int.tryParse(ref.watch(authProvider).userId ?? '');
+    final canDeleteBudget = _isCurrentUserOwner(displayBudget, currentUserId);
     final media = MediaQuery.of(context);
     final sheetHeight =
         media.size.height * (media.size.height < 860 ? 0.96 : 0.92);
 
     return Container(
       height: sheetHeight,
-      decoration: const BoxDecoration(
-        color: AppColors.g0,
+      decoration: BoxDecoration(
+        color: context.menudo.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
       ),
       child: Column(
         children: [
-          GestureDetector(
+          MenudoGestureDetector(
             behavior: HitTestBehavior.translucent,
             onVerticalDragUpdate: _onDismissDragUpdate,
             onVerticalDragEnd: _onDismissDragEnd,
@@ -1039,7 +1038,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(top: 12, bottom: 18),
                 decoration: BoxDecoration(
-                  color: AppColors.g2,
+                  color: context.menudo.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1058,14 +1057,14 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                         children: [
                           Text(
                             displayBudget.nombre,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.w900,
-                              color: AppColors.e8,
+                              color: context.menudo.textMain,
                               letterSpacing: -0.8,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -1080,17 +1079,25 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: (12)),
                     _HeaderAction(
-                      icon: LucideIcons.moreHorizontal,
+                      icon: MenudoCupertinoIcons.moreHorizontal,
                       onTap: _openBudgetActions,
                     ),
-                    const SizedBox(width: 8),
+                    if (canDeleteBudget) ...[
+                      SizedBox(width: 8),
+                      _HeaderAction(
+                        icon: MenudoCupertinoIcons.trash2,
+                        isDestructive: true,
+                        onTap: _deleteBudget,
+                      ),
+                    ],
+                    SizedBox(width: 8),
                     _HeaderAction(
-                      icon: LucideIcons.plus,
+                      icon: MenudoCupertinoIcons.plus,
                       isPrimary: true,
                       onTap: () {
-                        HapticFeedback.mediumImpact();
+                        MenudoHaptics.medium();
                         ref
                             .read(budgetControllerProvider.notifier)
                             .selectBudgetLocally(displayBudget.id);
@@ -1105,7 +1112,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: (18)),
                 _BudgetOverviewCard(
                       budget: displayBudget,
                       spent: spent,
@@ -1115,9 +1122,9 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                     .animate()
                     .fadeIn(duration: 320.ms)
                     .slideY(begin: 0.03, end: 0),
-                const SizedBox(height: 16),
+                SizedBox(height: (16)),
                 _TabSwitcher(activeTab: _tab, onChanged: _onTabChanged),
-                const SizedBox(height: 18),
+                SizedBox(height: (18)),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 220),
                   switchInCurve: Curves.easeOutCubic,
@@ -1185,9 +1192,9 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       margin: const EdgeInsets.only(top: 18),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: context.menudo.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1200,16 +1207,16 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.g1,
+                      color: context.menudo.surface,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
-                      LucideIcons.users,
-                      size: 16,
+                    child: Icon(
+                      MenudoCupertinoIcons.users,
+                      size: (16),
                       color: AppColors.e6,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: (12)),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1218,14 +1225,14 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.e8,
+                          color: context.menudo.textMain,
                         ),
                       ),
                       Text(
                         subtitle,
                         style: TextStyle(
                           fontSize: 11,
-                          color: AppColors.g4,
+                          color: context.menudo.textMuted,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1239,9 +1246,9 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: (18)),
           if (_isLoadingMembers && previewMembers.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
               child: MenudoInlineLoadingCard(
                 label: 'Cargando personas',
@@ -1273,9 +1280,9 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   '+$extraMembers miembro${extraMembers == 1 ? '' : 's'} más',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.g4,
+                    color: context.menudo.textMuted,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1298,7 +1305,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(2, 26, 0, 10),
           child: _BudgetSectionTitle(title: 'Categorías del presupuesto'),
         ),
@@ -1316,7 +1323,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
               .slideX(begin: 0.05, end: 0);
         }),
         if (extraExpenseCategories.isNotEmpty) ...[
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(2, 18, 0, 10),
             child: _BudgetSectionTitle(title: 'Otros gastos fuera del plan'),
           ),
@@ -1328,27 +1335,31 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
             ),
           ),
         ],
-        const SizedBox(height: 8),
-        GestureDetector(
+        SizedBox(height: 8),
+        MenudoGestureDetector(
           onTap: _openBudgetEditor,
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 15),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.menudo.surface,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.g2),
+              border: Border.all(color: context.menudo.border),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(LucideIcons.plus, size: 20, color: AppColors.g5),
+              children: [
+                Icon(
+                  MenudoCupertinoIcons.plus,
+                  size: (20),
+                  color: context.menudo.textSecondary,
+                ),
                 SizedBox(width: 8),
                 Text(
                   "Añadir categoría",
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.g5,
+                    color: context.menudo.textSecondary,
                   ),
                 ),
               ],
@@ -1398,7 +1409,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       children: [
         if (incomeSources.isNotEmpty) ...[
           const _BudgetSectionTitle(title: 'Ingresos planificados'),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           _buildPlanGrid(
             context,
             incomeSources
@@ -1411,23 +1422,23 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                 )
                 .toList(),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: (16)),
         ] else ...[
           const _BudgetSectionTitle(title: 'Ingresos planificados'),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           _PlanStateCard(
-            icon: LucideIcons.trendingUp,
+            icon: MenudoCupertinoIcons.trendingUp,
             title: 'Todavía no has definido ingresos',
             message:
                 'Añade ingresos esperados para que este plan se entienda mejor de un vistazo.',
             actionLabel: 'Editar presupuesto',
             onTap: _openBudgetEditor,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: (16)),
         ],
         if (otherIncomeSources.isNotEmpty) ...[
           const _BudgetSectionTitle(title: 'Ingresos fuera del plan'),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           _buildPlanGrid(
             context,
             otherIncomeSources
@@ -1440,13 +1451,13 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                 )
                 .toList(),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: (16)),
         ],
         const _BudgetSectionTitle(title: 'Categorías con límite'),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         if (expenseCategories.isEmpty)
           _PlanStateCard(
-            icon: LucideIcons.layoutGrid,
+            icon: MenudoCupertinoIcons.layoutGrid,
             title: 'Aún no has organizado este plan',
             message:
                 'Agrega categorías con límite para repartir mejor lo que quieres gastar.',
@@ -1467,9 +1478,9 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                 .toList(),
           ),
         if (extraExpenseCategories.isNotEmpty) ...[
-          const SizedBox(height: 16),
+          SizedBox(height: (16)),
           const _BudgetSectionTitle(title: 'Gastos fuera del plan'),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           _buildPlanGrid(
             context,
             extraExpenseCategories
@@ -1483,11 +1494,11 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                 .toList(),
           ),
         ] else ...[
-          const SizedBox(height: 16),
+          SizedBox(height: (16)),
           const _BudgetSectionTitle(title: 'Gastos fuera del plan'),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           const _PlanStateCard(
-            icon: LucideIcons.shieldCheck,
+            icon: MenudoCupertinoIcons.shieldCheck,
             title: 'Todo va dentro del plan',
             message:
                 'Cuando aparezca un gasto fuera de las categorías configuradas, lo verás aquí.',
@@ -1505,7 +1516,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       children: [
         for (var i = 0; i < children.length; i++) ...[
           children[i],
-          if (i != children.length - 1) const SizedBox(height: 12),
+          if (i != children.length - 1) SizedBox(height: (12)),
         ],
       ],
     );
@@ -1542,7 +1553,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                 'Este presupuesto es puntual, así que no genera cierres automáticos.',
           )
         else if (_isLoadingHistory && _history.isEmpty)
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: 28),
             child: MenudoInlineLoadingCard(label: 'Cargando cierres'),
           )
@@ -1570,7 +1581,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
             ),
           ),
           if (_historyHasMore) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: (16)),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
@@ -1578,8 +1589,8 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                     ? null
                     : () => _loadHistory(loadMore: true),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.e8,
-                  side: const BorderSide(color: AppColors.g2),
+                  foregroundColor: context.menudo.textMain,
+                  side: BorderSide(color: context.menudo.border),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(18),
@@ -1587,7 +1598,7 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                 ),
                 child: Text(
                   _isLoadingMoreHistory ? 'Cargando...' : 'Cargar más cierres',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                  style: TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
             ),
@@ -1620,7 +1631,9 @@ class _BudgetOverviewCard extends StatelessWidget {
     final hasActualIncome = actualIncome > 0;
     final primaryValue = hasActualIncome ? actualIncome - spent : left;
     final usage = planBase > 0 ? (spent / planBase).clamp(0.0, 1.0) : 0.0;
-    final accentColor = primaryValue < 0 ? AppColors.r5 : AppColors.e8;
+    final accentColor = primaryValue < 0
+        ? AppColors.r5
+        : context.menudo.textMain;
     final spentSummary = hasActualIncome
         ? '${fmt(spent)} gastados de ${fmt(actualIncome)} recibidos'
         : planBase > 0
@@ -1640,9 +1653,9 @@ class _BudgetOverviewCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: context.menudo.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1658,7 +1671,7 @@ class _BudgetOverviewCard extends StatelessWidget {
                   color: AppColors.e1,
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: const Text(
+                child: Text(
                   'PRESUPUESTO',
                   style: TextStyle(
                     fontSize: 10,
@@ -1670,16 +1683,16 @@ class _BudgetOverviewCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: (14)),
           Text(
             hasActualIncome ? 'Balance actual' : 'Disponible del plan',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: AppColors.g4,
+              color: context.menudo.textMuted,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           SizedBox(
             height: 42,
             child: FittedBox(
@@ -1696,33 +1709,33 @@ class _BudgetOverviewCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             spentSummary,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppColors.g5,
+              color: context.menudo.textSecondary,
             ),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: (14)),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
               value: usage,
               minHeight: 8,
-              backgroundColor: AppColors.g1,
+              backgroundColor: context.menudo.surface,
               valueColor: AlwaysStoppedAnimation<Color>(
                 primaryValue < 0 ? AppColors.r5 : AppColors.e6,
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: (16)),
           Row(
             children: [
               for (var i = 0; i < metrics.length; i++) ...[
                 Expanded(child: metrics[i]),
-                if (i != metrics.length - 1) const SizedBox(width: 10),
+                if (i != metrics.length - 1) SizedBox(width: (10)),
               ],
             ],
           ),
@@ -1743,9 +1756,9 @@ class _OverviewMetric extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
-        color: AppColors.g0,
+        color: context.menudo.background,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.g2.withValues(alpha: 0.7)),
+        border: Border.all(color: context.menudo.border.withValues(alpha: 0.7)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1754,24 +1767,24 @@ class _OverviewMetric extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w700,
-              color: AppColors.g4,
+              color: context.menudo.textMuted,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           SizedBox(
-            height: 18,
+            height: (18),
             child: FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.e8,
+                  color: context.menudo.textMain,
                 ),
               ),
             ),
@@ -1792,15 +1805,15 @@ class _SheetMetaPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.g1,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w800,
-          color: AppColors.g5,
+          color: context.menudo.textSecondary,
         ),
       ),
     );
@@ -1811,31 +1824,46 @@ class _HeaderAction extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   final bool isPrimary;
+  final bool isDestructive;
 
   const _HeaderAction({
     required this.icon,
     required this.onTap,
     this.isPrimary = false,
+    this.isDestructive = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final colors = context.menudo;
+    final background = isDestructive
+        ? colors.dangerLight
+        : isPrimary
+        ? colors.primary
+        : colors.surface;
+    final foreground = isDestructive
+        ? colors.danger
+        : isPrimary
+        ? colors.textOnDark
+        : colors.textMain;
+    final borderColor = isDestructive
+        ? colors.danger.withValues(alpha: 0.24)
+        : isPrimary
+        ? colors.primary
+        : colors.border;
+
+    return MenudoGestureDetector(
       onTap: onTap,
       child: Container(
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: isPrimary ? AppColors.e8 : Colors.white,
+          color: background,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: isPrimary ? AppColors.e8 : AppColors.g2),
+          border: Border.all(color: borderColor),
         ),
         alignment: Alignment.center,
-        child: Icon(
-          icon,
-          color: isPrimary ? Colors.white : AppColors.e8,
-          size: 18,
-        ),
+        child: Icon(icon, color: foreground, size: (18)),
       ),
     );
   }
@@ -1846,35 +1874,38 @@ class _BudgetActionOption extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
-    this.color = AppColors.e8,
+    this.color,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final Color color;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final colors = context.menudo;
+    final resolvedColor = color ?? colors.textMain;
+
+    return MenudoGestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.surface,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.g2),
+          border: Border.all(color: colors.border),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: color),
-            const SizedBox(width: 12),
+            Icon(icon, size: (18), color: resolvedColor),
+            SizedBox(width: (12)),
             Text(
               label,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
-                color: color,
+                color: resolvedColor,
               ),
             ),
           ],
@@ -1892,11 +1923,14 @@ class _TabSwitcher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: AppColors.g1,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.border),
       ),
       child: Row(
         children: [
@@ -1938,25 +1972,27 @@ class _TabItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Expanded(
-      child: GestureDetector(
+      child: MenudoGestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isActive ? Colors.white : Colors.transparent,
+            color: isActive ? colors.surfaceElevated : Colors.transparent,
             borderRadius: BorderRadius.circular(13),
             border: Border.all(
-              color: isActive ? AppColors.g2 : Colors.transparent,
+              color: isActive ? colors.border : Colors.transparent,
             ),
           ),
           alignment: Alignment.center,
           child: Text(
             label,
             style: TextStyle(
-              color: isActive ? AppColors.e8 : AppColors.g4,
+              color: isActive ? colors.textMain : colors.textSecondary,
               fontWeight: isActive ? FontWeight.w800 : FontWeight.w700,
               fontSize: 12,
             ),
@@ -1977,24 +2013,24 @@ class _MemberRow extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 38,
-          height: 38,
+          width: (38),
+          height: (38),
           decoration: BoxDecoration(
             color: member.c,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
+            border: Border.all(color: context.menudo.textOnDark, width: 2),
           ),
           alignment: Alignment.center,
           child: Text(
             member.i,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: context.menudo.textOnDark,
               fontSize: 13,
               fontWeight: FontWeight.w900,
             ),
           ),
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: (14)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2004,10 +2040,10 @@ class _MemberRow extends StatelessWidget {
                   Expanded(
                     child: Text(
                       member.n,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.e8,
+                        color: context.menudo.textMain,
                       ),
                     ),
                   ),
@@ -2015,19 +2051,21 @@ class _MemberRow extends StatelessWidget {
                     label: member.isOwner
                         ? 'DUEÑO'
                         : (member.role ?? 'MIEMBRO').toUpperCase(),
-                    color: member.isOwner ? AppColors.e8 : AppColors.o5,
+                    color: member.isOwner
+                        ? context.menudo.textMain
+                        : AppColors.o5,
                     bgColor: member.isOwner ? AppColors.e1 : AppColors.o1,
                     isSmall: true,
                   ),
                 ],
               ),
               if ((member.email ?? '').isNotEmpty) ...[
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   member.email!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.g4,
+                    color: context.menudo.textMuted,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -2064,7 +2102,7 @@ class _InlineInfoCard extends StatelessWidget {
             ? AppColors.r1
             : isSuccess
             ? AppColors.e1
-            : AppColors.g1,
+            : context.menudo.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -2080,13 +2118,13 @@ class _InlineInfoCard extends StatelessWidget {
                     ? AppColors.r5
                     : isSuccess
                     ? AppColors.e6
-                    : AppColors.g5,
+                    : context.menudo.textSecondary,
               ),
             ),
           ),
           if (actionLabel != null && onTap != null) ...[
-            const SizedBox(width: 12),
-            GestureDetector(
+            SizedBox(width: (12)),
+            MenudoGestureDetector(
               onTap: onTap,
               child: Text(
                 actionLabel!,
@@ -2097,7 +2135,7 @@ class _InlineInfoCard extends StatelessWidget {
                       ? AppColors.r5
                       : isSuccess
                       ? AppColors.e6
-                      : AppColors.e8,
+                      : context.menudo.textMain,
                 ),
               ),
             ),
@@ -2129,10 +2167,12 @@ class _PlanStateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = tone == _PlanStateTone.success ? AppColors.e6 : AppColors.e8;
+    final accent = tone == _PlanStateTone.success
+        ? AppColors.e6
+        : context.menudo.textMain;
     final background = tone == _PlanStateTone.success
         ? AppColors.e1
-        : AppColors.g1;
+        : context.menudo.surface;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -2148,38 +2188,38 @@ class _PlanStateCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.9),
+              color: context.menudo.surface.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(14),
             ),
             alignment: Alignment.center,
-            child: Icon(icon, size: 20, color: accent),
+            child: Icon(icon, size: (20), color: accent),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: (14)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.e8,
+                    color: context.menudo.textMain,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 Text(
                   message,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     height: 1.35,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.g5,
+                    color: context.menudo.textSecondary,
                   ),
                 ),
                 if (actionLabel != null && onTap != null) ...[
-                  const SizedBox(height: 12),
-                  GestureDetector(
+                  SizedBox(height: (12)),
+                  MenudoGestureDetector(
                     onTap: onTap,
                     child: Text(
                       actionLabel!,
@@ -2229,7 +2269,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
   ];
 
   final TextEditingController _inviteController = TextEditingController();
-  List<BudgetMember> _members = const [];
+  List<BudgetMember> _members = [];
   Map<String, _InviteCooldownEntry> _inviteCooldowns = const {};
   bool _isLoading = false;
   bool _isInviting = false;
@@ -2412,16 +2452,16 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Quitar miembro'),
+        title: Text('Quitar miembro'),
         content: Text('${member.n} perderá acceso a este presupuesto.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
+            child: Text('Cancelar'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Sí, quitar'),
+            child: Text('Sí, quitar'),
           ),
         ],
       ),
@@ -2559,20 +2599,20 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.82,
-      decoration: const BoxDecoration(
-        color: AppColors.g0,
+      decoration: BoxDecoration(
+        color: context.menudo.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: SafeArea(
         top: false,
         child: Column(
           children: [
-            const SizedBox(height: 12),
+            SizedBox(height: (12)),
             Container(
               width: 42,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.g3,
+                color: context.menudo.textMuted,
                 borderRadius: BorderRadius.circular(999),
               ),
             ),
@@ -2580,7 +2620,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -2589,7 +2629,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                           style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
-                            color: AppColors.e8,
+                            color: context.menudo.textMain,
                             letterSpacing: -0.4,
                           ),
                         ),
@@ -2598,16 +2638,16 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                           'Personas con acceso a este presupuesto',
                           style: TextStyle(
                             fontSize: 13,
-                            color: AppColors.g4,
+                            color: context.menudo.textMuted,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  IconButton(
+                  MenudoIconButton(
                     onPressed: _closeSheet,
-                    icon: const Icon(LucideIcons.x, size: 20),
+                    icon: Icon(MenudoCupertinoIcons.x, size: (20)),
                   ),
                 ],
               ),
@@ -2623,31 +2663,31 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: context.menudo.surface,
                           borderRadius: BorderRadius.circular(22),
-                          border: Border.all(color: AppColors.g2),
+                          border: Border.all(color: context.menudo.border),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Invitar por correo',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.e8,
+                                color: context.menudo.textMain,
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            const Text(
+                            SizedBox(height: 6),
+                            Text(
                               'Comparte acceso sin salir de aquí.',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.g4,
+                                color: context.menudo.textMuted,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(height: 14),
+                            SizedBox(height: (14)),
                             Row(
                               children: [
                                 Expanded(
@@ -2661,7 +2701,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                     decoration: InputDecoration(
                                       hintText: 'correo@ejemplo.com',
                                       filled: true,
-                                      fillColor: AppColors.g1,
+                                      fillColor: context.menudo.surface,
                                       contentPadding:
                                           const EdgeInsets.symmetric(
                                             horizontal: 16,
@@ -2677,14 +2717,14 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(16),
-                                        borderSide: const BorderSide(
+                                        borderSide: BorderSide(
                                           color: AppColors.e6,
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 10),
+                                SizedBox(width: (10)),
                                 SizedBox(
                                   height: 52,
                                   child: FilledButton(
@@ -2693,7 +2733,8 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                         : null,
                                     style: FilledButton.styleFrom(
                                       backgroundColor: AppColors.e6,
-                                      foregroundColor: Colors.white,
+                                      foregroundColor:
+                                          context.menudo.textOnDark,
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 16,
                                       ),
@@ -2702,12 +2743,12 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                       ),
                                     ),
                                     child: _isInviting
-                                        ? const SizedBox(
-                                            width: 16,
-                                            height: 16,
+                                        ? SizedBox(
+                                            width: (16),
+                                            height: (16),
                                             child: CircularProgressIndicator(
                                               strokeWidth: 2,
-                                              color: Colors.white,
+                                              color: context.menudo.textOnDark,
                                             ),
                                           )
                                         : activeInviteCooldown != null
@@ -2715,25 +2756,25 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                             _formatInviteCountdown(
                                               activeInviteCooldown,
                                             ),
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w800,
                                             ),
                                           )
-                                        : const Icon(
-                                            LucideIcons.send,
-                                            size: 18,
+                                        : Icon(
+                                            MenudoCupertinoIcons.send,
+                                            size: (18),
                                           ),
                                   ),
                                 ),
                               ],
                             ),
                             if (cooldownHelperText != null) ...[
-                              const SizedBox(height: 12),
+                              SizedBox(height: (12)),
                               _InlineInfoCard(text: cooldownHelperText),
                             ],
                             if (_inviteFeedback != null) ...[
-                              const SizedBox(height: 12),
+                              SizedBox(height: (12)),
                               _InlineInfoCard(
                                 text: _inviteFeedback!,
                                 tone: _inviteFeedbackTone,
@@ -2742,10 +2783,10 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: (16)),
                     ],
                     if (_isLoading && _members.isEmpty)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(top: 40),
                         child: MenudoInlineLoadingCard(
                           label: 'Cargando equipo',
@@ -2782,9 +2823,9 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.menudo.surface,
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.g2),
+                            border: Border.all(color: context.menudo.border),
                           ),
                           child: Row(
                             children: [
@@ -2798,13 +2839,13 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                 alignment: Alignment.center,
                                 child: Text(
                                   member.i,
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: context.menudo.textOnDark,
                                     fontWeight: FontWeight.w900,
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              SizedBox(width: (12)),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2814,10 +2855,10 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                         Expanded(
                                           child: Text(
                                             member.n,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w800,
-                                              color: AppColors.e8,
+                                              color: context.menudo.textMain,
                                             ),
                                           ),
                                         ),
@@ -2827,7 +2868,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                               : (member.role ?? 'MIEMBRO')
                                                     .toUpperCase(),
                                           color: member.isOwner
-                                              ? AppColors.e8
+                                              ? context.menudo.textMain
                                               : AppColors.o5,
                                           bgColor: member.isOwner
                                               ? AppColors.e1
@@ -2837,12 +2878,12 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                       ],
                                     ),
                                     if ((member.email ?? '').isNotEmpty) ...[
-                                      const SizedBox(height: 4),
+                                      SizedBox(height: 4),
                                       Text(
                                         member.email!,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 12,
-                                          color: AppColors.g4,
+                                          color: context.menudo.textMuted,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -2851,27 +2892,27 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                 ),
                               ),
                               if (canRemove) ...[
-                                const SizedBox(width: 10),
+                                SizedBox(width: (10)),
                                 TextButton(
                                   onPressed: isRemoving
                                       ? null
                                       : () => _removeMember(member),
                                   child: isRemoving
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
+                                      ? SizedBox(
+                                          width: (16),
+                                          height: (16),
                                           child: CircularProgressIndicator(
                                             strokeWidth: 2,
                                           ),
                                         )
-                                      : const Text('Quitar'),
+                                      : Text('Quitar'),
                                 ),
                               ],
                             ],
                           ),
                         );
                       }),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     _InlineInfoCard(
                       text: _canManageMembers
                           ? 'Puedes invitar nuevos colaboradores o quitar acceso a los miembros actuales.'
@@ -2948,10 +2989,12 @@ class _CategoryDetailCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: over ? AppColors.o5.withValues(alpha: 0.3) : AppColors.g2,
+          color: over
+              ? AppColors.o5.withValues(alpha: 0.3)
+              : context.menudo.border,
         ),
       ),
       child: Column(
@@ -2965,9 +3008,9 @@ class _CategoryDetailCard extends StatelessWidget {
                   color: cat.color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(cat.icono, size: 20, color: cat.color),
+                child: Icon(cat.icono, size: (20), color: cat.color),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: (14)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2975,25 +3018,25 @@ class _CategoryDetailCard extends StatelessWidget {
                     if (visibleParentLabel.isNotEmpty)
                       Text(
                         visibleParentLabel,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.g4,
+                          color: context.menudo.textMuted,
                         ),
                       ),
                     Text(
                       cat.label,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.e8,
+                        color: context.menudo.textMain,
                       ),
                     ),
                     Text(
                       "Límite: ${fmt(cat.limite)}",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.g4,
+                        color: context.menudo.textMuted,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -3009,28 +3052,28 @@ class _CategoryDetailCard extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: (16)),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: pct,
               minHeight: 8,
-              backgroundColor: AppColors.g1,
+              backgroundColor: context.menudo.surface,
               valueColor: AlwaysStoppedAnimation<Color>(
                 over ? AppColors.o5 : cat.color,
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: (10)),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 "Gastado: ${fmt(cat.gastado)}",
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.g5,
+                  color: context.menudo.textSecondary,
                 ),
               ),
               Text(
@@ -3071,15 +3114,15 @@ class _UnplannedExpenseCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: context.menudo.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _BudgetPlanIcon(color: AppColors.o5, icon: cat.icono),
-          const SizedBox(width: 14),
+          SizedBox(width: (14)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -3088,45 +3131,45 @@ class _UnplannedExpenseCard extends StatelessWidget {
                   cat.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.e8,
+                    color: context.menudo.textMain,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   visibleParentLabel.isEmpty
                       ? 'Sin tope definido'
                       : '$visibleParentLabel · Sin tope definido',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.g4,
+                    color: context.menudo.textMuted,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: (12)),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 fmt(cat.gastado),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
                   color: AppColors.o5,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: 8),
+              Text(
                 'Sin tope',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.g4,
+                  color: context.menudo.textMuted,
                 ),
               ),
             ],
@@ -3161,10 +3204,12 @@ class _PlanCategoryRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: over ? AppColors.o5.withValues(alpha: 0.24) : AppColors.g2,
+          color: over
+              ? AppColors.o5.withValues(alpha: 0.24)
+              : context.menudo.border,
         ),
       ),
       child: Column(
@@ -3174,7 +3219,7 @@ class _PlanCategoryRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _BudgetPlanIcon(color: cat.color, icon: cat.icono),
-              const SizedBox(width: 14),
+              SizedBox(width: (14)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -3183,27 +3228,27 @@ class _PlanCategoryRow extends StatelessWidget {
                       cat.label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.e8,
+                        color: context.menudo.textMain,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       visibleParentLabel.isEmpty
                           ? 'Límite ${fmt(cat.limite)}'
                           : '$visibleParentLabel · Límite ${fmt(cat.limite)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.g4,
+                        color: context.menudo.textMuted,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: (12)),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -3215,7 +3260,7 @@ class _PlanCategoryRow extends StatelessWidget {
                       color: statusColor,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     over
                         ? 'Se pasó ${fmt(cat.gastado - cat.limite)}'
@@ -3230,34 +3275,34 @@ class _PlanCategoryRow extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: (14)),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
               value: usage.clamp(0.0, 1.0),
               minHeight: 7,
-              backgroundColor: AppColors.g1,
+              backgroundColor: context.menudo.surface,
               valueColor: AlwaysStoppedAnimation<Color>(statusColor),
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: (10)),
           Row(
             children: [
               Text(
                 'Gastado ${fmt(cat.gastado)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.g5,
+                  color: context.menudo.textSecondary,
                 ),
               ),
               const Spacer(),
               Text(
                 'Plan ${fmt(cat.limite)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.g4,
+                  color: context.menudo.textMuted,
                 ),
               ),
             ],
@@ -3293,7 +3338,7 @@ class _IncomePlanRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: source.color.withValues(alpha: 0.16)),
       ),
@@ -3304,7 +3349,7 @@ class _IncomePlanRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _BudgetPlanIcon(color: source.color, icon: source.icono),
-              const SizedBox(width: 14),
+              SizedBox(width: (14)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -3313,13 +3358,13 @@ class _IncomePlanRow extends StatelessWidget {
                       source.label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w900,
-                        color: AppColors.e8,
+                        color: context.menudo.textMain,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       visibleParentLabel.isEmpty
                           ? (source.planned > 0
@@ -3328,16 +3373,16 @@ class _IncomePlanRow extends StatelessWidget {
                           : source.planned > 0
                           ? '$visibleParentLabel · Plan ${fmt(source.planned)}'
                           : '$visibleParentLabel · Sin plan configurado',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.g4,
+                        color: context.menudo.textMuted,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: (12)),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -3349,7 +3394,7 @@ class _IncomePlanRow extends StatelessWidget {
                       color: accent,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     source.difference == 0
                         ? 'En línea'
@@ -3367,19 +3412,19 @@ class _IncomePlanRow extends StatelessWidget {
             ],
           ),
           if (source.planned > 0) ...[
-            const SizedBox(height: 14),
+            SizedBox(height: (14)),
             ClipRRect(
               borderRadius: BorderRadius.circular(999),
               child: LinearProgressIndicator(
                 value: progress.clamp(0.0, 1.0),
                 minHeight: 7,
-                backgroundColor: AppColors.g1,
+                backgroundColor: context.menudo.surface,
                 valueColor: AlwaysStoppedAnimation<Color>(accent),
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: (10)),
           ] else
-            const SizedBox(height: 10),
+            SizedBox(height: (10)),
           Text(
             source.planned <= 0
                 ? 'Este ingreso no tenía monto previsto en tu presupuesto.'
@@ -3418,7 +3463,7 @@ class _BudgetPlanIcon extends StatelessWidget {
         border: Border.all(color: color.withValues(alpha: 0.18)),
       ),
       alignment: Alignment.center,
-      child: Icon(icon, size: 20, color: color),
+      child: Icon(icon, size: (20), color: color),
     );
   }
 }
@@ -3437,10 +3482,10 @@ class _BudgetSectionTitle extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
-              color: AppColors.e8,
+              color: context.menudo.textMain,
             ),
           ),
         ],
@@ -3481,9 +3526,9 @@ class _HistorySnapshotCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: context.menudo.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3501,7 +3546,7 @@ class _HistorySnapshotCard extends StatelessWidget {
                 ),
                 child: Text(
                   _periodLabel(snapshot.periodo).toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
                     color: AppColors.e6,
@@ -3512,24 +3557,24 @@ class _HistorySnapshotCard extends StatelessWidget {
               const Spacer(),
               Text(
                 rangeLabel,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.g4,
+                  color: context.menudo.textMuted,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: (14)),
           Text(
             headlineLabel,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
-              color: AppColors.g4,
+              color: context.menudo.textMuted,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
@@ -3543,39 +3588,41 @@ class _HistorySnapshotCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(
             subtitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: AppColors.g5,
+              color: context.menudo.textSecondary,
             ),
           ),
-          const SizedBox(height: 16),
-          const Divider(height: 1, color: AppColors.g2),
-          const SizedBox(height: 14),
+          SizedBox(height: (16)),
+          Divider(height: 1, thickness: 0.5, color: context.menudo.border),
+          SizedBox(height: (14)),
           _HistoryValue(
             label: 'Ingresó',
             value: fmt(snapshot.ingresosReales),
             color: AppColors.e6,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: (12)),
           _HistoryValue(
             label: 'Gastó',
             value: fmt(snapshot.totalGastos),
             color: AppColors.o5,
           ),
           if (!usesPlannedIncome) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: (12)),
             _HistoryValue(
               label: 'Balance',
               value: fmt(snapshot.balance),
-              color: snapshot.balance >= 0 ? AppColors.e8 : AppColors.r5,
+              color: snapshot.balance >= 0
+                  ? context.menudo.textMain
+                  : AppColors.r5,
             ),
           ],
           if (topCategory != null && topCategory.label.trim().isNotEmpty) ...[
-            const SizedBox(height: 14),
+            SizedBox(height: (14)),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
@@ -3584,16 +3631,16 @@ class _HistorySnapshotCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(topCategory.icono, size: 15, color: AppColors.e6),
-                  const SizedBox(width: 8),
+                  Icon(topCategory.icono, size: (15), color: AppColors.e6),
+                  SizedBox(width: 8),
                   Flexible(
                     child: Text(
                       topCategory.label,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.e8,
+                        color: context.menudo.textMain,
                       ),
                     ),
                   ),
@@ -3602,18 +3649,18 @@ class _HistorySnapshotCard extends StatelessWidget {
             ),
           ],
           if (expenseItems.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            const Divider(height: 1, color: AppColors.g2),
-            const SizedBox(height: 14),
-            const Text(
+            SizedBox(height: (16)),
+            Divider(height: 1, thickness: 0.5, color: context.menudo.border),
+            SizedBox(height: (14)),
+            Text(
               'Gastos por categoría',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
-                color: AppColors.g5,
+                color: context.menudo.textSecondary,
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: (10)),
             ...expenseItems.take(3).toList().asMap().entries.map((entry) {
               final visibleCount = min(expenseItems.length, 3);
               final item = entry.value;
@@ -3652,18 +3699,18 @@ class _HistorySnapshotCard extends StatelessWidget {
             }),
           ],
           if (incomeItems.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            const Divider(height: 1, color: AppColors.g2),
-            const SizedBox(height: 14),
-            const Text(
+            SizedBox(height: (16)),
+            Divider(height: 1, thickness: 0.5, color: context.menudo.border),
+            SizedBox(height: (14)),
+            Text(
               'Ingresos por categoría',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
-                color: AppColors.g5,
+                color: context.menudo.textSecondary,
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: (10)),
             ...incomeItems.take(3).toList().asMap().entries.map((entry) {
               final visibleCount = min(incomeItems.length, 3);
               final item = entry.value;
@@ -3703,18 +3750,18 @@ class _HistorySnapshotCard extends StatelessWidget {
             }),
           ],
           if (snapshot.transacciones.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            const Divider(height: 1, color: AppColors.g2),
-            const SizedBox(height: 14),
-            const Text(
+            SizedBox(height: (16)),
+            Divider(height: 1, thickness: 0.5, color: context.menudo.border),
+            SizedBox(height: (14)),
+            Text(
               'Últimos movimientos',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
-                color: AppColors.g5,
+                color: context.menudo.textSecondary,
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: (10)),
             ...snapshot.transacciones
                 .take(3)
                 .toList()
@@ -3766,10 +3813,10 @@ class _HistoryValue extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: AppColors.g5,
+            color: context.menudo.textSecondary,
           ),
         ),
         const Spacer(),
@@ -3838,16 +3885,20 @@ class _HistoryTransactionRow extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 34,
-          height: 34,
+          width: (34),
+          height: (34),
           decoration: BoxDecoration(
             color: amountColor.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(12),
           ),
           alignment: Alignment.center,
-          child: Icon(transaction.categoriaIcono, size: 16, color: amountColor),
+          child: Icon(
+            transaction.categoriaIcono,
+            size: (16),
+            color: amountColor,
+          ),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: (10)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -3856,29 +3907,29 @@ class _HistoryTransactionRow extends StatelessWidget {
                 transaction.descripcion,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.e8,
+                  color: context.menudo.textMain,
                 ),
               ),
               if (secondaryLabel.isNotEmpty) ...[
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   secondaryLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.g4,
+                    color: context.menudo.textMuted,
                   ),
                 ),
               ],
             ],
           ),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: (10)),
         Text(
           fmt(amount, signed: true),
           style: TextStyle(
@@ -3914,16 +3965,16 @@ class _BudgetExpenseBreakdownRow extends StatelessWidget {
         Row(
           children: [
             Container(
-              width: 34,
-              height: 34,
+              width: (34),
+              height: (34),
               decoration: BoxDecoration(
                 color: item.color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               alignment: Alignment.center,
-              child: Icon(item.icon, size: 16, color: item.color),
+              child: Icon(item.icon, size: (16), color: item.color),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: (10)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -3932,29 +3983,29 @@ class _BudgetExpenseBreakdownRow extends StatelessWidget {
                     item.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.e8,
+                      color: context.menudo.textMain,
                     ),
                   ),
                   if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.g4,
+                        color: context.menudo.textMuted,
                       ),
                     ),
                   ],
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: (10)),
             Text(
               amountLabel,
               style: TextStyle(
@@ -3965,13 +4016,13 @@ class _BudgetExpenseBreakdownRow extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         ClipRRect(
           borderRadius: BorderRadius.circular(999),
           child: LinearProgressIndicator(
             value: share.clamp(0, 1),
             minHeight: 8,
-            backgroundColor: AppColors.g1,
+            backgroundColor: context.menudo.surface,
             valueColor: AlwaysStoppedAnimation<Color>(item.color),
           ),
         ),
@@ -4022,24 +4073,24 @@ class _SmallActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.menudo.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.g2),
+          border: Border.all(color: context.menudo.border),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: AppColors.g5,
+                color: context.menudo.textSecondary,
               ),
             ),
           ],

@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../model/auth_session.dart';
 import '../../../model/user_profile.dart';
+import '../../../core/preferences/app_preferences.dart';
 import '../../../services/api_service.dart';
 import '../../../types/api_exception.dart';
 import '../../../utils/utils.dart';
@@ -100,7 +101,8 @@ class AuthRepository {
               userId: userId,
               name: userName ?? '',
               email: userEmail ?? '',
-              baseCurrency: userCurrency ?? 'DOP',
+              baseCurrency:
+                  userCurrency ?? AppFormattingPreferences.currencyCode,
               avatarEmoji: userAvatarEmoji,
               financialGoal: userFinancialGoal,
               goalAmount: double.tryParse(userGoalAmount ?? ''),
@@ -422,7 +424,7 @@ class AuthRepository {
       final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
 
       final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: const [
+        scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],

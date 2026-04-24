@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/external_links.dart';
 import '../../../shared/widgets/menudo_button.dart';
@@ -108,20 +111,20 @@ ${details.join('\n')}
             Row(
               children: [
                 _CircleActionButton(
-                  icon: Icons.arrow_back_ios_new_rounded,
+                  icon: MenudoCupertinoIcons.arrow_back_ios_new_rounded,
                   onTap: () => context.pop(),
                 ),
-                const SizedBox(width: 14),
+                SizedBox(width: (14)),
                 Text('Contacto', style: MenudoTextStyles.h1),
               ],
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: (20)),
             Container(
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(28),
-                gradient: const LinearGradient(
-                  colors: [AppColors.e8, AppColors.e6],
+                gradient: LinearGradient(
+                  colors: [context.menudo.hero, context.menudo.heroElevated],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -133,33 +136,33 @@ ${details.join('\n')}
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.12),
+                      color: context.menudo.textOnDark.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(
-                      Icons.chat_bubble_outline_rounded,
-                      color: Colors.white,
+                    child: Icon(
+                      MenudoCupertinoIcons.chat_bubble_outline_rounded,
+                      color: context.menudo.textOnDark,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: (16)),
                   Text(
                     'Cuéntanos qué podemos mejorar.',
                     style: MenudoTextStyles.h2.copyWith(
-                      color: Colors.white,
+                      color: context.menudo.textOnDark,
                       fontSize: 26,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     'Escribe tu mensaje, copia el borrador y envíalo al correo indicado.',
                     style: MenudoTextStyles.bodyMedium.copyWith(
-                      color: Colors.white.withValues(alpha: 0.85),
+                      color: context.menudo.textOnDark.withValues(alpha: 0.85),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: (20)),
             const _SectionTitle('Qué quieres contarnos'),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,34 +171,34 @@ ${details.join('\n')}
                   child: _TopicCard(
                     label: 'Bug',
                     subtitle: 'Algo no salió bien',
-                    icon: Icons.bug_report_outlined,
+                    icon: MenudoCupertinoIcons.bug_report_outlined,
                     selected: _topic == 'Bug',
                     onTap: () => setState(() => _topic = 'Bug'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: (12)),
                 Expanded(
                   child: _TopicCard(
                     label: 'Mejora',
                     subtitle: 'Una idea útil',
-                    icon: Icons.auto_awesome_outlined,
+                    icon: MenudoCupertinoIcons.auto_awesome_outlined,
                     selected: _topic == 'Mejora',
                     onTap: () => setState(() => _topic = 'Mejora'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: (12)),
                 Expanded(
                   child: _TopicCard(
                     label: 'Ayuda',
                     subtitle: 'Necesito apoyo',
-                    icon: Icons.favorite_border_rounded,
+                    icon: MenudoCupertinoIcons.favorite_border_rounded,
                     selected: _topic == 'Ayuda',
                     onTap: () => setState(() => _topic = 'Ayuda'),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: (20)),
             const _SectionTitle('Tu mensaje'),
             MenudoCard(
               child: Column(
@@ -206,7 +209,7 @@ ${details.join('\n')}
                     label: 'Asunto',
                     hintText: 'Cuéntanos en una línea',
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: (16)),
                   _ContactField(
                     controller: _messageController,
                     label: 'Detalle',
@@ -214,7 +217,7 @@ ${details.join('\n')}
                     maxLines: 6,
                   ),
                   if (profile != null) ...[
-                    const SizedBox(height: 16),
+                    SizedBox(height: (16)),
                     Text(
                       'Añadiremos tu correo para que podamos responderte mejor.',
                       style: MenudoTextStyles.bodySmall.copyWith(
@@ -225,7 +228,7 @@ ${details.join('\n')}
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: (20)),
             const _SectionTitle('Correo de contacto'),
             MenudoCard(
               child: Row(
@@ -238,12 +241,12 @@ ${details.join('\n')}
                       borderRadius: BorderRadius.circular(14),
                     ),
                     alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.mail_outline_rounded,
+                    child: Icon(
+                      MenudoCupertinoIcons.mail_outline_rounded,
                       color: AppColors.o5,
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  SizedBox(width: (14)),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,7 +257,7 @@ ${details.join('\n')}
                             fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(
                           'Si lo prefieres, también puedes escribirnos directo aquí.',
                           style: MenudoTextStyles.bodySmall.copyWith(
@@ -264,14 +267,11 @@ ${details.join('\n')}
                       ],
                     ),
                   ),
-                  TextButton(
-                    onPressed: _copyEmail,
-                    child: const Text('Copiar'),
-                  ),
+                  TextButton(onPressed: _copyEmail, child: Text('Copiar')),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: (20)),
             Row(
               children: [
                 Expanded(
@@ -283,7 +283,7 @@ ${details.join('\n')}
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: (12)),
                 Expanded(
                   child: MenudoButton(
                     label: 'Copiar mensaje',
@@ -336,26 +336,31 @@ class _TopicCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: () {
-        HapticFeedback.selectionClick();
+        MenudoHaptics.selection();
         onTap();
       },
       child: SizedBox(
-        height: 124,
+        height: (124),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: selected ? AppColors.o1 : Colors.white,
+            color: selected ? AppColors.o1 : context.menudo.textOnDark,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: selected ? AppColors.o5 : AppColors.g2),
+            border: Border.all(
+              color: selected ? AppColors.o5 : context.menudo.border,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: selected ? AppColors.o5 : AppColors.e8),
-              const SizedBox(height: 12),
+              Icon(
+                icon,
+                color: selected ? AppColors.o5 : context.menudo.textMain,
+              ),
+              SizedBox(height: (12)),
               Text(
                 label,
                 style: MenudoTextStyles.bodyMedium.copyWith(
@@ -396,7 +401,7 @@ class _ContactField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: MenudoTextStyles.labelCaps),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         TextField(
           controller: controller,
           maxLines: maxLines,
@@ -407,22 +412,22 @@ class _ContactField extends StatelessWidget {
               color: MenudoColors.textMuted,
             ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: context.menudo.surface,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 14,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: MenudoColors.border),
+              borderSide: BorderSide(color: MenudoColors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: MenudoColors.border),
+              borderSide: BorderSide(color: MenudoColors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
+              borderSide: BorderSide(
                 color: MenudoColors.borderActive,
                 width: 2,
               ),
@@ -442,18 +447,18 @@ class _CircleActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onTap,
       child: Container(
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.menudo.textOnDark,
           shape: BoxShape.circle,
           border: Border.all(color: MenudoColors.border),
         ),
         alignment: Alignment.center,
-        child: Icon(icon, size: 18, color: MenudoColors.textMain),
+        child: Icon(icon, size: (18), color: MenudoColors.textMain),
       ),
     );
   }

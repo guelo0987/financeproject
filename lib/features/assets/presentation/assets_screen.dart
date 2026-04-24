@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/data/mock_data.dart';
 import '../../../core/data/models.dart';
 import '../../../shared/widgets/menudo_card.dart';
 import '../../../shared/widgets/menudo_text_field.dart';
 import '../../../shared/widgets/menudo_chip.dart';
+import '../../../shared/widgets/menudo_tap_target.dart';
 
 class AssetsScreen extends StatelessWidget {
   const AssetsScreen({super.key});
@@ -36,22 +38,22 @@ class AssetsScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Activos', style: MenudoTextStyles.h1),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.add_circle,
+                        MenudoIconButton(
+                          icon: Icon(
+                            MenudoCupertinoIcons.add_circle,
                             color: MenudoColors.primary,
-                            size: 28,
+                            size: (28),
                           ),
                           onPressed: () {},
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: (16)),
                     const MenudoTextField(
                       label: '',
                       hint: 'Buscar activo...',
                       prefixIcon: Icon(
-                        Icons.search,
+                        MenudoCupertinoIcons.search,
                         color: MenudoColors.textSecondary,
                       ),
                     ),
@@ -75,9 +77,9 @@ class AssetsScreen extends StatelessWidget {
                         'Distribución del Portafolio',
                         style: MenudoTextStyles.h3,
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: (24)),
                       SizedBox(
-                        height: 200,
+                        height: (200),
                         child: Stack(
                           children: [
                             PieChart(
@@ -129,7 +131,7 @@ class AssetsScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: (16)),
                       Wrap(
                         spacing: 12,
                         runSpacing: 12,
@@ -169,7 +171,7 @@ class AssetsScreen extends StatelessWidget {
                           color: MenudoColors.textMuted,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: (12)),
                       ...assets.map(
                         (asset) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
@@ -186,12 +188,12 @@ class AssetsScreen extends StatelessWidget {
                                     ),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
-                                  child: const Icon(
-                                    Icons.account_balance,
+                                  child: Icon(
+                                    MenudoCupertinoIcons.account_balance,
                                     color: MenudoColors.primary,
                                   ),
                                 ),
-                                const SizedBox(width: 16),
+                                SizedBox(width: (16)),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
@@ -221,7 +223,7 @@ class AssetsScreen extends StatelessWidget {
                                       '\$${asset.currentValue.toStringAsFixed(2)}',
                                       style: MenudoTextStyles.amountSmall,
                                     ),
-                                    const SizedBox(height: 4),
+                                    SizedBox(height: 4),
                                     const MenudoChip(
                                       '+1.2%',
                                       variant: MenudoChipVariant.success,
@@ -242,7 +244,7 @@ class AssetsScreen extends StatelessWidget {
                 );
               }, childCount: groupedAssets.length),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            const SliverToBoxAdapter(child: SizedBox(height: (100))),
           ],
         ),
       ),
@@ -254,11 +256,11 @@ class AssetsScreen extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 10,
-          height: 10,
+          width: (10),
+          height: (10),
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        const SizedBox(width: 6),
+        SizedBox(width: 6),
         Text('$label $percent', style: MenudoTextStyles.bodySmall),
       ],
     );

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:flutter/physics.dart';
 import '../../core/theme/app_colors.dart';
 
 class MenudoButton extends StatefulWidget {
@@ -21,76 +23,102 @@ class MenudoButton extends StatefulWidget {
   State<MenudoButton> createState() => _MenudoButtonState();
 }
 
-class _MenudoButtonState extends State<MenudoButton> {
-  bool _isPressed = false;
+class _MenudoButtonState extends State<MenudoButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _scaleController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleController = AnimationController.unbounded(vsync: this, value: 1);
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    super.dispose();
+  }
+
+  void _springTo(double target) {
+    _scaleController.animateWith(
+      SpringSimulation(
+        const SpringDescription(mass: 1, stiffness: 740, damping: 34),
+        _scaleController.value,
+        target,
+        0,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = widget.isDisabled ? AppColors.g1 : AppColors.o5;
-    final textColor = widget.isDisabled ? AppColors.g4 : AppColors.white;
+    final colors = context.menudo;
+    final bgColor = widget.isDisabled ? colors.surfaceMuted : colors.primary;
+    final textColor = widget.isDisabled ? colors.textMuted : colors.textOnDark;
     final labelStyle = TextStyle(
       fontSize: 16,
       fontWeight: FontWeight.w800,
       color: textColor,
     );
 
-    return GestureDetector(
-      onTapDown: widget.isDisabled
-          ? null
-          : (_) => setState(() => _isPressed = true),
-      onTapUp: widget.isDisabled
-          ? null
-          : (_) => setState(() => _isPressed = false),
-      onTapCancel: () => setState(() => _isPressed = false),
-      onTap: widget.isDisabled ? null : widget.onTap,
-      child: AnimatedScale(
-        duration: const Duration(milliseconds: 150),
-        scale: _isPressed ? 0.96 : 1.0,
-        alignment: Alignment.center,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          width: widget.isFullWidth ? double.infinity : null,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: widget.isDisabled
-                ? null
-                : [
-                    const BoxShadow(
-                      color: Color(0x44F97316),
-                      blurRadius: 32,
-                      offset: Offset(0, 8),
+    return Semantics(
+      button: true,
+      enabled: !widget.isDisabled,
+      label: widget.label,
+      child: ScaleTransition(
+        scale: _scaleController,
+        child: MenudoGestureDetector(
+          onTapDown: widget.isDisabled ? null : (_) => _springTo(0.96),
+          onTapUp: widget.isDisabled ? null : (_) => _springTo(1),
+          onTapCancel: () => _springTo(1),
+          onTap: widget.isDisabled ? null : widget.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: widget.isFullWidth ? double.infinity : null,
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: widget.isDisabled
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: colors.primaryGlow,
+                        blurRadius: 32,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+            ),
+            child: Row(
+              mainAxisSize: widget.isFullWidth
+                  ? MainAxisSize.max
+                  : MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (widget.icon != null) ...[
+                  Icon(widget.icon, color: textColor, size: (20)),
+                  SizedBox(width: 8),
+                ],
+                if (widget.isFullWidth)
+                  Flexible(
+                    child: Text(
+                      widget.label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: labelStyle,
                     ),
-                  ],
-          ),
-          child: Row(
-            mainAxisSize: widget.isFullWidth
-                ? MainAxisSize.max
-                : MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (widget.icon != null) ...[
-                Icon(widget.icon, color: textColor, size: 20),
-                const SizedBox(width: 8),
-              ],
-              if (widget.isFullWidth)
-                Flexible(
-                  child: Text(
+                  )
+                else
+                  Text(
                     widget.label,
                     textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                     style: labelStyle,
                   ),
-                )
-              else
-                Text(
-                  widget.label,
-                  textAlign: TextAlign.center,
-                  style: labelStyle,
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

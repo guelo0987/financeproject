@@ -22,7 +22,7 @@ final effectiveTransactionsProvider = Provider<List<MenudoTransaction>>((ref) {
   if (demoMode) {
     return mockTxns;
   }
-  return transactions ?? const [];
+  return transactions ?? [];
 });
 
 final transactionsReferenceDateProvider = Provider<DateTime>((ref) {

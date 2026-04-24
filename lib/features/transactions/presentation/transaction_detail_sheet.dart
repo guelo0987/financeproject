@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 
 import '../../../controllers/transaction_controller.dart';
 import '../../../core/data/models.dart';
@@ -96,7 +97,7 @@ class TransactionDetailSheet extends ConsumerWidget {
     final IconData catIcon =
         budgetCat?.icono ?? resolvedCategory?.icono ?? t.icono;
     final Color catColor =
-        budgetCat?.color ?? resolvedCategory?.color ?? AppColors.g4;
+        budgetCat?.color ?? resolvedCategory?.color ?? context.menudo.textMuted;
 
     final bool isTransfer = t.tipo == 'transferencia';
     final bool isGasto = t.tipo == 'gasto';
@@ -155,13 +156,19 @@ class TransactionDetailSheet extends ConsumerWidget {
                 normalizedUiLabel(summaryTitle).toLowerCase()
         ? null
         : normalizedUiLabel(t.desc);
+    final amountBase = formatMoney(
+      t.monto.abs(),
+      currency: transactionCurrencyCode(t),
+    );
     final String formattedAmount = amountPrefix.isEmpty
-        ? formatMoney(t.monto.abs())
-        : "$amountPrefix${formatMoney(t.monto.abs())}";
+        ? amountBase
+        : "$amountPrefix$amountBase";
     final summaryColor = isTransfer
         ? AppColors.b5
         : _mix(amountColor, catColor, 0.4);
-    final summaryIcon = isTransfer ? LucideIcons.arrowRightLeft : catIcon;
+    final summaryIcon = isTransfer
+        ? MenudoCupertinoIcons.arrowRightLeft
+        : catIcon;
 
     final detailRows = <_SimpleDetailRowData>[
       if (!isTransfer)
@@ -173,41 +180,43 @@ class TransactionDetailSheet extends ConsumerWidget {
         ),
       if (isTransfer)
         _SimpleDetailRowData(
-          icon: LucideIcons.arrowUpFromLine,
-          iconColor: AppColors.e8,
+          icon: MenudoCupertinoIcons.arrowUpFromLine,
+          iconColor: context.menudo.textMain,
           label: 'Origen',
           value: presentation.sourceWallet?.nombre ?? 'No registrada',
         ),
       if (isTransfer)
         _SimpleDetailRowData(
-          icon: LucideIcons.arrowDownToLine,
+          icon: MenudoCupertinoIcons.arrowDownToLine,
           iconColor: AppColors.e6,
           label: 'Destino',
           value: presentation.destinationWallet?.nombre ?? 'No registrada',
         ),
       if (!isTransfer && accountLabel != null)
         _SimpleDetailRowData(
-          icon: LucideIcons.wallet,
+          icon: MenudoCupertinoIcons.wallet,
           iconColor: AppColors.b5,
           label: 'Cuenta',
           value: accountLabel,
         ),
       _SimpleDetailRowData(
-        icon: LucideIcons.calendarDays,
+        icon: MenudoCupertinoIcons.calendarDays,
         iconColor: AppColors.o5,
         label: 'Fecha',
         value: formattedDate,
       ),
       if (activeBudget != null)
         _SimpleDetailRowData(
-          icon: isSharedBudget ? LucideIcons.users : LucideIcons.layoutGrid,
+          icon: isSharedBudget
+              ? MenudoCupertinoIcons.users
+              : MenudoCupertinoIcons.layoutGrid,
           iconColor: isSharedBudget ? AppColors.e6 : AppColors.p5,
           label: 'Presupuesto',
           value: activeBudget.nombre,
         ),
       if (performerLabel != null && isSharedBudget)
         _SimpleDetailRowData(
-          icon: LucideIcons.user,
+          icon: MenudoCupertinoIcons.user,
           iconColor: AppColors.o5,
           label: 'Hecho por',
           value: performerLabel,
@@ -218,22 +227,20 @@ class TransactionDetailSheet extends ConsumerWidget {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('Eliminar movimiento'),
-          content: const Text(
-            'Esta acción eliminará el movimiento de tu historial.',
-          ),
+          title: Text('Eliminar movimiento'),
+          content: Text('Esta acción eliminará el movimiento de tu historial.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancelar'),
+              child: Text('Cancelar'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, true),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.r5,
-                foregroundColor: Colors.white,
+                foregroundColor: context.menudo.textOnDark,
               ),
-              child: const Text('Eliminar'),
+              child: Text('Eliminar'),
             ),
           ],
         ),
@@ -274,8 +281,8 @@ class TransactionDetailSheet extends ConsumerWidget {
       expand: false,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.g0,
+          decoration: BoxDecoration(
+            color: context.menudo.background,
             borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
           ),
           child: Column(
@@ -286,7 +293,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                   height: 5,
                   width: 48,
                   decoration: BoxDecoration(
-                    color: AppColors.g2,
+                    color: context.menudo.border,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -307,7 +314,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                         .animate()
                         .fadeIn(duration: 320.ms)
                         .slideY(begin: 0.05, end: 0),
-                    const SizedBox(height: 16),
+                    SizedBox(height: (16)),
                     _DetailSection(
                           title: 'Detalles',
                           child: _SimpleDetailList(rows: detailRows),
@@ -316,7 +323,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                         .fadeIn(duration: 280.ms, delay: 100.ms)
                         .slideY(begin: 0.04, end: 0),
                     if (t.nota != null && t.nota!.trim().isNotEmpty) ...[
-                      const SizedBox(height: 16),
+                      SizedBox(height: (16)),
                       _DetailSection(
                         title: 'Nota',
                         child: _NoteCard(
@@ -325,13 +332,13 @@ class TransactionDetailSheet extends ConsumerWidget {
                         ),
                       ).animate().fadeIn(duration: 280.ms, delay: 140.ms),
                     ],
-                    const SizedBox(height: 22),
+                    SizedBox(height: (22)),
                     Row(
                       children: [
                         Expanded(
-                          child: GestureDetector(
+                          child: MenudoGestureDetector(
                             onTap: () {
-                              HapticFeedback.lightImpact();
+                              MenudoHaptics.light();
                               Navigator.pop(context);
                               showModalBottomSheet(
                                 context: context,
@@ -345,17 +352,17 @@ class TransactionDetailSheet extends ConsumerWidget {
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 17),
                               decoration: BoxDecoration(
-                                color: AppColors.e8,
+                                color: context.menudo.textMain,
                                 borderRadius: BorderRadius.circular(18),
                               ),
                               alignment: Alignment.center,
-                              child: const Row(
+                              child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
-                                    LucideIcons.pencil,
-                                    size: 16,
-                                    color: Colors.white,
+                                    MenudoCupertinoIcons.pencil,
+                                    size: (16),
+                                    color: context.menudo.textOnDark,
                                   ),
                                   SizedBox(width: 8),
                                   Text(
@@ -363,7 +370,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                                     style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w800,
-                                      color: Colors.white,
+                                      color: context.menudo.textOnDark,
                                     ),
                                   ),
                                 ],
@@ -371,14 +378,14 @@ class TransactionDetailSheet extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: (10)),
                         Expanded(
                           child: Semantics(
                             label: 'Eliminar transaccion ${t.desc}',
                             button: true,
-                            child: GestureDetector(
+                            child: MenudoGestureDetector(
                               onTap: () {
-                                HapticFeedback.mediumImpact();
+                                MenudoHaptics.medium();
                                 deleteTransaction();
                               },
                               child: Container(
@@ -394,12 +401,12 @@ class TransactionDetailSheet extends ConsumerWidget {
                                   ),
                                 ),
                                 alignment: Alignment.center,
-                                child: const Row(
+                                child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(
-                                      LucideIcons.trash2,
-                                      size: 16,
+                                      MenudoCupertinoIcons.trash2,
+                                      size: (16),
                                       color: AppColors.r5,
                                     ),
                                     SizedBox(width: 8),
@@ -449,12 +456,14 @@ class _SimpleSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -469,23 +478,23 @@ class _SimpleSummaryCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 alignment: Alignment.center,
-                child: Icon(icon, size: 18, color: iconColor),
+                child: Icon(icon, size: (18), color: iconColor),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: (12)),
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.g4,
+                    color: colors.textSecondary,
                     letterSpacing: 0.4,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: (18)),
           Text(
             amount,
             style: TextStyle(
@@ -495,24 +504,24 @@ class _SimpleSummaryCard extends StatelessWidget {
               letterSpacing: -1.1,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: AppColors.e8,
+              color: colors.textMain,
               letterSpacing: -0.3,
             ),
           ),
           if (description != null) ...[
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(
               description!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.g5,
+                color: colors.textSecondary,
               ),
             ),
           ],
@@ -529,22 +538,25 @@ class _SimpleDetailList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.g2),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         children: [
           for (var i = 0; i < rows.length; i++) ...[
             _SimpleDetailRow(row: rows[i]),
             if (i != rows.length - 1)
-              const Divider(
+              Divider(
                 height: 1,
+                thickness: 0.5,
                 indent: 16,
                 endIndent: 16,
-                color: AppColors.g1,
+                color: colors.border,
               ),
           ],
         ],
@@ -560,41 +572,43 @@ class _SimpleDetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: (38),
+            height: (38),
             decoration: BoxDecoration(
               color: row.iconColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             alignment: Alignment.center,
-            child: Icon(row.icon, size: 17, color: row.iconColor),
+            child: Icon(row.icon, size: (17), color: row.iconColor),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: (14)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   row.label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.g4,
+                    color: colors.textSecondary,
                     letterSpacing: 0.3,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   row.value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.e8,
+                    color: colors.textMain,
                   ),
                 ),
               ],
@@ -628,25 +642,27 @@ class _DetailSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w900,
-              color: AppColors.e8,
+              color: colors.textMain,
             ),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: (14)),
           child,
         ],
       ),
@@ -662,6 +678,8 @@ class _NoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -669,7 +687,10 @@ class _NoteCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [accentColor.withValues(alpha: 0.08), AppColors.g0],
+          colors: [
+            accentColor.withValues(alpha: 0.08),
+            context.menudo.background,
+          ],
         ),
         borderRadius: BorderRadius.circular(20),
       ),
@@ -677,23 +698,27 @@ class _NoteCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: (38),
+            height: (38),
             decoration: BoxDecoration(
               color: accentColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             alignment: Alignment.center,
-            child: Icon(LucideIcons.stickyNote, size: 18, color: accentColor),
+            child: Icon(
+              MenudoCupertinoIcons.stickyNote,
+              size: (18),
+              color: accentColor,
+            ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: (12)),
           Expanded(
             child: Text(
               note,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.e8,
+                color: colors.textMain,
                 height: 1.45,
               ),
             ),

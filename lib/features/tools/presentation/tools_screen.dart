@@ -1,9 +1,10 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../categories/presentation/categories_screen.dart';
@@ -52,52 +53,56 @@ class _ToolsScreenState extends State<ToolsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.g0,
+      backgroundColor: context.menudo.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.menudo.surface,
         elevation: 0,
-        leading: GestureDetector(
+        leading: MenudoGestureDetector(
           onTap: () {
-            HapticFeedback.lightImpact();
+            MenudoHaptics.light();
             Navigator.pop(context);
           },
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.all(8),
-            child: Icon(LucideIcons.arrowLeft, color: AppColors.e8, size: 22),
+            child: Icon(
+              MenudoCupertinoIcons.arrowLeft,
+              color: context.menudo.textMain,
+              size: (22),
+            ),
           ),
         ),
-        title: const Text(
+        title: Text(
           'Herramientas',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
-            color: AppColors.e8,
+            color: context.menudo.textMain,
           ),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(color: const Color(0xFFF3F4F6), height: 1),
+          child: Container(color: const Color(0xFFF3F4F6), height: 0.5),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
         children: [
           // ── Quick Links ────────────────────────────────────────────
-          const Text(
+          Text(
             "Accesos rápidos",
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: AppColors.g4,
+              color: context.menudo.textMuted,
               letterSpacing: 0.3,
             ),
           ).animate().fadeIn(duration: 300.ms),
-          const SizedBox(height: 10),
+          SizedBox(height: (10)),
 
           Row(
             children: [
               _quickLink(
-                icon: LucideIcons.pieChart,
+                icon: MenudoCupertinoIcons.pieChart,
                 label: "Categorías",
                 color: AppColors.e6,
                 bg: AppColors.e1,
@@ -106,9 +111,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
                   MaterialPageRoute(builder: (_) => const CategoriesScreen()),
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: (10)),
               _quickLink(
-                icon: LucideIcons.repeat2,
+                icon: MenudoCupertinoIcons.repeat2,
                 label: "Automáticas",
                 color: AppColors.o5,
                 bg: AppColors.o1,
@@ -117,9 +122,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
                   MaterialPageRoute(builder: (_) => const RecurringScreen()),
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: (10)),
               _quickLink(
-                icon: LucideIcons.clock,
+                icon: MenudoCupertinoIcons.clock,
                 label: "Historial",
                 color: AppColors.p5,
                 bg: const Color(0xFFF3EEFF),
@@ -128,9 +133,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
                   context.push('/history');
                 },
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: (10)),
               _quickLink(
-                icon: LucideIcons.wallet,
+                icon: MenudoCupertinoIcons.wallet,
                 label: "Cuentas",
                 color: AppColors.b5,
                 bg: const Color(0xFFEFF6FF),
@@ -143,29 +148,29 @@ class _ToolsScreenState extends State<ToolsScreen> {
           ).animate().fadeIn(duration: 380.ms, delay: 50.ms),
 
           if (_showsIosShortcuts) ...[
-            const SizedBox(height: 14),
+            SizedBox(height: (14)),
             _shortcutLauncherCard(
               context,
             ).animate().fadeIn(duration: 380.ms, delay: 80.ms),
           ],
 
-          const SizedBox(height: 28),
+          SizedBox(height: (28)),
 
           // ── Loan calculator ────────────────────────────────────────
-          const Text(
+          Text(
             "Calculadoras financieras",
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: AppColors.g4,
+              color: context.menudo.textMuted,
               letterSpacing: 0.3,
             ),
           ).animate().fadeIn(duration: 300.ms, delay: 100.ms),
-          const SizedBox(height: 10),
+          SizedBox(height: (10)),
 
-          GestureDetector(
+          MenudoGestureDetector(
             onTap: () {
-              HapticFeedback.lightImpact();
+              MenudoHaptics.light();
               setState(() => _loanExpanded = !_loanExpanded);
             },
             child: AnimatedContainer(
@@ -173,7 +178,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
               curve: Curves.easeInOut,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.menudo.textOnDark,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: _loanExpanded
@@ -195,14 +200,14 @@ class _ToolsScreenState extends State<ToolsScreen> {
                           borderRadius: BorderRadius.circular(13),
                         ),
                         alignment: Alignment.center,
-                        child: const Icon(
-                          LucideIcons.percent,
-                          size: 22,
+                        child: Icon(
+                          MenudoCupertinoIcons.percent,
+                          size: (22),
                           color: AppColors.r5,
                         ),
                       ),
-                      const SizedBox(width: 14),
-                      const Expanded(
+                      SizedBox(width: (14)),
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -211,14 +216,14 @@ class _ToolsScreenState extends State<ToolsScreen> {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.e8,
+                                color: context.menudo.textMain,
                               ),
                             ),
                             Text(
                               "Cuota mensual e intereses totales",
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.g4,
+                                color: context.menudo.textMuted,
                               ),
                             ),
                           ],
@@ -227,17 +232,17 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       AnimatedRotation(
                         turns: _loanExpanded ? 0.5 : 0,
                         duration: const Duration(milliseconds: 220),
-                        child: const Icon(
-                          LucideIcons.chevronDown,
-                          size: 18,
-                          color: AppColors.g4,
+                        child: Icon(
+                          MenudoCupertinoIcons.chevronDown,
+                          size: (18),
+                          color: context.menudo.textMuted,
                         ),
                       ),
                     ],
                   ),
 
                   if (_loanExpanded) ...[
-                    const SizedBox(height: 20),
+                    SizedBox(height: (20)),
                     _sliderRow(
                       "Monto",
                       _fmt(_loanMonto),
@@ -246,7 +251,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       2000000,
                       (v) => setState(() => _loanMonto = v),
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: (14)),
                     _sliderRow(
                       "Tasa anual",
                       "${_loanTasa.round()}%",
@@ -255,7 +260,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       50,
                       (v) => setState(() => _loanTasa = v),
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: (14)),
                     _sliderRow(
                       "Plazo",
                       "$_loanMeses meses",
@@ -264,7 +269,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       60,
                       (v) => setState(() => _loanMeses = v.round()),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: (20)),
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -301,7 +306,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                             child: _resultColumn(
                               "TOTAL A PAGAR",
                               _fmt(_loanTotal),
-                              AppColors.e8,
+                              context.menudo.primary,
                             ),
                           ),
                         ],
@@ -313,12 +318,12 @@ class _ToolsScreenState extends State<ToolsScreen> {
             ),
           ).animate().fadeIn(duration: 380.ms, delay: 150.ms),
 
-          const SizedBox(height: 12),
+          SizedBox(height: (12)),
 
           // ── CDP Calculator ─────────────────────────────────────────
-          GestureDetector(
+          MenudoGestureDetector(
             onTap: () {
-              HapticFeedback.lightImpact();
+              MenudoHaptics.light();
               setState(() => _cdpExpanded = !_cdpExpanded);
             },
             child: AnimatedContainer(
@@ -326,7 +331,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
               curve: Curves.easeInOut,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.menudo.textOnDark,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: _cdpExpanded
@@ -348,14 +353,14 @@ class _ToolsScreenState extends State<ToolsScreen> {
                           borderRadius: BorderRadius.circular(13),
                         ),
                         alignment: Alignment.center,
-                        child: const Icon(
-                          LucideIcons.building2,
-                          size: 22,
+                        child: Icon(
+                          MenudoCupertinoIcons.building2,
+                          size: (22),
                           color: AppColors.e6,
                         ),
                       ),
-                      const SizedBox(width: 14),
-                      const Expanded(
+                      SizedBox(width: (14)),
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -364,14 +369,14 @@ class _ToolsScreenState extends State<ToolsScreen> {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
-                                color: AppColors.e8,
+                                color: context.menudo.textMain,
                               ),
                             ),
                             Text(
                               "Proyecta tus rendimientos en pesos",
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.g4,
+                                color: context.menudo.textMuted,
                               ),
                             ),
                           ],
@@ -380,17 +385,17 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       AnimatedRotation(
                         turns: _cdpExpanded ? 0.5 : 0,
                         duration: const Duration(milliseconds: 220),
-                        child: const Icon(
-                          LucideIcons.chevronDown,
-                          size: 18,
-                          color: AppColors.g4,
+                        child: Icon(
+                          MenudoCupertinoIcons.chevronDown,
+                          size: (18),
+                          color: context.menudo.textMuted,
                         ),
                       ),
                     ],
                   ),
 
                   if (_cdpExpanded) ...[
-                    const SizedBox(height: 20),
+                    SizedBox(height: (20)),
                     _sliderRow(
                       "Capital inicial",
                       _fmt(_cdpMonto),
@@ -399,7 +404,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       1000000,
                       (v) => setState(() => _cdpMonto = v),
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: (14)),
                     _sliderRow(
                       "Tasa anual",
                       "${_cdpTasa.round()}%",
@@ -408,7 +413,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       25,
                       (v) => setState(() => _cdpTasa = v),
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: (14)),
                     _sliderRow(
                       "Plazo",
                       "$_cdpMeses meses",
@@ -417,7 +422,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       36,
                       (v) => setState(() => _cdpMeses = v.round()),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: (20)),
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -442,7 +447,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                             child: _resultColumn(
                               "TOTAL FINAL",
                               _fmt(_cdpTotal),
-                              AppColors.e8,
+                              context.menudo.primary,
                             ),
                           ),
                         ],
@@ -466,37 +471,37 @@ class _ToolsScreenState extends State<ToolsScreen> {
     required VoidCallback onTap,
   }) {
     return Expanded(
-      child: GestureDetector(
+      child: MenudoGestureDetector(
         onTap: () {
-          HapticFeedback.lightImpact();
+          MenudoHaptics.light();
           onTap();
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: AppColors.g2, width: 1.5),
+            color: context.menudo.textOnDark,
+            border: Border.all(color: context.menudo.border, width: 1.5),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: (38),
+                height: (38),
                 decoration: BoxDecoration(
                   color: bg,
                   borderRadius: BorderRadius.circular(11),
                 ),
                 alignment: Alignment.center,
-                child: Icon(icon, size: 18, color: color),
+                child: Icon(icon, size: (18), color: color),
               ),
-              const SizedBox(height: 7),
+              SizedBox(height: 7),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.g5,
+                  color: context.menudo.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -523,24 +528,24 @@ class _ToolsScreenState extends State<ToolsScreen> {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: AppColors.g5,
+                color: context.menudo.textSecondary,
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.g1,
+                color: context.menudo.surface,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 valueLabel,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.e8,
+                  color: context.menudo.textMain,
                 ),
               ),
             ),
@@ -552,7 +557,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
             overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
             trackHeight: 4,
             activeTrackColor: AppColors.o5,
-            inactiveTrackColor: AppColors.g1,
+            inactiveTrackColor: context.menudo.surface,
             thumbColor: AppColors.o5,
             overlayColor: AppColors.o5.withValues(alpha: 0.15),
           ),
@@ -575,7 +580,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(
@@ -590,15 +595,15 @@ class _ToolsScreenState extends State<ToolsScreen> {
   }
 
   Widget _shortcutLauncherCard(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: () {
-        HapticFeedback.mediumImpact();
+        MenudoHaptics.medium();
         context.push('/shortcuts');
       },
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.menudo.textOnDark,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
         ),
@@ -612,10 +617,14 @@ class _ToolsScreenState extends State<ToolsScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               alignment: Alignment.center,
-              child: const Icon(LucideIcons.zap, color: AppColors.o5, size: 24),
+              child: Icon(
+                MenudoCupertinoIcons.zap,
+                color: AppColors.o5,
+                size: (24),
+              ),
             ),
-            const SizedBox(width: 14),
-            const Expanded(
+            SizedBox(width: (14)),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -624,18 +633,25 @@ class _ToolsScreenState extends State<ToolsScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.e8,
+                      color: context.menudo.textMain,
                     ),
                   ),
                   SizedBox(height: 4),
                   Text(
                     "Gasto rápido desde accesos del dispositivo",
-                    style: TextStyle(fontSize: 13, color: AppColors.g4),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: context.menudo.textMuted,
+                    ),
                   ),
                 ],
               ),
             ),
-            const Icon(LucideIcons.chevronRight, color: AppColors.g4, size: 18),
+            Icon(
+              MenudoCupertinoIcons.chevronRight,
+              color: context.menudo.textMuted,
+              size: (18),
+            ),
           ],
         ),
       ),

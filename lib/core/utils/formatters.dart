@@ -3,7 +3,8 @@ import 'package:intl/intl.dart';
 import '../preferences/app_preferences.dart';
 
 String currencyPrefix(String currency) {
-  switch (currency.trim().toUpperCase()) {
+  final normalized = currency.trim().toUpperCase();
+  switch (normalized) {
     case 'USD':
       return 'US\$';
     case 'EUR':
@@ -19,7 +20,9 @@ String currencyPrefix(String currency) {
     case 'DOP':
       return 'RD\$';
     default:
-      return 'RD\$';
+      return normalized.isEmpty
+          ? '${AppFormattingPreferences.currencyCode}\$'
+          : '$normalized\$';
   }
 }
 
@@ -55,10 +58,10 @@ String formatMoney(
   return value < 0 ? '-$base' : base;
 }
 
-/// Formats a double value as Dominican Peso (RD$).
+/// Formats a double value using the active app currency.
 String fmtRD(double val) => formatMoney(val);
 
-/// Formats with sign prefix (+ for income, - for expense).
+/// Formats with sign prefix (+ for income, - for expense) using app currency.
 String fmtRDSigned(double val) => formatMoney(val, signed: true);
 
 DateTime dateOnly(DateTime value) {
@@ -98,9 +101,6 @@ DateTimeRange normalizeDateRange(DateTimeRange range) {
   );
 }
 
-String formatDateByPattern(
-  DateTime value, {
-  String pattern = 'd MMM yyyy',
-}) {
+String formatDateByPattern(DateTime value, {String pattern = 'd MMM yyyy'}) {
   return DateFormat(pattern, AppFormattingPreferences.localeTag).format(value);
 }

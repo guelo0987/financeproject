@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/data/mock_data.dart';
@@ -20,7 +22,17 @@ class _InvestScreenState extends State<InvestScreen> {
   String _selectedCurrency = 'Todos';
 
   static const _filters = ['Todos', 'Certificado', 'Fondo', 'Bono', 'Letra'];
-  static const _currencies = ['Todos', 'DOP', 'USD'];
+
+  List<String> get _currencies {
+    final currencies =
+        MockData.instruments
+            .map((instrument) => instrument.currency.trim().toUpperCase())
+            .where((currency) => currency.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+    return ['Todos', ...currencies];
+  }
 
   List<InvestmentInstrument> get _filteredInstruments {
     return MockData.instruments.where((inst) {
@@ -59,7 +71,7 @@ class _InvestScreenState extends State<InvestScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Invertir', style: AppTextStyles.displaySmall),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       'Oportunidades del mercado dominicano',
                       style: AppTextStyles.bodyMedium,
@@ -77,15 +89,15 @@ class _InvestScreenState extends State<InvestScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
-                      height: 38,
+                      height: (38),
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: _filters.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 8),
+                        separatorBuilder: (_, _) => SizedBox(width: 8),
                         itemBuilder: (context, index) {
                           final filter = _filters[index];
                           final isSelected = _selectedFilter == filter;
-                          return GestureDetector(
+                          return MenudoGestureDetector(
                             onTap: () =>
                                 setState(() => _selectedFilter = filter),
                             child: AnimatedContainer(
@@ -119,14 +131,14 @@ class _InvestScreenState extends State<InvestScreen> {
                         },
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: (10)),
                     // Currency filter
                     Row(
                       children: _currencies.map((c) {
                         final isSelected = _selectedCurrency == c;
                         return Padding(
                           padding: const EdgeInsets.only(right: 8),
-                          child: GestureDetector(
+                          child: MenudoGestureDetector(
                             onTap: () => setState(() => _selectedCurrency = c),
                             child: AnimatedContainer(
                               duration: AppConstants.animFast,
@@ -231,7 +243,7 @@ class _InstrumentCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -252,9 +264,9 @@ class _InstrumentCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(instrument.name, style: AppTextStyles.headlineSmall),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       instrument.institution,
                       style: AppTextStyles.bodySmall,
@@ -300,32 +312,32 @@ class _InstrumentCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: (12)),
           // Details row
           Row(
             children: [
               _DetailChip(label: 'Plazo', value: instrument.term),
-              const SizedBox(width: 12),
+              SizedBox(width: (12)),
               _DetailChip(
                 label: 'Mínimo',
                 value:
                     '${instrument.currency} ${formatter.format(instrument.minimumAmount)}',
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: (12)),
               _DetailChip(label: 'Moneda', value: instrument.currency),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: (12)),
           // Calculator button
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: onCalculate,
-              icon: const Icon(Icons.calculate_outlined, size: 18),
-              label: const Text('¿Cuánto ganaría?'),
+              icon: Icon(MenudoCupertinoIcons.calculate_outlined, size: (18)),
+              label: Text('¿Cuánto ganaría?'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.accent,
-                side: const BorderSide(color: AppColors.accentDim),
+                side: BorderSide(color: AppColors.accentDim),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -352,7 +364,7 @@ class _DetailChip extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: AppTextStyles.labelSmall),
-          const SizedBox(height: 2),
+          SizedBox(height: 2),
           Text(
             value,
             style: AppTextStyles.labelMedium.copyWith(
@@ -418,26 +430,29 @@ class _YieldCalculatorSheetState extends State<_YieldCalculatorSheet> {
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: (20)),
           Text(
             'Calculadora de Rendimiento',
             style: AppTextStyles.headlineLarge,
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(widget.instrument.name, style: AppTextStyles.bodyMedium),
-          const SizedBox(height: 20),
+          SizedBox(height: (20)),
           Text('MONTO A INVERTIR ($prefix)', style: AppTextStyles.sectionTitle),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           TextField(
             controller: _controller,
             keyboardType: TextInputType.number,
             style: AppTextStyles.cardValue.copyWith(fontSize: 22),
             onChanged: (_) => setState(() {}),
             decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.attach_money, color: AppColors.accent),
+              prefixIcon: Icon(
+                MenudoCupertinoIcons.attach_money,
+                color: AppColors.accent,
+              ),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: (20)),
           GlassCard(
             child: Column(
               children: [
@@ -453,7 +468,7 @@ class _YieldCalculatorSheetState extends State<_YieldCalculatorSheet> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: (12)),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -470,7 +485,7 @@ class _YieldCalculatorSheetState extends State<_YieldCalculatorSheet> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: (12)),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -486,7 +501,7 @@ class _YieldCalculatorSheetState extends State<_YieldCalculatorSheet> {
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
         ],
       ),
     );

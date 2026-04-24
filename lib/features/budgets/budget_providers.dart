@@ -19,7 +19,7 @@ final effectiveBudgetsProvider = Provider<List<MenudoBudget>>((ref) {
   if (demoMode) {
     return mockBudgets;
   }
-  return budgets ?? const [];
+  return budgets ?? [];
 });
 
 final selectedBudgetProvider = Provider<MenudoBudget?>((ref) {

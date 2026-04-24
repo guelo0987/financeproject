@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/error_presenter.dart';
 import '../../../shared/widgets/menudo_button.dart';
@@ -143,17 +144,17 @@ class _EmailConfirmationScreenState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Icon(
-                  Icons.verified_rounded,
+                  MenudoCupertinoIcons.verified_rounded,
                   size: 56,
                   color: MenudoColors.primary,
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: (18)),
                 Text(
                   'Tu cuenta ya quedó verificada',
                   style: MenudoTextStyles.h2,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: (10)),
                 Text(
                   'Ya puedes seguir usando Menudo con normalidad.',
                   style: MenudoTextStyles.bodyMedium.copyWith(
@@ -161,7 +162,7 @@ class _EmailConfirmationScreenState
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: (24)),
                 MenudoPrimaryButton(
                   label: 'Continuar',
                   onTap: _continueAfterConfirmation,
@@ -184,17 +185,17 @@ class _EmailConfirmationScreenState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Icon(
-                  Icons.mark_email_unread_outlined,
+                  MenudoCupertinoIcons.mark_email_unread_outlined,
                   size: 52,
                   color: MenudoColors.warning,
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: (18)),
                 Text(
                   'No pudimos confirmar tu correo',
                   style: MenudoTextStyles.h2,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: (10)),
                 Text(
                   _errorMessage!,
                   style: MenudoTextStyles.bodyMedium.copyWith(
@@ -202,7 +203,7 @@ class _EmailConfirmationScreenState
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: (24)),
                 MenudoPrimaryButton(
                   label: 'Volver a entrar',
                   onTap: () => context.go('/login'),

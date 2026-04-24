@@ -1,12 +1,14 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 
+import '../../../core/preferences/app_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/error_presenter.dart';
 import '../../../core/utils/formatters.dart';
@@ -24,12 +26,15 @@ class SpacesManagerScreen extends ConsumerStatefulWidget {
 }
 
 class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
-  String _fmt(double val, {String currency = 'DOP'}) {
-    return formatMoney(val, currency: currency);
+  String _fmt(double val, {String? currency}) {
+    return formatMoney(
+      val,
+      currency: currency ?? AppFormattingPreferences.currencyCode,
+    );
   }
 
   void _openBudgets() {
-    HapticFeedback.selectionClick();
+    MenudoHaptics.selection();
     context.go('/budgets');
   }
 
@@ -53,10 +58,12 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
     final budgets = ref.watch(effectiveBudgetsProvider);
     final authState = ref.watch(authProvider);
     final userId = int.tryParse(authState.userId ?? '');
-    final currency = authState.profile?.baseCurrency ?? 'DOP';
+    final currency =
+        authState.profile?.baseCurrency ??
+        AppFormattingPreferences.currencyCode;
 
     return Scaffold(
-      backgroundColor: AppColors.g0,
+      backgroundColor: context.menudo.background,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -64,10 +71,13 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
             expandedHeight: 120.0,
             floating: false,
             pinned: true,
-            backgroundColor: Colors.white,
+            backgroundColor: context.menudo.surface,
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(LucideIcons.chevronLeft, color: AppColors.e8),
+            leading: MenudoIconButton(
+              icon: Icon(
+                MenudoCupertinoIcons.chevronLeft,
+                color: context.menudo.textMain,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
             flexibleSpace: FlexibleSpaceBar(
@@ -76,16 +86,16 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
                 bottom: 16,
               ),
               centerTitle: false,
-              title: const Text(
+              title: Text(
                 'Colaboraciones',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.e8,
+                  color: context.menudo.textMain,
                   letterSpacing: -0.8,
                 ),
               ),
-              background: Container(color: Colors.white),
+              background: Container(color: context.menudo.surface),
             ),
           ),
           SliverToBoxAdapter(
@@ -98,17 +108,17 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
                       .animate()
                       .fadeIn(duration: 500.ms)
                       .slideY(begin: 0.1, end: 0, curve: Curves.easeOutBack),
-                  const SizedBox(height: 32),
-                  const Text(
+                  SizedBox(height: (32)),
+                  Text(
                     'ESPACIOS EXISTENTES',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.g4,
+                      color: context.menudo.textMuted,
                       letterSpacing: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: (16)),
                   if (spacesAsync.hasError)
                     Container(
                       width: double.infinity,
@@ -123,7 +133,7 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
                       ),
                       child: Text(
                         presentError(spacesAsync.error!),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: AppColors.r5,
@@ -131,7 +141,7 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
                       ),
                     ),
                   if (spacesAsync.isLoading && spaces.isEmpty)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(top: 48),
                       child: Center(child: CircularProgressIndicator()),
                     )
@@ -157,11 +167,11 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
                           )
                           .slideY(begin: 0.05, end: 0);
                     }),
-                  const SizedBox(height: 24),
+                  SizedBox(height: (24)),
                   _SharedBudgetHintCard(
                     onTap: _openBudgets,
                   ).animate().fadeIn(duration: 500.ms, delay: 300.ms),
-                  const SizedBox(height: 120),
+                  SizedBox(height: (120)),
                 ],
               ),
             ),
@@ -177,30 +187,37 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
         padding: const EdgeInsets.only(top: 40),
         child: Column(
           children: [
-            const Icon(LucideIcons.users, size: 48, color: AppColors.g3),
-            const SizedBox(height: 16),
-            const Text(
+            Icon(
+              MenudoCupertinoIcons.users,
+              size: 48,
+              color: context.menudo.textMuted,
+            ),
+            SizedBox(height: (16)),
+            Text(
               'No tienes colaboraciones aún',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: AppColors.e8,
+                color: context.menudo.textMain,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            SizedBox(height: 8),
+            Text(
               'Los espacios se crean solos cuando compartes un presupuesto.',
-              style: TextStyle(fontSize: 14, color: AppColors.g5),
+              style: TextStyle(
+                fontSize: 14,
+                color: context.menudo.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: (20)),
             FilledButton(
               onPressed: _openBudgets,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.o5,
-                foregroundColor: Colors.white,
+                foregroundColor: context.menudo.textOnDark,
               ),
-              child: const Text('Ir a presupuestos'),
+              child: Text('Ir a presupuestos'),
             ),
           ],
         ),
@@ -217,11 +234,11 @@ class _SpacesHeroCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.e8,
+        color: context.menudo.textMain,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: AppColors.e8.withValues(alpha: 0.3),
+            color: context.menudo.textMain.withValues(alpha: 0.3),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -229,27 +246,27 @@ class _SpacesHeroCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Row(
             children: [
               _HeroIcon(),
-              SizedBox(width: 16),
+              SizedBox(width: (16)),
               Expanded(child: _HeroText()),
             ],
           ),
-          SizedBox(height: 24),
+          SizedBox(height: (24)),
           _HeroFeature(
-            icon: LucideIcons.walletCards,
+            icon: MenudoCupertinoIcons.walletCards,
             text: 'Nacen desde presupuestos compartidos',
           ),
-          SizedBox(height: 12),
+          SizedBox(height: (12)),
           _HeroFeature(
-            icon: LucideIcons.users,
+            icon: MenudoCupertinoIcons.users,
             text: 'Revisa miembros y accesos',
           ),
-          SizedBox(height: 12),
+          SizedBox(height: (12)),
           _HeroFeature(
-            icon: LucideIcons.bell,
+            icon: MenudoCupertinoIcons.bell,
             text: 'Consulta invitaciones pendientes',
           ),
         ],
@@ -266,10 +283,14 @@ class _HeroIcon extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
+        color: context.menudo.textOnDark.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: const Icon(LucideIcons.users, size: 24, color: Colors.white),
+      child: Icon(
+        MenudoCupertinoIcons.users,
+        size: (24),
+        color: context.menudo.textOnDark,
+      ),
     );
   }
 }
@@ -279,7 +300,7 @@ class _HeroText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -287,7 +308,7 @@ class _HeroText extends StatelessWidget {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w900,
-            color: Colors.white,
+            color: context.menudo.textOnDark,
             letterSpacing: -0.5,
           ),
         ),
@@ -314,14 +335,18 @@ class _HeroFeature extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: Colors.white.withValues(alpha: 0.6)),
-        const SizedBox(width: 12),
+        Icon(
+          icon,
+          size: (16),
+          color: context.menudo.textOnDark.withValues(alpha: 0.6),
+        ),
+        SizedBox(width: (12)),
         Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Colors.white,
+            color: context.menudo.textOnDark,
           ),
         ),
       ],
@@ -392,10 +417,12 @@ class _SpaceCardState extends ConsumerState<_SpaceCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.menudo.textOnDark,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: isActivo ? AppColors.e8.withValues(alpha: 0.3) : AppColors.g2,
+          color: isActivo
+              ? context.menudo.primary.withValues(alpha: 0.3)
+              : context.menudo.border,
           width: isActivo ? 2 : 1,
         ),
         boxShadow: [
@@ -413,7 +440,7 @@ class _SpaceCardState extends ConsumerState<_SpaceCard> {
             child: Row(
               children: [
                 _SpaceBadge(nombre: widget.space.nombre),
-                const SizedBox(width: 16),
+                SizedBox(width: (16)),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -423,17 +450,17 @@ class _SpaceCardState extends ConsumerState<_SpaceCard> {
                           Flexible(
                             child: Text(
                               widget.space.nombre,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w900,
-                                color: AppColors.e8,
+                                color: context.menudo.textMain,
                                 letterSpacing: -0.4,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (isActivo) ...[
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             _StateChip(label: 'ACTIVO', color: AppColors.e6),
                           ],
                         ],
@@ -442,9 +469,9 @@ class _SpaceCardState extends ConsumerState<_SpaceCard> {
                         widget.space.descripcion?.trim().isNotEmpty == true
                             ? widget.space.descripcion!
                             : 'Espacio compartido',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.g4,
+                          color: context.menudo.textMuted,
                           fontWeight: FontWeight.w500,
                         ),
                         maxLines: 2,
@@ -454,7 +481,7 @@ class _SpaceCardState extends ConsumerState<_SpaceCard> {
                   ),
                 ),
                 _IconAction(
-                  icon: LucideIcons.settings,
+                  icon: MenudoCupertinoIcons.settings,
                   onTap: widget.onOpenDetail,
                 ),
               ],
@@ -469,7 +496,7 @@ class _SpaceCardState extends ConsumerState<_SpaceCard> {
                   children: [
                     Text(
                       '${widget.fmt(gastado, currency: widget.currency)} gastado',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
                         color: AppColors.r5,
@@ -477,21 +504,21 @@ class _SpaceCardState extends ConsumerState<_SpaceCard> {
                     ),
                     Text(
                       'de ${widget.fmt(presupuesto, currency: widget.currency)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.g4,
+                        color: context.menudo.textMuted,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: (10)),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: progress,
                     minHeight: 8,
-                    backgroundColor: AppColors.g1,
+                    backgroundColor: context.menudo.surface,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       progress > 0.9 ? AppColors.r5 : AppColors.o5,
                     ),
@@ -502,8 +529,8 @@ class _SpaceCardState extends ConsumerState<_SpaceCard> {
           ),
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: AppColors.g0,
+            decoration: BoxDecoration(
+              color: context.menudo.background,
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(26)),
             ),
             child: FutureBuilder<SpaceDetail>(
@@ -514,7 +541,7 @@ class _SpaceCardState extends ConsumerState<_SpaceCard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _MemberAvatars(
-                      miembros: detail?.miembros ?? const [],
+                      miembros: detail?.miembros ?? [],
                       currentUserId: widget.currentUserId,
                     ),
                     _SmallDetailButton(onTap: widget.onOpenDetail),
@@ -544,7 +571,7 @@ class _SpaceBadge extends StatelessWidget {
         .map((part) => part.characters.first.toUpperCase())
         .join();
     final palette = [
-      AppColors.e8,
+      AppColors.e6,
       AppColors.o5,
       AppColors.b5,
       AppColors.p5,
@@ -608,12 +635,12 @@ class _MemberAvatars extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (miembros.isEmpty) {
-      return const Text(
+      return Text(
         'Sin miembros todavía',
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
-          color: AppColors.g4,
+          color: context.menudo.textMuted,
         ),
       );
     }
@@ -624,7 +651,7 @@ class _MemberAvatars extends StatelessWidget {
         ...List.generate(visible.length, (index) {
           final member = visible[index];
           final baseColor = [
-            AppColors.e8,
+            AppColors.e6,
             AppColors.o5,
             AppColors.b5,
             AppColors.p5,
@@ -637,20 +664,20 @@ class _MemberAvatars extends StatelessWidget {
           return Align(
             widthFactor: 0.7,
             child: Container(
-              width: 32,
-              height: 32,
+              width: (32),
+              height: (32),
               decoration: BoxDecoration(
                 color: member.usuarioId == currentUserId
-                    ? AppColors.e8
+                    ? context.menudo.primary
                     : baseColor,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
+                border: Border.all(color: context.menudo.textOnDark, width: 2),
               ),
               alignment: Alignment.center,
               child: Text(
                 label,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: context.menudo.textOnDark,
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
                 ),
@@ -663,10 +690,10 @@ class _MemberAvatars extends StatelessWidget {
             padding: const EdgeInsets.only(left: 8),
             child: Text(
               '+${miembros.length - 4}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
-                color: AppColors.g5,
+                color: context.menudo.textSecondary,
               ),
             ),
           ),
@@ -682,12 +709,12 @@ class _SharedBudgetHintCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.menudo.textOnDark,
           borderRadius: BorderRadius.circular(28),
           border: Border.all(
             color: AppColors.o5.withValues(alpha: 0.3),
@@ -698,32 +725,32 @@ class _SharedBudgetHintCard extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.o1,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                LucideIcons.plus,
-                size: 24,
+              child: Icon(
+                MenudoCupertinoIcons.plus,
+                size: (24),
                 color: AppColors.o5,
               ),
             ),
-            const SizedBox(height: 12),
-            const Text(
+            SizedBox(height: (12)),
+            Text(
               'NUEVO PRESUPUESTO COMPARTIDO',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w900,
-                color: AppColors.e8,
+                color: context.menudo.textMain,
                 letterSpacing: 0.5,
               ),
             ),
-            const SizedBox(height: 6),
-            const Text(
+            SizedBox(height: 6),
+            Text(
               'Invita personas al crear el presupuesto.',
               style: TextStyle(
                 fontSize: 12,
-                color: AppColors.g4,
+                color: context.menudo.textMuted,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -742,15 +769,15 @@ class _IconAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColors.g1,
+          color: context.menudo.surface,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, size: 18, color: AppColors.g5),
+        child: Icon(icon, size: (18), color: context.menudo.textSecondary),
       ),
     );
   }
@@ -763,11 +790,15 @@ class _SmallDetailButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return MenudoGestureDetector(
       onTap: onTap,
-      child: const Row(
+      child: Row(
         children: [
-          Icon(LucideIcons.chevronRight, size: 14, color: AppColors.o5),
+          Icon(
+            MenudoCupertinoIcons.chevronRight,
+            size: (14),
+            color: AppColors.o5,
+          ),
           SizedBox(width: 6),
           Text(
             'Ver',
@@ -878,22 +909,22 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Eliminar espacio'),
+        title: Text('Eliminar espacio'),
         content: Text(
           'Eliminarás "${widget.space.nombre}" y sus accesos compartidos.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
+            child: Text('Cancelar'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.r5,
-              foregroundColor: Colors.white,
+              foregroundColor: context.menudo.textOnDark,
             ),
-            child: const Text('Eliminar'),
+            child: Text('Eliminar'),
           ),
         ],
       ),
@@ -923,8 +954,8 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.88,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: context.menudo.textOnDark,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: Column(
@@ -934,7 +965,7 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
             height: 5,
             margin: const EdgeInsets.only(top: 12, bottom: 16),
             decoration: BoxDecoration(
-              color: AppColors.g2,
+              color: context.menudo.border,
               borderRadius: BorderRadius.circular(3),
             ),
           ),
@@ -948,27 +979,30 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
                     children: [
                       Text(
                         widget.space.nombre,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
-                          color: AppColors.e8,
+                          color: context.menudo.textMain,
                         ),
                       ),
                       if (widget.space.descripcion?.trim().isNotEmpty == true)
                         Text(
                           widget.space.descripcion!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: AppColors.g4,
+                            color: context.menudo.textMuted,
                           ),
                         ),
                     ],
                   ),
                 ),
                 if (isAdmin)
-                  IconButton(
+                  MenudoIconButton(
                     onPressed: _isMutating ? null : _deleteSpace,
-                    icon: const Icon(LucideIcons.trash2, color: AppColors.r5),
+                    icon: Icon(
+                      MenudoCupertinoIcons.trash2,
+                      color: AppColors.r5,
+                    ),
                   ),
               ],
             ),
@@ -979,7 +1013,7 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting &&
                     !snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Center(child: CircularProgressIndicator());
                 }
 
                 if (snapshot.hasError) {
@@ -988,7 +1022,7 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
                       padding: const EdgeInsets.all(24),
                       child: Text(
                         presentError(snapshot.error!),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: AppColors.r5,
@@ -1010,12 +1044,12 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
                         color: AppColors.e0,
                         borderRadius: BorderRadius.circular(18),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Los miembros nuevos se agregan al crear un presupuesto compartido. Aquí puedes revisar accesos e invitaciones pendientes.',
                         style: TextStyle(
                           fontSize: 12,
                           height: 1.35,
-                          color: AppColors.e8,
+                          color: context.menudo.textMain,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -1027,7 +1061,7 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppColors.g0,
+                          color: context.menudo.background,
                           borderRadius: BorderRadius.circular(18),
                         ),
                         child: Row(
@@ -1040,10 +1074,10 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
                                       .toUpperCase() ??
                                   'M',
                               color: member.isAdmin
-                                  ? AppColors.e8
+                                  ? context.menudo.primary
                                   : AppColors.o5,
                             ),
-                            const SizedBox(width: 12),
+                            SizedBox(width: (12)),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1054,17 +1088,17 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
                                         : member.nombre ??
                                               member.email ??
                                               'Miembro',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w800,
-                                      color: AppColors.e8,
+                                      color: context.menudo.textMain,
                                     ),
                                   ),
                                   Text(
                                     member.email ?? member.rol,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      color: AppColors.g4,
+                                      color: context.menudo.textMuted,
                                     ),
                                   ),
                                 ],
@@ -1073,7 +1107,7 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
                             _StateChip(
                               label: member.isAdmin ? 'ADMIN' : 'MIEMBRO',
                               color: member.isAdmin
-                                  ? AppColors.e8
+                                  ? context.menudo.primary
                                   : AppColors.o5,
                             ),
                             if (isAdmin && !isCurrentUser)
@@ -1104,14 +1138,17 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
                         ),
                       );
                     }),
-                    const SizedBox(height: 12),
+                    SizedBox(height: (12)),
                     _SectionTitle(title: 'Invitaciones pendientes'),
                     if (detail.invitaciones.isEmpty)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(top: 8),
                         child: Text(
                           'No hay invitaciones pendientes.',
-                          style: TextStyle(fontSize: 13, color: AppColors.g4),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: context.menudo.textMuted,
+                          ),
                         ),
                       )
                     else
@@ -1120,7 +1157,7 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
                           margin: const EdgeInsets.only(top: 12),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppColors.g0,
+                            color: context.menudo.background,
                             borderRadius: BorderRadius.circular(18),
                           ),
                           child: Row(
@@ -1129,26 +1166,26 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
                                 label: '@',
                                 color: AppColors.p5,
                               ),
-                              const SizedBox(width: 12),
+                              SizedBox(width: (12)),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       invitation.emailInvitado,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w800,
-                                        color: AppColors.e8,
+                                        color: context.menudo.textMain,
                                       ),
                                     ),
                                     Text(
                                       invitation.expiraEn == null
                                           ? 'Pendiente'
                                           : 'Expira ${invitation.expiraEn!.day}/${invitation.expiraEn!.month}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
-                                        color: AppColors.g4,
+                                        color: context.menudo.textMuted,
                                       ),
                                     ),
                                   ],
@@ -1159,7 +1196,7 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
                                   onPressed: _isMutating
                                       ? null
                                       : () => _cancelInvitation(invitation),
-                                  child: const Text('Cancelar'),
+                                  child: Text('Cancelar'),
                                 ),
                             ],
                           ),
@@ -1185,10 +1222,10 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w900,
-        color: AppColors.e8,
+        color: context.menudo.textMain,
       ),
     );
   }
@@ -1203,14 +1240,14 @@ class _AvatarCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 36,
-      height: 36,
+      width: (36),
+      height: (36),
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       alignment: Alignment.center,
       child: Text(
         label,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: context.menudo.textOnDark,
           fontWeight: FontWeight.w900,
         ),
       ),
