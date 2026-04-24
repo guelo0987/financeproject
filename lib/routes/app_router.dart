@@ -55,7 +55,9 @@ final appRouter = Provider<GoRouter>((ref) {
           loc == '/subscription' ||
           loc == '/settings' ||
           loc == '/profile' ||
-          loc == '/contact';
+          loc == '/contact' ||
+          loc == '/auth/confirm' ||
+          loc == '/callback';
       final paywallLocation = authState.needsPaywall
           ? '/paywall?fromReg=true'
           : '/paywall';
@@ -88,15 +90,16 @@ final appRouter = Provider<GoRouter>((ref) {
         return hasVerifiedAccess ? '/' : paywallLocation;
       }
 
-      if (loc == '/auth/confirm' && isAuth) {
-        return hasVerifiedAccess ? '/' : paywallLocation;
-      }
-
       if (!hasVerifiedAccess && !isAllowedWhileInactive) {
         return paywallLocation;
       }
 
-      if (isAuth && isGoingToAuthOrOnboarding) return '/';
+      if (isAuth &&
+          isGoingToAuthOrOnboarding &&
+          loc != '/auth/confirm' &&
+          loc != '/callback') {
+        return '/';
+      }
 
       return null;
     },

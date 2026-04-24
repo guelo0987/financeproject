@@ -175,8 +175,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 8),
                 Text(
                   _appleAvailable
-                      ? 'En iPhone, la forma más rápida es continuar con Apple.'
-                      : 'Usa tu correo y tu contraseña para entrar en tu cuenta.',
+                      ? 'Continúa con Apple o entra con tu correo.'
+                      : 'Entra con tu correo y tu contraseña.',
                   style: MenudoTextStyles.bodyMedium.copyWith(
                     color: MenudoColors.textMuted,
                   ),

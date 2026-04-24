@@ -15,7 +15,9 @@ class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
     final uid = ref.watch(authProvider).userId;
     if (uid == null) return const [];
 
-    return ref.read(transactionServiceProvider).fetchTransactions(int.parse(uid));
+    return ref
+        .read(transactionServiceProvider)
+        .fetchTransactions(int.parse(uid));
   }
 
   Future<void> refresh() async {
@@ -49,7 +51,14 @@ class TransactionController extends AsyncNotifier<List<MenudoTransaction>> {
       state = AsyncValue.data(transactions);
       return created;
     } catch (error, stackTrace) {
-      state = AsyncValue.error(error, stackTrace);
+      try {
+        final transactions = await ref
+            .read(transactionServiceProvider)
+            .fetchTransactions(userId);
+        state = AsyncValue.data(transactions);
+      } catch (_) {
+        state = AsyncValue.error(error, stackTrace);
+      }
       rethrow;
     }
   }

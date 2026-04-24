@@ -13,6 +13,7 @@ import '../../budgets/budget_providers.dart';
 import '../../categories/providers/category_providers.dart';
 import '../../categories/presentation/category_picker_sheet.dart';
 import '../../transactions/providers/transaction_providers.dart';
+import '../../transactions/presentation/transaction_presentation_utils.dart';
 import '../../wallet/providers/wallet_providers.dart';
 
 class RegisterTransactionSheet extends ConsumerStatefulWidget {
@@ -206,6 +207,19 @@ class _RegisterTransactionSheetState
         _showError('Usa dos cuentas distintas para mover dinero.');
         return;
       }
+    }
+
+    final sourceWallet = _findWallet(_fromAccountId, wallets);
+    final destinationWallet = _findWallet(_toAccountId, wallets);
+    final amountValidationMessage = validateTransactionAmountAgainstWallets(
+      transactionType: _selectedType,
+      amount: amountValue,
+      sourceWallet: sourceWallet,
+      destinationWallet: destinationWallet,
+    );
+    if (amountValidationMessage != null) {
+      _showError(amountValidationMessage);
+      return;
     }
 
     final fallbackDescription = _selectedType == 'transferencia'

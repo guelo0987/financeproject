@@ -620,7 +620,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Atajos de iPhone",
+                    "Automatizaciones",
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -629,7 +629,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    "Gasto rápido con Shortcuts, Back Tap y Action Button",
+                    "Gasto rápido desde accesos del dispositivo",
                     style: TextStyle(fontSize: 13, color: AppColors.g4),
                   ),
                 ],

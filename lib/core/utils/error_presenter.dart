@@ -82,6 +82,11 @@ String presentError(
   if (lower.contains('moneda_mismatch')) {
     return 'La moneda de este movimiento no coincide con la de la cuenta.';
   }
+  if (lower.contains('activos_valor_actual_check') ||
+      lower.contains('violates check constraint') ||
+      lower.contains('wallet_balance_check')) {
+    return 'Ese movimiento supera el saldo permitido para esa cuenta.';
+  }
   if (lower.contains('cuenta_con_transacciones')) {
     return 'No puedes eliminar esta cuenta porque ya tiene movimientos.';
   }

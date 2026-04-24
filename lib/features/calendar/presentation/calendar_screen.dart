@@ -7,6 +7,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/data/models.dart';
+import '../../transactions/presentation/transaction_presentation_utils.dart';
 import '../../transactions/providers/transaction_providers.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
 
@@ -656,9 +657,7 @@ class _DayTransactionTile extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  transaction.tipo == "ingreso"
-                      ? "+${fmt(transaction.monto.abs().toInt().toDouble())}"
-                      : "-${fmt(transaction.monto.abs().toInt().toDouble())}",
+                  formatTransactionAmountLabel(transaction),
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w900,

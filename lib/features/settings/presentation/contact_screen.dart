@@ -31,18 +31,41 @@ class _ContactScreenState extends ConsumerState<ContactScreen> {
   }
 
   void _copyEmail() {
-    Clipboard.setData(ClipboardData(text: AppEnv.supportEmail));
+    Clipboard.setData(ClipboardData(text: AppEnv.feedbackEmail));
     _showMessage('Listo. El correo ya está copiado.');
   }
 
-  void _copyMessage() {
+  void _copyDraft() {
+    final formatted = _buildMessageBody();
+    if (formatted == null) {
+      _showMessage('Escribe un asunto y cuéntanos qué pasó.');
+      return;
+    }
+
+    final subject = _titleController.text.trim().isEmpty
+        ? 'Mensaje desde Menudo'
+        : '[${_topic.toUpperCase()}] ${_titleController.text.trim()}';
+
+    final draft = [
+      'Para: ${AppEnv.feedbackEmail}',
+      'Asunto: $subject',
+      '',
+      formatted,
+    ].join('\n');
+
+    Clipboard.setData(ClipboardData(text: draft));
+    _showMessage(
+      'Listo. Copiamos tu mensaje. Envíalo a ${AppEnv.feedbackEmail}.',
+    );
+  }
+
+  String? _buildMessageBody() {
     final profile = ref.read(authProvider).profile;
     final title = _titleController.text.trim();
     final message = _messageController.text.trim();
 
     if (title.isEmpty || message.isEmpty) {
-      _showMessage('Escribe un asunto y cuéntanos qué pasó.');
-      return;
+      return null;
     }
 
     final details = <String>[
@@ -60,8 +83,7 @@ Asunto: $title
 ${details.join('\n')}
 ''';
 
-    Clipboard.setData(ClipboardData(text: formatted.trim()));
-    _showMessage('Listo. El mensaje ya quedó copiado.');
+    return formatted.trim();
   }
 
   void _showMessage(String message) {
@@ -129,7 +151,7 @@ ${details.join('\n')}
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Puedes reportar un problema, pedir una mejora o escribirnos una idea.',
+                    'Escribe tu mensaje, copia el borrador y envíalo al correo indicado.',
                     style: MenudoTextStyles.bodyMedium.copyWith(
                       color: Colors.white.withValues(alpha: 0.85),
                     ),
@@ -140,7 +162,7 @@ ${details.join('\n')}
             const SizedBox(height: 20),
             const _SectionTitle('Qué quieres contarnos'),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: _TopicCard(
@@ -227,14 +249,14 @@ ${details.join('\n')}
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          AppEnv.supportEmail,
+                          AppEnv.feedbackEmail,
                           style: MenudoTextStyles.bodyLarge.copyWith(
                             fontWeight: FontWeight.w800,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Si prefieres, copia el mensaje y envíalo a este correo.',
+                          'Si lo prefieres, también puedes escribirnos directo aquí.',
                           style: MenudoTextStyles.bodySmall.copyWith(
                             color: MenudoColors.textMuted,
                           ),
@@ -264,17 +286,9 @@ ${details.join('\n')}
                 const SizedBox(width: 12),
                 Expanded(
                   child: MenudoButton(
-                    label: 'Escribir correo',
+                    label: 'Copiar mensaje',
                     isFullWidth: true,
-                    onTap: () async {
-                      _copyMessage();
-                      await ExternalLinks.composeSupportOrNotify(
-                        context,
-                        subject: _titleController.text.trim().isEmpty
-                            ? 'Ayuda con Menudo'
-                            : _titleController.text.trim(),
-                      );
-                    },
+                    onTap: _copyDraft,
                   ),
                 ),
               ],
@@ -327,8 +341,8 @@ class _TopicCard extends StatelessWidget {
         HapticFeedback.selectionClick();
         onTap();
       },
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 116),
+      child: SizedBox(
+        height: 124,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.all(14),

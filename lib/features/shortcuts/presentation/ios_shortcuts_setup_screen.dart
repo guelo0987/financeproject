@@ -33,7 +33,7 @@ class IosShortcutsSetupScreen extends ConsumerWidget {
           icon: const Icon(LucideIcons.arrowLeft, color: AppColors.e8),
         ),
         title: const Text(
-          'Atajos de iPhone',
+          'Automatizaciones',
           style: TextStyle(
             fontSize: 21,
             fontWeight: FontWeight.w800,
@@ -77,8 +77,8 @@ class IosShortcutsSetupScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(
                   _supportsShortcuts
-                      ? 'El atajo ya viene listo. Desde aquí solo abres Shortcuts para verlo o asignarlo.'
-                      : 'Esta integración se configura desde un iPhone con la app Menudo instalada.',
+                      ? 'Este acceso rápido ya está listo. Desde aquí puedes abrir la configuración del dispositivo.'
+                      : 'Esta función se configura desde un iPhone con Menudo instalado.',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -88,7 +88,7 @@ class IosShortcutsSetupScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 18),
                 MenudoButton(
-                  label: 'Abrir Shortcuts',
+                  label: 'Configurar acceso rápido',
                   isFullWidth: true,
                   icon: LucideIcons.sparkles,
                   isDisabled: !_supportsShortcuts,
@@ -113,12 +113,14 @@ class IosShortcutsSetupScreen extends ConsumerWidget {
                 SizedBox(height: 12),
                 _SimpleStep(
                   index: '2',
-                  text: 'Toca “Abrir Shortcuts” y busca “Registrar gasto rápido”.',
+                  text:
+                      'Toca “Configurar acceso rápido” y activa “Registrar gasto rápido”.',
                 ),
                 SizedBox(height: 12),
                 _SimpleStep(
                   index: '3',
-                  text: 'Ese atajo registra monto, categoría y nota.',
+                  text:
+                      'Luego podrás registrar monto, categoría y nota más rápido.',
                 ),
               ],
             ),

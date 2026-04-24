@@ -117,7 +117,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       return '$intro — cancelas cuando quieras';
     }
     if (_selected == _Plan.lifetime) {
-      return 'Compra segura desde tu iPhone';
+      return 'Pago único y seguro';
     }
     return 'El cobro sigue el plan que elijas';
   }

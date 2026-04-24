@@ -25,6 +25,11 @@ class _EmailConfirmationScreenState
   bool _isVerifying = false;
   String? _errorMessage;
 
+  void _continueAfterConfirmation() {
+    if (!mounted) return;
+    context.go('/');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -127,6 +132,47 @@ class _EmailConfirmationScreenState
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
 
+    if (authState.isAuthenticated) {
+      return Scaffold(
+        backgroundColor: MenudoColors.appBg,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Icon(
+                  Icons.verified_rounded,
+                  size: 56,
+                  color: MenudoColors.primary,
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'Tu cuenta ya quedó verificada',
+                  style: MenudoTextStyles.h2,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Ya puedes seguir usando Menudo con normalidad.',
+                  style: MenudoTextStyles.bodyMedium.copyWith(
+                    color: MenudoColors.textMuted,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                MenudoPrimaryButton(
+                  label: 'Continuar',
+                  onTap: _continueAfterConfirmation,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     if (_errorMessage != null) {
       return Scaffold(
         backgroundColor: MenudoColors.appBg,
@@ -168,9 +214,7 @@ class _EmailConfirmationScreenState
       );
     }
 
-    final message = authState.isAuthenticated
-        ? 'Tu correo ya quedó confirmado. Estamos entrando a tu cuenta.'
-        : _isVerifying
+    final message = _isVerifying
         ? 'Estamos confirmando tu correo para abrir tu cuenta.'
         : 'Abre el correo más reciente para confirmar tu cuenta.';
 

@@ -17,6 +17,7 @@ import '../../../../shared/widgets/menudo_loading_view.dart';
 import '../../auth/auth_state.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
+import '../../transactions/presentation/transaction_presentation_utils.dart';
 import '../../transactions/providers/transaction_providers.dart';
 import '../../wallet/presentation/add_wallet_sheet.dart';
 import '../../wallet/providers/wallet_providers.dart';
@@ -638,7 +639,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return switch (transaction.tipo) {
       'ingreso' => AppColors.e6,
       'transferencia' => AppColors.b5,
-      _ => AppColors.e8,
+      _ => AppColors.o5,
     };
   }
 
@@ -854,6 +855,16 @@ class _TransactionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final amountLabel = formatTransactionAmountLabel(
+      transaction,
+      currencyCode: currencyCode,
+    );
+    final amountColor = switch (transaction.tipo) {
+      'ingreso' => AppColors.e6,
+      'gasto' => AppColors.o5,
+      _ => AppColors.e8,
+    };
+
     return GestureDetector(
       onTap: () => onTap(context),
       behavior: HitTestBehavior.opaque,
@@ -901,17 +912,11 @@ class _TransactionTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  formatMoney(
-                    transaction.monto.abs(),
-                    currency: currencyCode,
-                    signed: transaction.tipo != 'transferencia',
-                  ),
+                  amountLabel,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
-                    color: transaction.tipo == "ingreso"
-                        ? AppColors.e6
-                        : AppColors.e8,
+                    color: amountColor,
                   ),
                 ),
               ],

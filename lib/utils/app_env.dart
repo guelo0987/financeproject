@@ -53,6 +53,10 @@ class AppEnv {
     'SUPPORT_EMAIL',
     defaultValue: 'notificaciones@menudoapp.com',
   );
+  static const _feedbackEmail = String.fromEnvironment(
+    'FEEDBACK_EMAIL',
+    defaultValue: 'info@garauyan.resend.app',
+  );
   static const _revenueCatApiKey = String.fromEnvironment(
     'REVENUECAT_API_KEY',
     defaultValue: '',
@@ -161,6 +165,11 @@ class AppEnv {
 
   static String get supportEmail => _supportEmail.trim();
 
+  static String get feedbackEmail {
+    final email = _feedbackEmail.trim();
+    return email.isEmpty ? supportEmail : email;
+  }
+
   static String get revenueCatApiKey => _revenueCatApiKey.trim();
 
   static bool get allowTestStoreRevenueCat {
@@ -195,7 +204,14 @@ class AppEnv {
             .toString();
       }
 
-      return _authWebPublicUrl.trim();
+      final authWebBase = _authWebPublicUrl.trim();
+      final publicBase = authWebBase.isNotEmpty
+          ? authWebBase
+          : publicWebBaseUrl;
+      final publicUri = Uri.parse(publicBase);
+      return publicUri
+          .replace(path: webPath, queryParameters: null, fragment: null)
+          .toString();
     }
 
     return mobileUrl;

@@ -187,8 +187,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 const SizedBox(height: 8),
                 Text(
                   _appleAvailable
-                      ? 'Si estás en iPhone, empieza con Apple. El correo queda como alternativa.'
-                      : 'Empieza con tu correo y una contraseña segura.',
+                      ? 'Empieza con Apple o usa tu correo.'
+                      : 'Crea tu cuenta con correo y contraseña.',
                   style: MenudoTextStyles.bodyMedium.copyWith(
                     color: MenudoColors.textMuted,
                   ),

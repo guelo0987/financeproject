@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/localization/app_copy.dart';
 import '../../../core/preferences/app_preferences.dart';
 import '../../../core/preferences/app_preferences_controller.dart';
-import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/display_utils.dart';
@@ -18,7 +17,6 @@ import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_card.dart';
 import '../../../shared/widgets/menudo_chip.dart';
 import '../../../shared/widgets/menudo_loading_view.dart';
-import '../../budgets/budget_providers.dart';
 import '../../auth/auth_state.dart';
 import '../../subscription/subscription_provider.dart';
 import '../../../utils/app_env.dart';
@@ -159,94 +157,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return tr(context, es: 'Desde $dateLabel', en: 'Since $dateLabel');
   }
 
-  String _budgetLabel(
-    UserProfile profile,
-    List<MenudoBudget> budgets, {
-    required bool isLoading,
-  }) {
-    if (isLoading && budgets.isEmpty) {
-      return 'Cargando opciones...';
-    }
-    for (final budget in budgets) {
-      if (budget.id == profile.defaultBudgetId) {
-        return budget.nombre;
-      }
-    }
-    return budgets.isEmpty
-        ? 'No tienes presupuestos todavía'
-        : 'Elegir uno opcional';
-  }
-
-  Future<void> _pickDefaultBudget(UserProfile profile) async {
-    final budgets = ref.read(effectiveBudgetsProvider);
-    final budgetsState = ref.read(budgetNotifierProvider);
-    if (budgetsState.isLoading && budgets.isEmpty) {
-      _showMessage('Todavía estamos cargando tus opciones.');
-      return;
-    }
-    if (budgets.isEmpty) {
-      _showMessage(
-        'Si luego creas un presupuesto, podrás dejar uno fijo aquí.',
-      );
-      return;
-    }
-
-    final result = await showModalBottomSheet<_DefaultBudgetSelection>(
-      context: context,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _DefaultBudgetSheet(
-        budgets: budgets,
-        selectedBudgetId: profile.defaultBudgetId,
-      ),
-    );
-
-    if (result == null) return;
-
-    try {
-      await ref.read(authProvider.notifier).setDefaultBudget(result.budgetId);
-      if (result.budgetId != null) {
-        ref
-            .read(budgetControllerProvider.notifier)
-            .selectBudgetLocally(result.budgetId!);
-      }
-      if (!mounted) return;
-      _showMessage(
-        result.budgetId == null
-            ? 'La app ya no abrirá con un presupuesto fijo.'
-            : 'Tu preferencia de presupuesto inicial ya quedó actualizada.',
-      );
-    } catch (error) {
-      _showMessage(presentError(error));
-    }
-  }
-
-  Future<void> _pickCurrencyMarket() async {
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return _ProfileSelectionSheet<String>(
-          title: tr(context, es: 'País y moneda', en: 'Country and currency'),
-          selectedValue: marketFromCurrency(_currency).code,
-          options: supportedAppMarkets
-              .map(
-                (market) => _ProfileSelectionOption<String>(
-                  value: market.code,
-                  title: market.label(isEnglishLocale(context)),
-                  subtitle: market.currencyCode,
-                ),
-              )
-              .toList(),
-        );
-      },
-    );
-
-    if (selected == null) return;
-    setState(() => _currency = marketFromCode(selected).currencyCode);
-  }
-
   Future<void> _pickGoalDate() async {
     final now = DateTime.now();
     final selected = await showDatePicker(
@@ -291,7 +201,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _openChangePasswordSheet() async {
     if (ref.read(authProvider).isAppleAccount) {
-      _showMessage('Tu acceso se gestiona con Apple.');
+      _showMessage('Tu cuenta usa Apple.');
       return;
     }
 
@@ -389,8 +299,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final profile = authState.profile;
-    final budgetsState = ref.watch(budgetNotifierProvider);
-    final budgets = ref.watch(effectiveBudgetsProvider);
     final subscription = ref.watch(subscriptionProvider);
     final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
 
@@ -503,11 +411,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               runSpacing: 8,
                               children: [
                                 MenudoChip.custom(
-                                  label: profile.baseCurrency,
-                                  color: Colors.white,
-                                  bgColor: Colors.white.withValues(alpha: 0.12),
-                                ),
-                                MenudoChip.custom(
                                   label: _formatJoined(profile),
                                   color: Colors.white,
                                   bgColor: Colors.white.withValues(alpha: 0.12),
@@ -575,15 +478,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       _FieldLabel('Correo'),
                       const SizedBox(height: 8),
                       _ReadOnlyField(value: profile.email),
-                      const SizedBox(height: 16),
-                      _FieldLabel('Moneda base'),
-                      const SizedBox(height: 10),
-                      _ReadOnlyField(
-                        value: marketFromCurrency(
-                          _currency,
-                        ).label(isEnglishLocale(context)),
-                        onTap: _pickCurrencyMarket,
-                      ),
                     ],
                   ),
                 ),
@@ -711,26 +605,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   color: MenudoColors.textMuted,
                                 ),
                               ),
-                      ),
-                      const SizedBox(height: 16),
-                      _FieldLabel('Presupuesto inicial opcional'),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Solo si quieres abrir primero uno de tus presupuestos.',
-                        style: MenudoTextStyles.bodySmall.copyWith(
-                          color: MenudoColors.textMuted,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _ReadOnlyField(
-                        value: _budgetLabel(
-                          profile,
-                          budgets,
-                          isLoading:
-                              budgetsState.isLoading &&
-                              budgetsState.valueOrNull == null,
-                        ),
-                        onTap: () => _pickDefaultBudget(profile),
                       ),
                     ],
                   ),
@@ -1292,168 +1166,6 @@ class _ReadOnlyField extends StatelessWidget {
   }
 }
 
-class _DefaultBudgetSelection {
-  const _DefaultBudgetSelection(this.budgetId);
-
-  final int? budgetId;
-}
-
-class _DefaultBudgetSheet extends StatelessWidget {
-  const _DefaultBudgetSheet({
-    required this.budgets,
-    required this.selectedBudgetId,
-  });
-
-  final List<MenudoBudget> budgets;
-  final int? selectedBudgetId;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        20,
-        14,
-        20,
-        24 + MediaQuery.of(context).padding.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 5,
-              decoration: BoxDecoration(
-                color: AppColors.g2,
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          Text('Presupuesto inicial opcional', style: MenudoTextStyles.h3),
-          const SizedBox(height: 6),
-          Text(
-            'Solo se usará si quieres abrir primero uno de tus presupuestos.',
-            style: MenudoTextStyles.bodySmall.copyWith(
-              color: MenudoColors.textMuted,
-            ),
-          ),
-          const SizedBox(height: 18),
-          ...budgets.map((budget) {
-            final isSelected = budget.id == selectedBudgetId;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _BudgetSelectionTile(
-                label: budget.nombre,
-                subtitle: budget.periodo,
-                selected: isSelected,
-                onTap: () => Navigator.of(
-                  context,
-                ).pop(_DefaultBudgetSelection(budget.id)),
-              ),
-            );
-          }),
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: _BudgetSelectionTile(
-              label: 'No usar uno fijo',
-              subtitle: 'Entrarás a la app sin priorizar ningún presupuesto',
-              selected: selectedBudgetId == null,
-              isNeutral: true,
-              onTap: () => Navigator.of(
-                context,
-              ).pop(const _DefaultBudgetSelection(null)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BudgetSelectionTile extends StatelessWidget {
-  const _BudgetSelectionTile({
-    required this.label,
-    required this.subtitle,
-    required this.selected,
-    required this.onTap,
-    this.isNeutral = false,
-  });
-
-  final String label;
-  final String subtitle;
-  final bool selected;
-  final bool isNeutral;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = isNeutral ? AppColors.g5 : AppColors.e8;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: selected
-              ? accent.withValues(alpha: isNeutral ? 0.08 : 0.1)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: selected ? accent : MenudoColors.border,
-            width: selected ? 1.6 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 18,
-              height: 18,
-              decoration: BoxDecoration(
-                color: selected ? accent : Colors.transparent,
-                shape: BoxShape.circle,
-                border: Border.all(color: selected ? accent : AppColors.g3),
-              ),
-              alignment: Alignment.center,
-              child: selected
-                  ? const Icon(Icons.check, size: 12, color: Colors.white)
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: MenudoTextStyles.bodyLarge.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: MenudoColors.textMain,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: MenudoTextStyles.bodySmall.copyWith(
-                      color: MenudoColors.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _PlainTextField extends StatelessWidget {
   const _PlainTextField({
     required this.controller,
@@ -1723,113 +1435,6 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
             onTap: _submit,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ProfileSelectionSheet<T> extends StatelessWidget {
-  const _ProfileSelectionSheet({
-    required this.title,
-    required this.options,
-    required this.selectedValue,
-  });
-
-  final String title;
-  final List<_ProfileSelectionOption<T>> options;
-  final T selectedValue;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: MenudoColors.divider,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(title, style: MenudoTextStyles.h3),
-              const SizedBox(height: 18),
-              for (var i = 0; i < options.length; i++) ...[
-                _ProfileSelectionRow<T>(
-                  option: options[i],
-                  selected: options[i].value == selectedValue,
-                ),
-                if (i != options.length - 1)
-                  const Divider(height: 1, color: MenudoColors.divider),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfileSelectionOption<T> {
-  const _ProfileSelectionOption({
-    required this.value,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final T value;
-  final String title;
-  final String subtitle;
-}
-
-class _ProfileSelectionRow<T> extends StatelessWidget {
-  const _ProfileSelectionRow({required this.option, required this.selected});
-
-  final _ProfileSelectionOption<T> option;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => Navigator.of(context).pop(option.value),
-      borderRadius: BorderRadius.circular(18),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    option.title,
-                    style: MenudoTextStyles.bodyLarge.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    option.subtitle,
-                    style: MenudoTextStyles.bodySmall.copyWith(
-                      color: MenudoColors.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (selected) const Icon(Icons.check_rounded, color: AppColors.e8),
-          ],
-        ),
       ),
     );
   }

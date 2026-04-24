@@ -414,7 +414,7 @@ class AuthRepository {
       final isAvailable = await SignInWithApple.isAvailable();
       if (!isAvailable) {
         throw const ApiException(
-          'Sign in with Apple solo está disponible en dispositivos Apple.',
+          'Apple no está disponible en este dispositivo.',
         );
       }
 
@@ -432,7 +432,7 @@ class AuthRepository {
       final idToken = credential.identityToken;
       if (idToken == null || idToken.isEmpty) {
         throw const ApiException(
-          'Apple no devolvió un token válido. Inténtalo otra vez.',
+          'No pudimos completar el acceso con Apple. Inténtalo otra vez.',
         );
       }
 
@@ -468,10 +468,10 @@ class AuthRepository {
       return _completeSupabaseBootstrap(currency: currency);
     } on SignInWithAppleAuthorizationException catch (error) {
       if (error.code == AuthorizationErrorCode.canceled) {
-        throw const ApiException('Cancelaste el inicio con Apple.');
+        throw const ApiException('Cancelaste el acceso con Apple.');
       }
-      throw ApiException(
-        'No pudimos completar el inicio con Apple: ${error.message}',
+      throw const ApiException(
+        'No pudimos completar el acceso con Apple. Inténtalo otra vez.',
       );
     } on AuthException catch (error) {
       throw ApiException(error.message);

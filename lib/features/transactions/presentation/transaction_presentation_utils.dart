@@ -3,6 +3,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 
 class TransactionViewPresentation {
   const TransactionViewPresentation({
@@ -37,6 +38,58 @@ WalletAccount? findWalletById(List<WalletAccount> wallets, int? walletId) {
     if (wallet.id == walletId) return wallet;
   }
   return null;
+}
+
+String? validateTransactionAmountAgainstWallets({
+  required String transactionType,
+  required double amount,
+  WalletAccount? sourceWallet,
+  WalletAccount? destinationWallet,
+}) {
+  if (amount <= 0) return null;
+
+  final normalizedType = transactionType.trim().toLowerCase();
+  final normalizedAmount = amount.abs();
+
+  if ((normalizedType == 'gasto' || normalizedType == 'transferencia') &&
+      sourceWallet != null &&
+      sourceWallet.tipo != 'deudas' &&
+      normalizedAmount > sourceWallet.saldo) {
+    return 'Ese monto supera el saldo disponible en ${sourceWallet.nombre}.';
+  }
+
+  if (normalizedType == 'ingreso' &&
+      sourceWallet != null &&
+      sourceWallet.tipo == 'deudas' &&
+      normalizedAmount > sourceWallet.saldo.abs()) {
+    return 'Ese monto supera la deuda pendiente en ${sourceWallet.nombre}.';
+  }
+
+  if (normalizedType == 'transferencia' &&
+      destinationWallet != null &&
+      destinationWallet.tipo == 'deudas' &&
+      normalizedAmount > destinationWallet.saldo.abs()) {
+    return 'Ese monto supera la deuda pendiente en ${destinationWallet.nombre}.';
+  }
+
+  return null;
+}
+
+String formatTransactionAmountLabel(
+  MenudoTransaction transaction, {
+  String currencyCode = '',
+}) {
+  if (transaction.tipo == 'transferencia') {
+    return formatMoney(transaction.monto.abs(), currency: currencyCode);
+  }
+
+  final signedAmount = switch (transaction.tipo) {
+    'ingreso' => transaction.monto.abs(),
+    'gasto' => -transaction.monto.abs(),
+    _ => transaction.monto,
+  };
+
+  return formatMoney(signedAmount, currency: currencyCode, signed: true);
 }
 
 Color _fallbackWalletColor(String? type) {

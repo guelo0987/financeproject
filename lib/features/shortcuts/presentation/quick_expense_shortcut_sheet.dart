@@ -12,6 +12,7 @@ import '../../../../shared/widgets/menudo_card.dart';
 import '../../budgets/budget_providers.dart';
 import '../../categories/presentation/category_picker_sheet.dart';
 import '../../categories/providers/category_providers.dart';
+import '../../transactions/presentation/transaction_presentation_utils.dart';
 import '../../transactions/providers/transaction_providers.dart';
 import '../../wallet/providers/wallet_providers.dart';
 
@@ -101,6 +102,16 @@ class _QuickExpenseShortcutSheetState
     final wallet = defaultWallet ?? (wallets.isNotEmpty ? wallets.first : null);
     if (wallet == null) {
       _showError('Necesitas una cuenta disponible para registrar este gasto.');
+      return;
+    }
+
+    final amountValidationMessage = validateTransactionAmountAgainstWallets(
+      transactionType: 'gasto',
+      amount: amount,
+      sourceWallet: wallet,
+    );
+    if (amountValidationMessage != null) {
+      _showError(amountValidationMessage);
       return;
     }
 
@@ -447,8 +458,8 @@ class _QuickExpenseShortcutSheetState
                     Center(
                       child: Text(
                         widget.source == 'transaction_automation'
-                            ? 'Abierto desde tu automatización de Wallet.'
-                            : 'Disponible para Shortcuts, Back Tap y Action Button.',
+                            ? 'Abierto desde una automatización.'
+                            : 'También puedes abrir esto desde un acceso rápido del dispositivo.',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 12,
