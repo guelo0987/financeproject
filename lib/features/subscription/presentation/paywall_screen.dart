@@ -575,9 +575,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
             decoration: BoxDecoration(
-              color: AppColors.e0,
+              color: context.menudo.successLight,
               borderRadius: BorderRadius.circular(100),
-              border: Border.all(color: AppColors.e1),
+              border: Border.all(color: context.menudo.successLight),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -907,7 +907,7 @@ class _StatusCard extends StatelessWidget {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: AppColors.e0,
+              color: context.menudo.successLight,
               borderRadius: BorderRadius.circular(18),
             ),
             alignment: Alignment.center,
@@ -962,7 +962,9 @@ class _InlinePurchaseFeedback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = isError ? AppColors.r1 : AppColors.e1;
+    final bgColor = isError
+        ? context.menudo.dangerLight
+        : context.menudo.successLight;
     final borderColor = isError ? AppColors.r5 : AppColors.e6;
     final icon = isError
         ? MenudoCupertinoIcons.error_outline_rounded
@@ -1024,7 +1026,7 @@ class _BenefitRow extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: AppColors.e0,
+                      color: context.menudo.successLight,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(icon, color: AppColors.e6, size: (18)),
@@ -1105,7 +1107,7 @@ class _PlanCard extends StatelessWidget {
                 ]
               : [
                   BoxShadow(
-                    color: AppColors.black.withValues(alpha: 0.04),
+                    color: context.menudo.background.withValues(alpha: 0.16),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -1121,11 +1123,11 @@ class _PlanCard extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: selected
-                    ? context.menudo.textOnDark
+                    ? context.menudo.surface
                     : Colors.transparent,
                 border: Border.all(
                   color: selected
-                      ? context.menudo.textOnDark
+                      ? context.menudo.surface
                       : context.menudo.textMuted,
                   width: 2,
                 ),
@@ -1156,7 +1158,7 @@ class _PlanCard extends StatelessWidget {
                         title,
                         style: MenudoTextStyles.bodyLarge.copyWith(
                           color: selected
-                              ? context.menudo.textOnDark
+                              ? context.menudo.surface
                               : context.menudo.textMain,
                         ),
                       ),
@@ -1169,7 +1171,7 @@ class _PlanCard extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: selected
-                                ? context.menudo.textOnDark.withValues(
+                                ? context.menudo.surface.withValues(
                                     alpha: 0.18,
                                   )
                                 : badgeColor!.withValues(alpha: 0.1),
@@ -1179,7 +1181,7 @@ class _PlanCard extends StatelessWidget {
                             badge!,
                             style: MenudoTextStyles.labelCaps.copyWith(
                               color: selected
-                                  ? context.menudo.textOnDark
+                                  ? context.menudo.surface
                                   : badgeColor,
                               fontSize: 8,
                               letterSpacing: 0.6,
@@ -1194,7 +1196,7 @@ class _PlanCard extends StatelessWidget {
                     detail,
                     style: MenudoTextStyles.bodySmall.copyWith(
                       color: selected
-                          ? context.menudo.textOnDark.withValues(alpha: 0.65)
+                          ? context.menudo.surface.withValues(alpha: 0.65)
                           : context.menudo.textSecondary,
                     ),
                   ),
@@ -1214,7 +1216,7 @@ class _PlanCard extends StatelessWidget {
                       price,
                       style: MenudoTextStyles.amountMedium.copyWith(
                         color: selected
-                            ? context.menudo.textOnDark
+                            ? context.menudo.surface
                             : context.menudo.textMain,
                       ),
                     ),
@@ -1223,7 +1225,7 @@ class _PlanCard extends StatelessWidget {
                         period,
                         style: MenudoTextStyles.bodySmall.copyWith(
                           color: selected
-                              ? context.menudo.textOnDark.withValues(
+                              ? context.menudo.surface.withValues(
                                   alpha: 0.65,
                                 )
                               : context.menudo.textSecondary,

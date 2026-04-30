@@ -39,33 +39,34 @@ class MenudoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
     Color bgColor;
     Color textColor;
 
     switch (variant) {
       case MenudoChipVariant.success:
-        bgColor = MenudoColors.successLight;
-        textColor = MenudoColors.success;
+        bgColor = colors.successLight;
+        textColor = colors.success;
         break;
       case MenudoChipVariant.danger:
-        bgColor = MenudoColors.dangerLight;
-        textColor = MenudoColors.danger;
+        bgColor = colors.dangerLight;
+        textColor = colors.danger;
         break;
       case MenudoChipVariant.warning:
-        bgColor = MenudoColors.warningLight;
-        textColor = MenudoColors.warning;
+        bgColor = colors.warningLight;
+        textColor = colors.warning;
         break;
       case MenudoChipVariant.primary:
-        bgColor = MenudoColors.primaryLight.withValues(alpha: 0.3);
-        textColor = MenudoColors.primaryDark;
+        bgColor = colors.primaryLight.withValues(alpha: 0.3);
+        textColor = colors.primaryDark;
         break;
       case MenudoChipVariant.neutral:
-        bgColor = MenudoColors.divider;
-        textColor = MenudoColors.textSecondary;
+        bgColor = colors.surfaceElevated;
+        textColor = colors.textSecondary;
         break;
       case MenudoChipVariant.custom:
-        bgColor = customBgColor ?? AppColors.g1;
-        textColor = customColor ?? AppColors.e8;
+        bgColor = customBgColor ?? colors.surfaceElevated;
+        textColor = customColor ?? colors.textMain;
         break;
     }
 

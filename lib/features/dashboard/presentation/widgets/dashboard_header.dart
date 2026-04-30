@@ -1,4 +1,5 @@
 import 'package:financeproject/core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/app_spacing.dart';
 import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:flutter/cupertino.dart';
@@ -41,7 +42,7 @@ class DashboardHeader extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: AppColors.e1,
+                    color: context.menudo.successLight,
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(
                       color: AppColors.e6.withValues(alpha: 0.12),
@@ -59,7 +60,7 @@ class DashboardHeader extends StatelessWidget {
                           ),
                         ),
                 ),
-                SizedBox(width: (12)),
+                SizedBox(width: AppSpacing.p12),
                 Expanded(
                   child: Text(
                     title,
@@ -77,7 +78,7 @@ class DashboardHeader extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(width: (12)),
+        SizedBox(width: AppSpacing.p12),
         Row(
           children: [
             _HeaderCircleButton(
@@ -86,7 +87,7 @@ class DashboardHeader extends StatelessWidget {
               badgeCount: unreadAlerts,
               onTap: onAlertsTap,
             ),
-            SizedBox(width: (10)),
+            SizedBox(width: AppSpacing.p10),
             _HeaderCircleButton(
               icon: CupertinoIcons.gear_solid,
               label: 'Ajustes',
@@ -147,8 +148,8 @@ class _HeaderCircleButton extends StatelessWidget {
                     minHeight: 20,
                   ),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 2,
+                    horizontal: AppSpacing.p6,
+                    vertical: AppSpacing.p2,
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.o5,
@@ -158,7 +159,7 @@ class _HeaderCircleButton extends StatelessWidget {
                   child: Text(
                     badgeCount > 9 ? '9+' : badgeCount.toString(),
                     style: TextStyle(
-                      color: context.menudo.textOnDark,
+                      color: context.menudo.surface,
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
                     ),

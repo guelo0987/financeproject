@@ -3,6 +3,7 @@ import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/menudo_blurred_app_bar.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 
@@ -54,13 +55,15 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        flexibleSpace: const MenudoBlurredBar(),
         leading: MenudoIconButton(
           icon: Icon(
             MenudoCupertinoIcons.arrow_back_ios,
-            color: AppColors.textPrimary,
+            color: context.menudo.textMain,
           ),
           onPressed: () => context.pop(),
         ),
@@ -113,7 +116,7 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                       decoration: BoxDecoration(
                         color: isUser
                             ? AppColors.accent
-                            : AppColors.surfaceLight,
+                            : context.menudo.surfaceElevated,
                         borderRadius: BorderRadius.circular(20).copyWith(
                           bottomRight: isUser
                               ? const Radius.circular(4)
@@ -124,14 +127,14 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                         ),
                         border: isUser
                             ? null
-                            : Border.all(color: AppColors.cardBorder),
+                            : Border.all(color: context.menudo.border),
                       ),
                       child: Text(
                         msg['text'] as String,
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: isUser
-                              ? context.menudo.textOnDark
-                              : AppColors.textPrimary,
+                              ? context.menudo.surface
+                              : context.menudo.textMain,
                         ),
                       ),
                     ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1),
@@ -150,9 +153,9 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                       vertical: 12,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
+                      color: context.menudo.surfaceElevated,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.cardBorder),
+                      border: Border.all(color: context.menudo.border),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -180,17 +183,17 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.surface,
-                border: Border(top: BorderSide(color: AppColors.cardBorder)),
+                color: context.menudo.surface,
+                border: Border(top: BorderSide(color: context.menudo.border)),
               ),
               child: Row(
                 children: [
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceLight,
+                        color: context.menudo.surfaceElevated,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: AppColors.cardBorder),
+                        border: Border.all(color: context.menudo.border),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: TextField(
@@ -217,7 +220,7 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                       ),
                       child: Icon(
                         MenudoCupertinoIcons.send_rounded,
-                        color: context.menudo.textOnDark,
+                        color: context.menudo.surface,
                         size: (20),
                       ),
                     ),

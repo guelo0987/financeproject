@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/error_presenter.dart';
+import '../../../core/utils/menudo_haptics.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_logo.dart';
 import '../../../shared/widgets/menudo_tap_target.dart';
@@ -58,12 +59,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _showMessage(String message, {bool success = false}) {
     if (!mounted) return;
+    if (success) {
+      MenudoHaptics.success();
+      return;
+    }
+    MenudoHaptics.error();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: success ? context.menudo.primary : null,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -98,6 +100,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           );
       if (!mounted) return;
 
+      MenudoHaptics.success();
       final needsPaywall = ref.read(authProvider).needsPaywall;
       context.go(needsPaywall ? '/paywall?fromReg=true' : '/');
     } catch (error) {
@@ -115,6 +118,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref.read(authProvider.notifier).loginWithApple();
       if (!mounted) return;
 
+      MenudoHaptics.success();
       final needsPaywall = ref.read(authProvider).needsPaywall;
       context.go(needsPaywall ? '/paywall?fromReg=true' : '/');
     } catch (error) {
@@ -157,7 +161,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     return Scaffold(
-      backgroundColor: MenudoColors.appBg,
+      backgroundColor: context.menudo.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
@@ -180,7 +184,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ? 'Continúa con Apple o entra con tu correo.'
                       : 'Entra con tu correo y tu contraseña.',
                   style: MenudoTextStyles.bodyMedium.copyWith(
-                    color: MenudoColors.textMuted,
+                    color: context.menudo.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 260.ms),
@@ -207,7 +211,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         : () =>
                               setState(() => _showEmailForm = !_showEmailForm),
                     style: TextButton.styleFrom(
-                      foregroundColor: MenudoColors.primary,
+                      foregroundColor: context.menudo.primary,
                     ),
                     child: Text(
                       _showEmailForm
@@ -222,9 +226,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: context.menudo.textOnDark,
+                      color: context.menudo.surface,
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: MenudoColors.border),
+                      border: Border.all(color: context.menudo.border),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -262,7 +266,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               _obscurePassword
                                   ? MenudoCupertinoIcons.visibility_off_outlined
                                   : MenudoCupertinoIcons.visibility_outlined,
-                              color: MenudoColors.textMuted,
+                              color: context.menudo.textMuted,
                             ),
                           ),
                           onSubmitted: (_) => _handleEmailLogin(),
@@ -274,7 +278,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ? null
                                 : _handleForgotPassword,
                             style: TextButton.styleFrom(
-                              foregroundColor: MenudoColors.primary,
+                              foregroundColor: context.menudo.primary,
                               padding: const EdgeInsets.only(top: 4),
                             ),
                             child: Text(
@@ -304,7 +308,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     TextButton(
                       onPressed: () => context.push('/register'),
                       style: TextButton.styleFrom(
-                        foregroundColor: MenudoColors.primary,
+                        foregroundColor: context.menudo.primary,
                       ),
                       child: Text(
                         'Crear cuenta',
@@ -355,7 +359,7 @@ class _AuthField extends StatelessWidget {
         Text(
           label,
           style: MenudoTextStyles.bodySmall.copyWith(
-            color: MenudoColors.textMuted,
+            color: context.menudo.textMuted,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -374,7 +378,7 @@ class _AuthField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: MenudoTextStyles.bodyMedium.copyWith(
-              color: MenudoColors.textMuted,
+              color: context.menudo.textMuted,
             ),
             filled: true,
             fillColor: context.menudo.background,
@@ -469,7 +473,7 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
       top: false,
       child: Container(
         decoration: BoxDecoration(
-          color: context.menudo.textOnDark,
+          color: context.menudo.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
         constraints: BoxConstraints(maxHeight: media.size.height * 0.52),
@@ -496,7 +500,7 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
               Text(
                 'Escribe tu correo y te mandamos el acceso para cambiar tu contraseña.',
                 style: MenudoTextStyles.bodySmall.copyWith(
-                  color: MenudoColors.textMuted,
+                  color: context.menudo.textMuted,
                 ),
               ),
               SizedBox(height: (18)),

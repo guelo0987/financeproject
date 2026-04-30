@@ -135,7 +135,7 @@ class _EmailConfirmationScreenState
 
     if (authState.isAuthenticated) {
       return Scaffold(
-        backgroundColor: MenudoColors.appBg,
+        backgroundColor: context.menudo.background,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
@@ -146,7 +146,7 @@ class _EmailConfirmationScreenState
                 Icon(
                   MenudoCupertinoIcons.verified_rounded,
                   size: 56,
-                  color: MenudoColors.primary,
+                  color: context.menudo.primary,
                 ),
                 SizedBox(height: (18)),
                 Text(
@@ -158,7 +158,7 @@ class _EmailConfirmationScreenState
                 Text(
                   'Ya puedes seguir usando Menudo con normalidad.',
                   style: MenudoTextStyles.bodyMedium.copyWith(
-                    color: MenudoColors.textMuted,
+                    color: context.menudo.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -176,7 +176,7 @@ class _EmailConfirmationScreenState
 
     if (_errorMessage != null) {
       return Scaffold(
-        backgroundColor: MenudoColors.appBg,
+        backgroundColor: context.menudo.background,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
@@ -187,7 +187,7 @@ class _EmailConfirmationScreenState
                 Icon(
                   MenudoCupertinoIcons.mark_email_unread_outlined,
                   size: 52,
-                  color: MenudoColors.warning,
+                  color: context.menudo.warning,
                 ),
                 SizedBox(height: (18)),
                 Text(
@@ -199,7 +199,7 @@ class _EmailConfirmationScreenState
                 Text(
                   _errorMessage!,
                   style: MenudoTextStyles.bodyMedium.copyWith(
-                    color: MenudoColors.textMuted,
+                    color: context.menudo.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -220,7 +220,7 @@ class _EmailConfirmationScreenState
         : 'Abre el correo más reciente para confirmar tu cuenta.';
 
     return Scaffold(
-      backgroundColor: MenudoColors.appBg,
+      backgroundColor: context.menudo.background,
       body: SafeArea(
         child: MenudoLoadingView(
           title: 'Confirmando tu correo',

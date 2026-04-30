@@ -7,6 +7,7 @@ import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 
 import '../../../core/data/models.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/menudo_blurred_app_bar.dart';
 import '../../../core/utils/formatters.dart';
 import '../../transactions/presentation/transaction_detail_sheet.dart';
 import '../../transactions/presentation/transaction_presentation_utils.dart';
@@ -268,10 +269,12 @@ class _SpendingCategoriesScreenState
 
     return Scaffold(
       backgroundColor: context.menudo.background,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: context.menudo.background,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        flexibleSpace: const MenudoBlurredBar(),
         leading: MenudoIconButton(
           icon: Icon(
             MenudoCupertinoIcons.chevronLeft,
@@ -405,7 +408,7 @@ class _TypeSwitcher extends StatelessWidget {
               label: 'Gastos',
               selected: selectedType == 'gasto',
               selectedColor: AppColors.o5,
-              selectedBackground: AppColors.o1,
+              selectedBackground: context.menudo.primaryLight,
               onTap: () => onChanged('gasto'),
             ),
           ),
@@ -415,7 +418,7 @@ class _TypeSwitcher extends StatelessWidget {
               label: 'Ingresos',
               selected: selectedType == 'ingreso',
               selectedColor: AppColors.e6,
-              selectedBackground: AppColors.e1,
+              selectedBackground: context.menudo.successLight,
               onTap: () => onChanged('ingreso'),
             ),
           ),
@@ -1040,7 +1043,7 @@ class _EmptyBreakdownState extends StatelessWidget {
             width: 58,
             height: 58,
             decoration: BoxDecoration(
-              color: AppColors.e0,
+              color: context.menudo.successLight,
               borderRadius: BorderRadius.circular(18),
             ),
             alignment: Alignment.center,

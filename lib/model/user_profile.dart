@@ -1,3 +1,5 @@
+import '../core/preferences/app_preferences.dart';
+
 class UserProfile {
   const UserProfile({
     required this.userId,
@@ -40,7 +42,9 @@ class UserProfile {
       userId: userId,
       name: json['nombre']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
-      baseCurrency: json['moneda_base']?.toString() ?? 'DOP',
+      baseCurrency:
+          json['moneda_base']?.toString().trim().toUpperCase() ??
+          AppFormattingPreferences.currencyCode,
       avatarEmoji: json['avatar_emoji']?.toString(),
       financialGoal: json['meta_financiera']?.toString(),
       goalAmount: switch (json['meta_monto']) {

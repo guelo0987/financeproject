@@ -78,6 +78,44 @@ void main() {
     );
   });
 
+  test('formatTransactionAmountLabel corrige DOP legacy con moneda activa', () {
+    final transaction = _transaction(
+      id: 5,
+      tipo: 'gasto',
+      monto: 500,
+      moneda: 'DOP',
+    );
+
+    expect(
+      formatTransactionAmountLabel(transaction, currencyCode: 'USD'),
+      '-US\$500',
+    );
+  });
+
+  test('formatTransactionAmountLabel corrige wallet snapshot DOP legacy', () {
+    final transaction = MenudoTransaction(
+      id: 6,
+      dateString: '2026-04-23',
+      desc: 'Movimiento 6',
+      catKey: 'general',
+      monto: 500,
+      tipo: 'gasto',
+      icono: Icons.circle,
+      moneda: '',
+      fromWallet: const TransactionWalletInfo(
+        id: 1,
+        nombre: 'Cuenta legacy',
+        tipo: 'cuentas',
+        moneda: 'DOP',
+      ),
+    );
+
+    expect(
+      formatTransactionAmountLabel(transaction, currencyCode: 'USD'),
+      '-US\$500',
+    );
+  });
+
   test('valida gastos mayores que el saldo disponible', () {
     final result = validateTransactionAmountAgainstWallets(
       transactionType: 'gasto',

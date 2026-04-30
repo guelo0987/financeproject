@@ -47,7 +47,7 @@ class _InvestScreenState extends State<InvestScreen> {
   void _showCalculator(InvestmentInstrument instrument) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.menudo.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -107,13 +107,13 @@ class _InvestScreenState extends State<InvestScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? AppColors.accentSurface
-                                    : AppColors.surfaceLight,
+                                    ? context.menudo.primaryLight
+                                    : context.menudo.surfaceElevated,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: isSelected
                                       ? AppColors.accent
-                                      : AppColors.cardBorder,
+                                      : context.menudo.border,
                                 ),
                               ),
                               child: Center(
@@ -122,7 +122,7 @@ class _InvestScreenState extends State<InvestScreen> {
                                   style: AppTextStyles.labelMedium.copyWith(
                                     color: isSelected
                                         ? AppColors.accent
-                                        : AppColors.textSecondary,
+                                        : context.menudo.textSecondary,
                                   ),
                                 ),
                               ),
@@ -148,21 +148,21 @@ class _InvestScreenState extends State<InvestScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? AppColors.surfaceLight
+                                    ? context.menudo.surfaceElevated
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: isSelected
-                                      ? AppColors.textSecondary
-                                      : AppColors.cardBorder,
+                                      ? context.menudo.textSecondary
+                                      : context.menudo.border,
                                 ),
                               ),
                               child: Text(
                                 c,
                                 style: AppTextStyles.labelSmall.copyWith(
                                   color: isSelected
-                                      ? AppColors.textPrimary
-                                      : AppColors.textTertiary,
+                                      ? context.menudo.textMain
+                                      : context.menudo.textMuted,
                                 ),
                               ),
                             ),
@@ -233,7 +233,7 @@ class _InstrumentCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceLight,
+                            color: context.menudo.surfaceElevated,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -284,7 +284,7 @@ class _InstrumentCard extends StatelessWidget {
                   gradient: LinearGradient(
                     colors: [
                       AppColors.accent.withValues(alpha: 0.2),
-                      AppColors.accentBright.withValues(alpha: 0.1),
+                      context.menudo.primaryLight.withValues(alpha: 0.1),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(12),
@@ -297,7 +297,7 @@ class _InstrumentCard extends StatelessWidget {
                     Text(
                       '${instrument.annualYield}%',
                       style: AppTextStyles.cardValue.copyWith(
-                        color: AppColors.accentBright,
+                        color: context.menudo.primary,
                         fontSize: 20,
                       ),
                     ),
@@ -337,7 +337,7 @@ class _InstrumentCard extends StatelessWidget {
               label: Text('¿Cuánto ganaría?'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.accent,
-                side: BorderSide(color: AppColors.accentDim),
+                side: BorderSide(color: context.menudo.primaryLight),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -368,7 +368,7 @@ class _DetailChip extends StatelessWidget {
           Text(
             value,
             style: AppTextStyles.labelMedium.copyWith(
-              color: AppColors.textPrimary,
+              color: context.menudo.textMain,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -425,7 +425,7 @@ class _YieldCalculatorSheetState extends State<_YieldCalculatorSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.textTertiary,
+                color: context.menudo.textMuted,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -493,7 +493,7 @@ class _YieldCalculatorSheetState extends State<_YieldCalculatorSheet> {
                     Text(
                       '${widget.instrument.annualYield}% anual',
                       style: AppTextStyles.labelLarge.copyWith(
-                        color: AppColors.accentBright,
+                        color: context.menudo.primary,
                       ),
                     ),
                   ],

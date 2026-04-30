@@ -332,7 +332,7 @@ abstract class AppColors {
 abstract class MenudoColors {
   // Aliases for compatibility with files using MenudoColors
   static const Color appBg = AppColors.g0;
-  static const Color cardBg = AppColors.e8;
+  static const Color cardBg = AppColors.white;
   static const Color cardElevated = AppColors.e7;
   static const Color surfaceMuted = AppColors.e0;
   static const Color textMain = AppColors.e8;

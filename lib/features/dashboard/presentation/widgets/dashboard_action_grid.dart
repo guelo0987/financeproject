@@ -1,4 +1,5 @@
 import 'package:financeproject/core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/app_spacing.dart';
 import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -66,7 +67,7 @@ class DashboardActionGrid extends StatelessWidget {
               onTap: actions[i].onTap,
             ),
           ),
-          if (i != actions.length - 1) SizedBox(width: (10)),
+          if (i != actions.length - 1) SizedBox(width: AppSpacing.p10),
         ],
       ],
     );
@@ -102,7 +103,7 @@ class _QuickAction extends StatelessWidget {
         },
         behavior: HitTestBehavior.opaque,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.p2),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -115,7 +116,7 @@ class _QuickAction extends StatelessWidget {
                 ),
                 child: Icon(icon, size: (18), color: color),
               ),
-              SizedBox(height: 8),
+              SizedBox(height: AppSpacing.p8),
               Text(
                 label,
                 textAlign: TextAlign.center,

@@ -27,7 +27,7 @@ class WalletAccount {
     required this.saldo,
     required this.color,
     required this.icono,
-    this.moneda = 'DOP',
+    this.moneda = '',
     this.esDefault = false,
     this.incluirEnPatrimonio = true,
   });
@@ -42,7 +42,7 @@ class WalletAccount {
       saldo: tipoDb == 'deudas' ? -valorActual : valorActual,
       color: colorFromHex(json['color_hex'] as String? ?? '#4F46E5'),
       icono: iconFromKey(json['icono'] as String? ?? 'landmark'),
-      moneda: json['moneda'] as String? ?? 'DOP',
+      moneda: json['moneda']?.toString().trim().toUpperCase() ?? '',
       esDefault: json['es_default'] as bool? ?? false,
       incluirEnPatrimonio: json['incluir_en_patrimonio'] as bool? ?? true,
     );
@@ -160,7 +160,7 @@ class MenudoTransaction {
     this.fromAccountId,
     this.toAccountId,
     this.nota,
-    this.moneda = 'DOP',
+    this.moneda = '',
     this.usuarioId,
     this.userName,
     this.fromWallet,
@@ -199,7 +199,7 @@ class MenudoTransaction {
           ? (json['activo_destino_id'] as num).toInt()
           : null,
       nota: json['nota'] as String?,
-      moneda: json['moneda'] as String? ?? 'DOP',
+      moneda: json['moneda']?.toString().trim().toUpperCase() ?? '',
       usuarioId: json['usuario_id'] != null
           ? (json['usuario_id'] as num).toInt()
           : null,
@@ -499,7 +499,7 @@ class BudgetHistoryTransaction {
       id: parseInt(json['id'] ?? json['transaccion_id']) ?? 0,
       tipo: json['tipo']?.toString() ?? 'gasto',
       monto: (json['monto'] as num? ?? 0).toDouble(),
-      moneda: json['moneda']?.toString() ?? 'DOP',
+      moneda: json['moneda']?.toString().trim().toUpperCase() ?? '',
       descripcion: json['descripcion']?.toString() ?? '',
       fecha: DateTime.tryParse(json['fecha']?.toString() ?? ''),
       categoriaNombre: categoria['nombre']?.toString(),
@@ -989,7 +989,6 @@ final List<WalletAccount> mockWallets = [
     saldo: 45000,
     color: AppColors.b5,
     icono: MenudoCupertinoIcons.landmark,
-    moneda: 'DOP',
     esDefault: true,
   ),
   const WalletAccount(
@@ -999,7 +998,6 @@ final List<WalletAccount> mockWallets = [
     saldo: -12500,
     color: AppColors.r5,
     icono: MenudoCupertinoIcons.creditCard,
-    moneda: 'DOP',
   ),
   const WalletAccount(
     id: 3,
@@ -1008,7 +1006,6 @@ final List<WalletAccount> mockWallets = [
     saldo: 3200,
     color: AppColors.e6,
     icono: MenudoCupertinoIcons.banknote,
-    moneda: 'DOP',
   ),
   const WalletAccount(
     id: 4,
@@ -1017,7 +1014,6 @@ final List<WalletAccount> mockWallets = [
     saldo: 100000,
     color: AppColors.a5,
     icono: MenudoCupertinoIcons.shieldAlert,
-    moneda: 'DOP',
   ),
 ];
 
@@ -1115,7 +1111,6 @@ final List<MenudoTransaction> mockTxns = [
     tipo: "ingreso",
     icono: MenudoCupertinoIcons.landmark,
     nota: "Nómina mensual",
-    moneda: 'DOP',
     userName: "Miguel",
   ),
   const MenudoTransaction(
@@ -1127,7 +1122,6 @@ final List<MenudoTransaction> mockTxns = [
     monto: 10000,
     tipo: "ingreso",
     icono: MenudoCupertinoIcons.monitor,
-    moneda: 'DOP',
     userName: "Miguel",
   ),
   // Transferencias
@@ -1143,7 +1137,6 @@ final List<MenudoTransaction> mockTxns = [
     fromAccountId: 1,
     toAccountId: 4,
     nota: "Aporte al fondo de emergencia",
-    moneda: 'DOP',
     userName: "Miguel",
   ),
   // Gastos
@@ -1156,7 +1149,6 @@ final List<MenudoTransaction> mockTxns = [
     monto: -25000,
     tipo: "gasto",
     icono: MenudoCupertinoIcons.home,
-    moneda: 'DOP',
     userName: "Miguel",
   ),
   const MenudoTransaction(
@@ -1168,7 +1160,6 @@ final List<MenudoTransaction> mockTxns = [
     monto: -4500,
     tipo: "gasto",
     icono: MenudoCupertinoIcons.shoppingCart,
-    moneda: 'DOP',
     userName: "Sarah",
   ),
   const MenudoTransaction(
@@ -1180,7 +1171,6 @@ final List<MenudoTransaction> mockTxns = [
     monto: -2000,
     tipo: "gasto",
     icono: MenudoCupertinoIcons.fuel,
-    moneda: 'DOP',
     userName: "Miguel",
   ),
   const MenudoTransaction(
@@ -1192,7 +1182,6 @@ final List<MenudoTransaction> mockTxns = [
     monto: -4000,
     tipo: "gasto",
     icono: MenudoCupertinoIcons.wine,
-    moneda: 'DOP',
     userName: "Sarah",
   ),
   const MenudoTransaction(
@@ -1204,7 +1193,6 @@ final List<MenudoTransaction> mockTxns = [
     monto: -450,
     tipo: "gasto",
     icono: MenudoCupertinoIcons.car,
-    moneda: 'DOP',
     userName: "Sarah",
   ),
   const MenudoTransaction(
@@ -1216,7 +1204,6 @@ final List<MenudoTransaction> mockTxns = [
     monto: -750,
     tipo: "gasto",
     icono: MenudoCupertinoIcons.tv,
-    moneda: 'DOP',
     userName: "Miguel",
   ),
   const MenudoTransaction(
@@ -1228,7 +1215,6 @@ final List<MenudoTransaction> mockTxns = [
     monto: -1200,
     tipo: "gasto",
     icono: MenudoCupertinoIcons.pill,
-    moneda: 'DOP',
     userName: "Sarah",
   ),
   const MenudoTransaction(
@@ -1240,7 +1226,6 @@ final List<MenudoTransaction> mockTxns = [
     monto: -850,
     tipo: "gasto",
     icono: MenudoCupertinoIcons.bookOpen,
-    moneda: 'DOP',
     userName: "Miguel",
   ),
   const MenudoTransaction(
@@ -1252,7 +1237,6 @@ final List<MenudoTransaction> mockTxns = [
     monto: -350,
     tipo: "gasto",
     icono: MenudoCupertinoIcons.music,
-    moneda: 'DOP',
     userName: "Sarah",
   ),
 ];
@@ -1773,7 +1757,7 @@ class Asset {
     required this.category,
     required this.currentValue,
     required this.previousValue,
-    this.currency = 'DOP',
+    this.currency = '',
     this.sparklineData = const [],
     this.tickerSymbol,
     this.lastSynced,
@@ -1834,7 +1818,7 @@ class InvestmentInstrument {
     required this.annualYield,
     required this.term,
     required this.minimumAmount,
-    this.currency = 'DOP',
+    this.currency = '',
     required this.risk,
     this.description,
   });

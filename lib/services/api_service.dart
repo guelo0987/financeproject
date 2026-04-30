@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -128,7 +129,7 @@ class ApiService {
 
     late http.Response response;
     try {
-      response = await _sendRequest(
+      response = await _sendWithSilentRetry(
         method,
         uri,
         headers: headers,
@@ -140,7 +141,7 @@ class ApiService {
         final refreshed = await _refreshAuthToken();
         if (refreshed) {
           headers = await _buildHeaders(authenticated: authenticated);
-          response = await _sendRequest(
+          response = await _sendWithSilentRetry(
             method,
             uri,
             headers: headers,
@@ -237,6 +238,58 @@ class ApiService {
       default:
         throw ApiException('No se pudo completar la solicitud.');
     }
+  }
+
+  Future<http.Response> _sendWithSilentRetry(
+    String method,
+    Uri uri, {
+    required Map<String, String> headers,
+    required String? encodedBody,
+  }) async {
+    final canRetry = method == 'GET';
+
+    try {
+      final response = await _sendRequest(
+        method,
+        uri,
+        headers: headers,
+        encodedBody: encodedBody,
+      );
+      if (!canRetry || !_isTransientStatus(response.statusCode)) {
+        return response;
+      }
+
+      await Future<void>.delayed(const Duration(milliseconds: 260));
+      return _sendRequest(
+        method,
+        uri,
+        headers: headers,
+        encodedBody: encodedBody,
+      );
+    } catch (error) {
+      if (!canRetry || !_isTransientTransportError(error)) rethrow;
+      await Future<void>.delayed(const Duration(milliseconds: 260));
+      return _sendRequest(
+        method,
+        uri,
+        headers: headers,
+        encodedBody: encodedBody,
+      );
+    }
+  }
+
+  bool _isTransientStatus(int statusCode) {
+    return statusCode == 408 || statusCode == 429 || statusCode >= 500;
+  }
+
+  bool _isTransientTransportError(Object error) {
+    if (error is TimeoutException || error is http.ClientException) {
+      return true;
+    }
+    final lower = error.toString().toLowerCase();
+    return lower.contains('socketexception') ||
+        lower.contains('connection closed') ||
+        lower.contains('connection reset');
   }
 
   Object? _decodeBody(String rawBody) {

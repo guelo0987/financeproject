@@ -237,9 +237,10 @@ class _RegisterTransactionSheetState
     final sourceWallet = _findWallet(_fromAccountId, wallets);
     final destinationWallet = _findWallet(_toAccountId, wallets);
     final transactionCurrency = _transactionCurrencyFor(wallets);
-    final destinationCurrency = _normalizeCurrency(destinationWallet?.moneda);
+    final destinationCurrency = _effectiveConfiguredCurrency(
+      destinationWallet?.moneda,
+    );
     if (_selectedType == 'transferencia' &&
-        destinationCurrency != null &&
         destinationCurrency != transactionCurrency) {
       _showError(
         'Elige cuentas con la misma moneda para mover dinero entre ellas.',
@@ -354,10 +355,27 @@ class _RegisterTransactionSheetState
         AppFormattingPreferences.currencyCode;
   }
 
+  String _effectiveConfiguredCurrency(String? value) {
+    final configured = _configuredCurrencyCode();
+    final normalized = _normalizeCurrency(value);
+    if (normalized == null) return configured;
+    if (normalized == 'DOP' && configured != 'DOP') return configured;
+    return normalized;
+  }
+
   String _transactionCurrencyFor(List<WalletAccount> wallets) {
-    return _normalizeCurrency(_findWallet(_fromAccountId, wallets)?.moneda) ??
-        _normalizeCurrency(widget.transaction?.moneda) ??
-        _configuredCurrencyCode();
+    final configured = _configuredCurrencyCode();
+
+    String? resolved(String? value) {
+      final normalized = _normalizeCurrency(value);
+      if (normalized == null) return null;
+      if (normalized == 'DOP' && configured != 'DOP') return null;
+      return normalized;
+    }
+
+    return resolved(_findWallet(_fromAccountId, wallets)?.moneda) ??
+        resolved(widget.transaction?.moneda) ??
+        configured;
   }
 
   void _maybeSeedFromAccount(List<WalletAccount> wallets) {
@@ -982,12 +1000,12 @@ class _TypeSegment extends StatelessWidget {
           duration: const Duration(milliseconds: 250),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: active ? context.menudo.textOnDark : Colors.transparent,
+            color: active ? context.menudo.surfaceElevated : Colors.transparent,
             borderRadius: BorderRadius.circular(11),
             boxShadow: active
                 ? [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: context.menudo.background.withValues(alpha: 0.18),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -1025,7 +1043,7 @@ class _InfoStrip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
-        color: context.menudo.textOnDark,
+        color: context.menudo.surfaceElevated,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: context.menudo.border),
       ),
@@ -1157,7 +1175,7 @@ class _FieldCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
         decoration: BoxDecoration(
-          color: context.menudo.textOnDark,
+          color: context.menudo.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isPlaceholder
@@ -1246,7 +1264,7 @@ class _SecondaryActionCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         decoration: BoxDecoration(
-          color: context.menudo.textOnDark,
+          color: context.menudo.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: context.menudo.border),
         ),
@@ -1291,12 +1309,26 @@ class _SecondaryActionCard extends StatelessWidget {
               ),
             ),
             SizedBox(width: 8),
-            Text(
-              'Editar',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: color,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(MenudoCupertinoIcons.pencil, size: (12), color: color),
+                  SizedBox(width: (5)),
+                  Text(
+                    'Editar',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                      color: color,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1342,14 +1374,14 @@ class _NumpadKey extends StatelessWidget {
       onTapDown: (_) => onTap(),
       child: Container(
         decoration: BoxDecoration(
-          color: context.menudo.textOnDark,
+          color: context.menudo.surfaceElevated,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: context.menudo.border.withValues(alpha: 0.8),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: context.menudo.background.withValues(alpha: 0.16),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -1401,7 +1433,7 @@ class _AccountPickerSheet extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: context.menudo.textOnDark,
+        color: context.menudo.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
@@ -1446,7 +1478,7 @@ class _AccountPickerSheet extends StatelessWidget {
                     Icon(
                       wallet.icono,
                       color: wallet.id == selectedId
-                          ? context.menudo.textOnDark
+                          ? context.menudo.surface
                           : wallet.color,
                     ),
                     SizedBox(width: (16)),
@@ -1464,7 +1496,7 @@ class _AccountPickerSheet extends StatelessWidget {
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     color: wallet.id == selectedId
-                                        ? context.menudo.textOnDark
+                                        ? context.menudo.surface
                                         : context.menudo.textMain,
                                   ),
                                 ),
@@ -1478,10 +1510,10 @@ class _AccountPickerSheet extends StatelessWidget {
                                   ),
                                   decoration: BoxDecoration(
                                     color: wallet.id == selectedId
-                                        ? context.menudo.textOnDark.withValues(
+                                        ? context.menudo.surface.withValues(
                                             alpha: 0.16,
                                           )
-                                        : AppColors.e1,
+                                        : context.menudo.successLight,
                                     borderRadius: BorderRadius.circular(999),
                                   ),
                                   child: Text(
@@ -1490,7 +1522,7 @@ class _AccountPickerSheet extends StatelessWidget {
                                       fontSize: 9,
                                       fontWeight: FontWeight.w900,
                                       color: wallet.id == selectedId
-                                          ? context.menudo.textOnDark
+                                          ? context.menudo.surface
                                           : context.menudo.textMain,
                                       letterSpacing: 0.4,
                                     ),
@@ -1510,7 +1542,7 @@ class _AccountPickerSheet extends StatelessWidget {
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: wallet.id == selectedId
-                                  ? context.menudo.textOnDark.withValues(
+                                  ? context.menudo.surface.withValues(
                                       alpha: 0.76,
                                     )
                                   : context.menudo.textMuted,
@@ -1529,7 +1561,7 @@ class _AccountPickerSheet extends StatelessWidget {
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.r1,
+                            color: context.menudo.dangerLight,
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
@@ -1546,7 +1578,7 @@ class _AccountPickerSheet extends StatelessWidget {
                     if (wallet.id == selectedId)
                       Icon(
                         MenudoCupertinoIcons.check,
-                        color: context.menudo.textOnDark,
+                        color: context.menudo.surface,
                         size: (18),
                       ),
                   ],
@@ -1578,7 +1610,7 @@ class _BudgetPickerSheet extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: context.menudo.textOnDark,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: ConstrainedBox(
@@ -1672,8 +1704,8 @@ class _BudgetChoiceTile extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 color: selected
-                    ? context.menudo.textOnDark.withValues(alpha: 0.14)
-                    : AppColors.e1,
+                    ? context.menudo.surface.withValues(alpha: 0.14)
+                    : context.menudo.successLight,
                 borderRadius: BorderRadius.circular(12),
               ),
               alignment: Alignment.center,
@@ -1681,7 +1713,7 @@ class _BudgetChoiceTile extends StatelessWidget {
                 MenudoCupertinoIcons.layoutGrid,
                 size: (18),
                 color: selected
-                    ? context.menudo.textOnDark
+                    ? context.menudo.surface
                     : context.menudo.textMain,
               ),
             ),
@@ -1697,7 +1729,7 @@ class _BudgetChoiceTile extends StatelessWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
                       color: selected
-                          ? context.menudo.textOnDark
+                          ? context.menudo.surface
                           : context.menudo.textMain,
                     ),
                   ),
@@ -1708,7 +1740,7 @@ class _BudgetChoiceTile extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: selected
-                          ? context.menudo.textOnDark.withValues(alpha: 0.76)
+                          ? context.menudo.surface.withValues(alpha: 0.76)
                           : context.menudo.textMuted,
                     ),
                   ),
@@ -1719,7 +1751,7 @@ class _BudgetChoiceTile extends StatelessWidget {
             if (selected)
               Icon(
                 MenudoCupertinoIcons.check,
-                color: context.menudo.textOnDark,
+                color: context.menudo.surface,
                 size: (18),
               ),
           ],

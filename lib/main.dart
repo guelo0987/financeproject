@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/preferences/app_preferences.dart';
 import 'core/preferences/app_preferences_controller.dart';
 import 'core/theme/app_theme.dart';
+import 'features/auth/auth_state.dart';
 import 'features/shortcuts/presentation/ios_shortcuts_coordinator.dart';
 import 'routes/app_router.dart';
 import 'services/subscription_service.dart';
@@ -43,13 +44,25 @@ class MenudoApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouter);
     final preferences = ref.watch(appPreferencesProvider).valueOrNull;
-    final market = preferences?.market ?? marketFromDeviceLocale();
+    final profileCurrency = ref.watch(
+      authProvider.select((state) => state.profile?.baseCurrency),
+    );
+    final market =
+        preferences?.market ??
+        (profileCurrency == null || profileCurrency.trim().isEmpty
+            ? marketFromDeviceLocale()
+            : marketFromCurrency(profileCurrency));
     final locale =
         preferences?.locale ??
         buildAppLocale(
           languageCode: defaultLanguageForMarket(market),
           marketCode: market.code,
         );
+    final currencyCode = preferences?.currencyCode ?? market.currencyCode;
+    AppFormattingPreferences.configure(
+      locale: locale,
+      currencyCode: currencyCode,
+    );
 
     return MaterialApp.router(
       title: 'Menudo',

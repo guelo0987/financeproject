@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
+import 'package:financeproject/shared/widgets/menudo_destructive_dialog.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
 import '../../../core/preferences/app_preferences.dart';
@@ -62,7 +64,9 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isDefault ? AppColors.o1 : context.menudo.surface,
+                  color: isDefault
+                      ? context.menudo.primaryLight
+                      : context.menudo.surface,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -106,14 +110,7 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
                               .read(walletNotifierProvider.notifier)
                               .setDefaultWallet(widget.walletId);
                           if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Listo. Esta será tu cuenta preferida.',
-                              ),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
+                          MenudoHaptics.success();
                         } catch (error) {
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -130,12 +127,12 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
                       },
                 style: FilledButton.styleFrom(
                   backgroundColor: isDefault
-                      ? AppColors.e1
+                      ? context.menudo.successLight
                       : context.menudo.textMain,
                   foregroundColor: isDefault
                       ? context.menudo.primary
-                      : context.menudo.textOnDark,
-                  disabledBackgroundColor: AppColors.e1,
+                      : context.menudo.surface,
+                  disabledBackgroundColor: context.menudo.successLight,
                   disabledForegroundColor: context.menudo.textMain,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -192,7 +189,9 @@ class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: isIncluded ? AppColors.e1 : colors.border),
+        border: Border.all(
+          color: isIncluded ? context.menudo.successLight : colors.border,
+        ),
       ),
       child: Column(
         children: [
@@ -201,7 +200,9 @@ class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isIncluded ? AppColors.e1 : context.menudo.surface,
+                  color: isIncluded
+                      ? context.menudo.successLight
+                      : context.menudo.surface,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -256,16 +257,7 @@ class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
                                 ),
                               );
                           if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                !wallet.incluirEnPatrimonio
-                                    ? 'La cuenta ya cuenta dentro de tu patrimonio.'
-                                    : 'La cuenta quedó fuera de tu patrimonio.',
-                              ),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
+                          MenudoHaptics.success();
                         } catch (error) {
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -286,7 +278,7 @@ class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
                       : context.menudo.textMain,
                   foregroundColor: isIncluded
                       ? context.menudo.textSecondary
-                      : context.menudo.textOnDark,
+                      : context.menudo.surface,
                   disabledBackgroundColor: context.menudo.surface,
                   disabledForegroundColor: context.menudo.textMuted,
                   elevation: 0,
@@ -317,11 +309,16 @@ class WalletDetailSheet extends ConsumerWidget {
 
   const WalletDetailSheet({super.key, required this.wallet, this.onError});
 
+  String _effectiveCurrency(String? currency) {
+    final fallback = AppFormattingPreferences.currencyCode;
+    final normalized = currency?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return fallback;
+    if (normalized == 'DOP' && fallback != 'DOP') return fallback;
+    return normalized;
+  }
+
   String fmt(double val, {String? currency}) {
-    return formatMoney(
-      val,
-      currency: currency ?? AppFormattingPreferences.currencyCode,
-    );
+    return formatMoney(val, currency: _effectiveCurrency(currency));
   }
 
   MenudoCategory? _findCategory(List<MenudoCategory> categories, String slug) {
@@ -394,6 +391,7 @@ class WalletDetailSheet extends ConsumerWidget {
 
     Future<void> openEditWallet() async {
       MenudoHaptics.light();
+      final walletNotifier = ref.read(walletNotifierProvider.notifier);
       final rootNavigator = Navigator.of(context, rootNavigator: true);
       final rootContext = rootNavigator.context;
       Navigator.pop(context);
@@ -410,17 +408,9 @@ class WalletDetailSheet extends ConsumerWidget {
       if (updatedWallet == null) return;
 
       try {
-        await ref
-            .read(walletNotifierProvider.notifier)
-            .updateWallet(updatedWallet);
+        await walletNotifier.updateWallet(updatedWallet);
         if (rootContext.mounted) {
-          final messenger = ScaffoldMessenger.of(rootContext);
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text('Listo. Guardamos los cambios de la cuenta.'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          MenudoHaptics.success();
         }
       } catch (error) {
         if (rootContext.mounted) {
@@ -430,46 +420,64 @@ class WalletDetailSheet extends ConsumerWidget {
     }
 
     Future<void> deleteWallet() async {
-      final confirmed = await showDialog<bool>(
+      final confirmed = await MenudoDestructiveDialog.show(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          title: Text('Eliminar cuenta'),
-          content: Text(
+        title: 'Eliminar cuenta',
+        message:
             'Eliminarás "${w.nombre}" de tu cartera y ya no podrás recuperarla.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.r5,
-                foregroundColor: context.menudo.textOnDark,
-              ),
-              child: Text('Sí, eliminar'),
-            ),
-          ],
-        ),
+        confirmLabel: 'Sí, eliminar',
       );
 
       if (confirmed != true) return;
+      if (!context.mounted) return;
+
+      final messenger = ScaffoldMessenger.of(context);
+
+      Future<void> restoreWallet() async {
+        try {
+          await ref
+              .read(walletNotifierProvider.notifier)
+              .addWallet(
+                WalletAccount(
+                  id: 0,
+                  nombre: w.nombre,
+                  tipo: w.tipo,
+                  saldo: w.saldo,
+                  color: w.color,
+                  icono: w.icono,
+                  moneda: w.moneda,
+                  incluirEnPatrimonio: w.incluirEnPatrimonio,
+                ),
+              );
+          MenudoHaptics.success();
+        } catch (error) {
+          if (context.mounted) {
+            _showError(context, error);
+          }
+        }
+      }
 
       try {
         await ref.read(walletNotifierProvider.notifier).removeWallet(w.id);
         if (context.mounted) {
-          final messenger = ScaffoldMessenger.of(context);
+          MenudoHaptics.success();
           Navigator.pop(context);
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text('La cuenta fue eliminada.'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+
+          messenger
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text('"${w.nombre}" fue eliminada.'),
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 6),
+                action: SnackBarAction(
+                  label: 'Deshacer',
+                  onPressed: () {
+                    unawaited(restoreWallet());
+                  },
+                ),
+              ),
+            );
         }
       } catch (error) {
         if (context.mounted) {
@@ -495,7 +503,7 @@ class WalletDetailSheet extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                 decoration: BoxDecoration(
-                  color: context.menudo.textMain,
+                  color: context.menudo.hero,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
                 ),
                 child: Column(
@@ -507,9 +515,7 @@ class WalletDetailSheet extends ConsumerWidget {
                         height: 5,
                         width: 48,
                         decoration: BoxDecoration(
-                          color: context.menudo.textOnDark.withValues(
-                            alpha: 0.2,
-                          ),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(3),
                         ),
                       ),
@@ -527,15 +533,13 @@ class WalletDetailSheet extends ConsumerWidget {
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: context.menudo.textOnDark.withValues(
-                                alpha: 0.15,
-                              ),
+                              color: Colors.white.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
                             alignment: Alignment.center,
                             child: Icon(
                               MenudoCupertinoIcons.arrowLeft,
-                              color: context.menudo.textOnDark,
+                              color: Colors.white,
                               size: (18),
                             ),
                           ),
@@ -546,7 +550,7 @@ class WalletDetailSheet extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: context.menudo.textOnDark,
+                            color: Colors.white,
                           ),
                         ),
                         const Spacer(),
@@ -556,15 +560,13 @@ class WalletDetailSheet extends ConsumerWidget {
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: context.menudo.textOnDark.withValues(
-                                alpha: 0.15,
-                              ),
+                              color: Colors.white.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
                             alignment: Alignment.center,
                             child: Icon(
                               MenudoCupertinoIcons.trash2,
-                              color: context.menudo.textOnDark,
+                              color: Colors.white,
                               size: (18),
                             ),
                           ),
@@ -583,11 +585,7 @@ class WalletDetailSheet extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(18),
                           ),
                           alignment: Alignment.center,
-                          child: Icon(
-                            w.icono,
-                            size: (28),
-                            color: context.menudo.textOnDark,
-                          ),
+                          child: Icon(w.icono, size: (28), color: Colors.white),
                         )
                         .animate()
                         .fadeIn(duration: 400.ms)
@@ -600,7 +598,7 @@ class WalletDetailSheet extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        color: context.menudo.textOnDark,
+                        color: Colors.white,
                       ),
                       textAlign: TextAlign.center,
                     ).animate().fadeIn(duration: 400.ms, delay: 50.ms),
@@ -613,9 +611,7 @@ class WalletDetailSheet extends ConsumerWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: context.menudo.textOnDark.withValues(
-                          alpha: 0.12,
-                        ),
+                        color: Colors.white.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -623,9 +619,7 @@ class WalletDetailSheet extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: context.menudo.textOnDark.withValues(
-                            alpha: 0.7,
-                          ),
+                          color: Colors.white.withValues(alpha: 0.7),
                         ),
                       ),
                     ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
@@ -639,7 +633,7 @@ class WalletDetailSheet extends ConsumerWidget {
                       "SALDO",
                       style: TextStyle(
                         fontSize: 10,
-                        color: context.menudo.textOnDark.withValues(alpha: 0.4),
+                        color: Colors.white.withValues(alpha: 0.4),
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.0,
                       ),
@@ -653,8 +647,8 @@ class WalletDetailSheet extends ConsumerWidget {
                             fontSize: 36,
                             fontWeight: FontWeight.w800,
                             color: isNegative
-                                ? const Color(0xFFFCA5A5)
-                                : const Color(0xFF6EE7B7),
+                                ? context.menudo.danger
+                                : context.menudo.success,
                             letterSpacing: -1.5,
                           ),
                         )
@@ -703,7 +697,7 @@ class WalletDetailSheet extends ConsumerWidget {
                                       Icon(
                                         MenudoCupertinoIcons.arrowLeftRight,
                                         size: (16),
-                                        color: context.menudo.textOnDark,
+                                        color: context.menudo.surface,
                                       ),
                                       SizedBox(width: 8),
                                       Text(
@@ -711,7 +705,7 @@ class WalletDetailSheet extends ConsumerWidget {
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
-                                          color: context.menudo.textOnDark,
+                                          color: context.menudo.surface,
                                         ),
                                       ),
                                     ],

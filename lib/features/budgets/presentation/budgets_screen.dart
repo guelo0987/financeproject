@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../core/theme/app_motion.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -181,7 +182,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                             duration: 500.ms,
                             delay: (120 + entry.key * 90).ms,
                           )
-                          .slideY(begin: 0.05, end: 0, curve: Curves.easeOut);
+                          .slideY(begin: 0.05, end: 0, curve: MenudoMotion.spring);
                     }),
 
                   SizedBox(height: (120)),
@@ -212,7 +213,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutCubic,
+              curve: MenudoMotion.spring,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: selected
@@ -228,7 +229,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                 p,
                 style: TextStyle(
                   color: selected
-                      ? context.menudo.textOnDark
+                      ? context.menudo.surface
                       : context.menudo.textSecondary,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                   fontSize: 13,
@@ -246,7 +247,7 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: context.menudo.textOnDark,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: context.menudo.border),
       ),
@@ -307,13 +308,8 @@ class _BudgetCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
-          color: context.menudo.textOnDark,
+          color: context.menudo.surface,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isDashboardActive
-                ? AppColors.e6.withValues(alpha: 0.28)
-                : context.menudo.border,
-          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -464,9 +460,9 @@ class _BudgetCard extends StatelessWidget {
         width: (32),
         height: (32),
         decoration: BoxDecoration(
-          color: AppColors.e1,
+          color: context.menudo.successLight,
           shape: BoxShape.circle,
-          border: Border.all(color: context.menudo.textOnDark, width: 2),
+          border: Border.all(color: context.menudo.surface, width: 2),
         ),
         alignment: Alignment.center,
         child: Icon(
@@ -489,10 +485,10 @@ class _BudgetCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: m.c,
               shape: BoxShape.circle,
-              border: Border.all(color: context.menudo.textOnDark, width: 2),
+              border: Border.all(color: context.menudo.surface, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: context.menudo.background.withValues(alpha: 0.18),
                   blurRadius: 4,
                 ),
               ],
@@ -501,7 +497,7 @@ class _BudgetCard extends StatelessWidget {
             child: Text(
               m.i,
               style: TextStyle(
-                color: context.menudo.textOnDark,
+                color: context.menudo.surface,
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
               ),
@@ -572,7 +568,7 @@ class _DashboardToggleButton extends StatelessWidget {
         duration: const Duration(milliseconds: 250),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: isActive ? context.menudo.primary : context.menudo.textOnDark,
+          color: isActive ? context.menudo.primary : context.menudo.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isActive ? context.menudo.primary : context.menudo.border,
@@ -586,7 +582,7 @@ class _DashboardToggleButton extends StatelessWidget {
                   : MenudoCupertinoIcons.layoutDashboard,
               size: (14),
               color: isActive
-                  ? context.menudo.textOnDark
+                  ? context.menudo.surface
                   : context.menudo.textSecondary,
             ),
             SizedBox(width: 6),
@@ -596,7 +592,7 @@ class _DashboardToggleButton extends StatelessWidget {
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
                 color: isActive
-                    ? context.menudo.textOnDark
+                    ? context.menudo.surface
                     : context.menudo.textSecondary,
               ),
             ),
@@ -641,7 +637,7 @@ class _BudgetActivePill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.e1,
+        color: context.menudo.successLight,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(

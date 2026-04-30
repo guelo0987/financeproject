@@ -9,9 +9,11 @@ import '../../../core/theme/app_colors.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/error_presenter.dart';
+import '../../../core/utils/menudo_haptics.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_logo.dart';
 import '../../../shared/widgets/menudo_tap_target.dart';
+import '../../../shared/widgets/menudo_blurred_app_bar.dart';
 import '../auth_state.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -64,12 +66,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   void _showMessage(String message, {bool success = false}) {
     if (!mounted) return;
+    if (success) {
+      MenudoHaptics.success();
+      return;
+    }
+    MenudoHaptics.error();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: success ? context.menudo.primary : null,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -132,6 +135,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         return;
       }
 
+      MenudoHaptics.success();
       final needsPaywall = ref.read(authProvider).needsPaywall;
       context.go(needsPaywall ? '/paywall?fromReg=true' : '/');
     } catch (error) {
@@ -151,6 +155,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           .registerWithApple(currency: marketFromDeviceLocale().currencyCode);
       if (!mounted) return;
 
+      MenudoHaptics.success();
       final needsPaywall = ref.read(authProvider).needsPaywall;
       context.go(needsPaywall ? '/paywall?fromReg=true' : '/');
     } catch (error) {
@@ -163,14 +168,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: MenudoColors.appBg,
+      backgroundColor: context.menudo.background,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        flexibleSpace: const MenudoBlurredBar(),
         leading: MenudoIconButton(
           icon: Icon(
             MenudoCupertinoIcons.arrow_back,
-            color: MenudoColors.textMain,
+            color: context.menudo.textMain,
           ),
           onPressed: _handleBack,
         ),
@@ -195,7 +202,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ? 'Empieza con Apple o usa tu correo.'
                       : 'Crea tu cuenta con correo y contraseña.',
                   style: MenudoTextStyles.bodyMedium.copyWith(
-                    color: MenudoColors.textMuted,
+                    color: context.menudo.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 160.ms),
@@ -222,7 +229,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         : () =>
                               setState(() => _showEmailForm = !_showEmailForm),
                     style: TextButton.styleFrom(
-                      foregroundColor: MenudoColors.primary,
+                      foregroundColor: context.menudo.primary,
                     ),
                     child: Text(
                       _showEmailForm
@@ -237,9 +244,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: context.menudo.textOnDark,
+                      color: context.menudo.surface,
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: MenudoColors.border),
+                      border: Border.all(color: context.menudo.border),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -285,7 +292,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               _obscurePassword
                                   ? MenudoCupertinoIcons.visibility_off_outlined
                                   : MenudoCupertinoIcons.visibility_outlined,
-                              color: MenudoColors.textMuted,
+                              color: context.menudo.textMuted,
                             ),
                           ),
                         ),
@@ -305,7 +312,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               _obscureConfirm
                                   ? MenudoCupertinoIcons.visibility_off_outlined
                                   : MenudoCupertinoIcons.visibility_outlined,
-                              color: MenudoColors.textMuted,
+                              color: context.menudo.textMuted,
                             ),
                           ),
                           onSubmitted: (_) => _handleRegisterWithEmail(),
@@ -322,7 +329,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         Text(
                           'Luego podrás ajustar moneda, meta y presupuesto predeterminado desde tu perfil.',
                           style: MenudoTextStyles.bodySmall.copyWith(
-                            color: MenudoColors.textMuted,
+                            color: context.menudo.textMuted,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -341,7 +348,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     TextButton(
                       onPressed: () => context.go('/login'),
                       style: TextButton.styleFrom(
-                        foregroundColor: MenudoColors.primary,
+                        foregroundColor: context.menudo.primary,
                       ),
                       child: Text(
                         'Entrar',
@@ -390,7 +397,7 @@ class _AuthField extends StatelessWidget {
         Text(
           label,
           style: MenudoTextStyles.bodySmall.copyWith(
-            color: MenudoColors.textMuted,
+            color: context.menudo.textMuted,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -408,7 +415,7 @@ class _AuthField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: MenudoTextStyles.bodyMedium.copyWith(
-              color: MenudoColors.textMuted,
+              color: context.menudo.textMuted,
             ),
             filled: true,
             fillColor: context.menudo.background,

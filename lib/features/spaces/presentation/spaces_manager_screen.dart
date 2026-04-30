@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
+import 'package:financeproject/shared/widgets/menudo_destructive_dialog.dart';
 
 import '../../../core/preferences/app_preferences.dart';
 import '../../../core/theme/app_colors.dart';
@@ -125,7 +127,7 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.r1,
+                        color: context.menudo.dangerLight,
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
                           color: AppColors.r5.withValues(alpha: 0.18),
@@ -215,7 +217,7 @@ class _SpacesManagerScreenState extends ConsumerState<SpacesManagerScreen> {
               onPressed: _openBudgets,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.o5,
-                foregroundColor: context.menudo.textOnDark,
+                foregroundColor: context.menudo.surface,
               ),
               child: Text('Ir a presupuestos'),
             ),
@@ -283,13 +285,13 @@ class _HeroIcon extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: context.menudo.textOnDark.withValues(alpha: 0.15),
+        color: context.menudo.surface.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Icon(
         MenudoCupertinoIcons.users,
         size: (24),
-        color: context.menudo.textOnDark,
+        color: context.menudo.surface,
       ),
     );
   }
@@ -308,7 +310,7 @@ class _HeroText extends StatelessWidget {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w900,
-            color: context.menudo.textOnDark,
+            color: context.menudo.surface,
             letterSpacing: -0.5,
           ),
         ),
@@ -316,7 +318,7 @@ class _HeroText extends StatelessWidget {
           'Presupuestos compartidos',
           style: TextStyle(
             fontSize: 13,
-            color: Color(0xFF6EE7B7),
+            color: context.menudo.success,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -338,7 +340,7 @@ class _HeroFeature extends StatelessWidget {
         Icon(
           icon,
           size: (16),
-          color: context.menudo.textOnDark.withValues(alpha: 0.6),
+          color: context.menudo.surface.withValues(alpha: 0.6),
         ),
         SizedBox(width: (12)),
         Text(
@@ -346,7 +348,7 @@ class _HeroFeature extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: context.menudo.textOnDark,
+            color: context.menudo.surface,
           ),
         ),
       ],
@@ -417,7 +419,7 @@ class _SpaceCardState extends ConsumerState<_SpaceCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: context.menudo.textOnDark,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
           color: isActivo
@@ -427,7 +429,7 @@ class _SpaceCardState extends ConsumerState<_SpaceCard> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: context.menudo.background.withValues(alpha: 0.16),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -671,13 +673,13 @@ class _MemberAvatars extends StatelessWidget {
                     ? context.menudo.primary
                     : baseColor,
                 shape: BoxShape.circle,
-                border: Border.all(color: context.menudo.textOnDark, width: 2),
+                border: Border.all(color: context.menudo.surface, width: 2),
               ),
               alignment: Alignment.center,
               child: Text(
                 label,
                 style: TextStyle(
-                  color: context.menudo.textOnDark,
+                  color: context.menudo.surface,
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
                 ),
@@ -714,7 +716,7 @@ class _SharedBudgetHintCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: context.menudo.textOnDark,
+          color: context.menudo.surface,
           borderRadius: BorderRadius.circular(28),
           border: Border.all(
             color: AppColors.o5.withValues(alpha: 0.3),
@@ -726,7 +728,7 @@ class _SharedBudgetHintCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.o1,
+                color: context.menudo.primaryLight,
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -905,32 +907,16 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
   }
 
   Future<void> _deleteSpace() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await MenudoDestructiveDialog.show(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('Eliminar espacio'),
-        content: Text(
-          'Eliminarás "${widget.space.nombre}" y sus accesos compartidos.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.r5,
-              foregroundColor: context.menudo.textOnDark,
-            ),
-            child: Text('Eliminar'),
-          ),
-        ],
-      ),
+      title: 'Eliminar espacio',
+      message: 'Eliminarás "${widget.space.nombre}" y sus accesos compartidos.',
     );
 
     if (confirmed != true) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final s = widget.space;
 
     setState(() => _isMutating = true);
     try {
@@ -938,7 +924,17 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
           .read(spaceControllerProvider.notifier)
           .deleteSpace(widget.space.id);
       if (!mounted) return;
+      MenudoHaptics.success();
       Navigator.pop(context, true);
+
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('"${s.nombre}" fue eliminado.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
     } catch (error) {
       _showError(error);
       if (mounted) {
@@ -955,7 +951,7 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.88,
       decoration: BoxDecoration(
-        color: context.menudo.textOnDark,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       child: Column(
@@ -1041,7 +1037,7 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: AppColors.e0,
+                        color: context.menudo.successLight,
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: Text(
@@ -1247,7 +1243,7 @@ class _AvatarCircle extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          color: context.menudo.textOnDark,
+          color: context.menudo.surface,
           fontWeight: FontWeight.w900,
         ),
       ),

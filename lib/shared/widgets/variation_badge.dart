@@ -19,9 +19,10 @@ class VariationBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.menudo;
     final isPositive = percentage >= 0;
-    final color = isPositive ? AppColors.positive : AppColors.negative;
-    final bgColor = isPositive ? AppColors.positiveDim : AppColors.negativeDim;
+    final color = isPositive ? colors.success : colors.danger;
+    final bgColor = isPositive ? colors.successLight : colors.dangerLight;
     final arrow = isPositive ? '↑' : '↓';
     final sign = isPositive ? '+' : '';
 
@@ -45,8 +46,8 @@ class VariationBadge extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   )
                 : (isPositive
-                      ? AppTextStyles.variationPositive
-                      : AppTextStyles.variationNegative),
+                      ? AppTextStyles.variationPositive.copyWith(color: color)
+                      : AppTextStyles.variationNegative.copyWith(color: color)),
           ),
         ],
       ),

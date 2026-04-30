@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
+import 'package:financeproject/shared/widgets/menudo_destructive_dialog.dart';
 
 import '../../../controllers/transaction_controller.dart';
 import '../../../core/data/models.dart';
@@ -224,45 +227,59 @@ class TransactionDetailSheet extends ConsumerWidget {
     ];
 
     Future<void> deleteTransaction() async {
-      final confirm = await showDialog<bool>(
+      final confirm = await MenudoDestructiveDialog.show(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text('Eliminar movimiento'),
-          content: Text('Esta acción eliminará el movimiento de tu historial.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.r5,
-                foregroundColor: context.menudo.textOnDark,
-              ),
-              child: Text('Eliminar'),
-            ),
-          ],
-        ),
+        title: 'Eliminar movimiento',
+        message: 'Esta acción eliminará el movimiento de tu historial.',
       );
 
       if (confirm != true || !context.mounted) return;
 
-      final messenger = ScaffoldMessenger.of(context);
       final navigator = Navigator.of(context);
+      final messenger = ScaffoldMessenger.of(context);
+
+      Future<void> restoreDeletedTransaction() async {
+        try {
+          await ref
+              .read(transactionControllerProvider.notifier)
+              .addTransaction(t);
+          await ref.read(walletNotifierProvider.notifier).refresh();
+          await ref.read(budgetNotifierProvider.notifier).refresh();
+          MenudoHaptics.success();
+        } catch (error) {
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(presentError(error)),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
 
       try {
         await ref
             .read(transactionControllerProvider.notifier)
             .deleteTransaction(t.id);
+        await ref.read(walletNotifierProvider.notifier).refresh();
+        await ref.read(budgetNotifierProvider.notifier).refresh();
         if (!context.mounted) return;
+        MenudoHaptics.success();
         navigator.pop();
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Movimiento eliminado'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: const Text('El movimiento salió de tu historial.'),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 6),
+              action: SnackBarAction(
+                label: 'Deshacer',
+                onPressed: () {
+                  unawaited(restoreDeletedTransaction());
+                },
+              ),
+            ),
+          );
       } catch (error) {
         if (!context.mounted) return;
         messenger.showSnackBar(
@@ -362,7 +379,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                                   Icon(
                                     MenudoCupertinoIcons.pencil,
                                     size: (16),
-                                    color: context.menudo.textOnDark,
+                                    color: context.menudo.surface,
                                   ),
                                   SizedBox(width: 8),
                                   Text(
@@ -370,7 +387,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                                     style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w800,
-                                      color: context.menudo.textOnDark,
+                                      color: context.menudo.surface,
                                     ),
                                   ),
                                 ],
@@ -393,7 +410,7 @@ class TransactionDetailSheet extends ConsumerWidget {
                                   vertical: 17,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.r1,
+                                  color: context.menudo.dangerLight,
                                   borderRadius: BorderRadius.circular(18),
                                   border: Border.all(
                                     color: AppColors.r5.withValues(alpha: 0.2),
@@ -574,47 +591,35 @@ class _SimpleDetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.menudo;
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Container(
-            width: (38),
-            height: (38),
-            decoration: BoxDecoration(
-              color: row.iconColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+    return Semantics(
+      label: '${row.label}: ${row.value}',
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: (38),
+              height: (38),
+              decoration: BoxDecoration(
+                color: row.iconColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.center,
+              child: Icon(row.icon, size: (17), color: row.iconColor),
             ),
-            alignment: Alignment.center,
-            child: Icon(row.icon, size: (17), color: row.iconColor),
-          ),
-          SizedBox(width: (14)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  row.label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: colors.textSecondary,
-                    letterSpacing: 0.3,
-                  ),
+            SizedBox(width: (14)),
+            Expanded(
+              child: Text(
+                row.value,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: colors.textMain,
                 ),
-                SizedBox(height: 4),
-                Text(
-                  row.value,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: colors.textMain,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

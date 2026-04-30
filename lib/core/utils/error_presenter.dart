@@ -5,6 +5,7 @@ String presentError(
   String fallback =
       'No pudimos completar esto ahora mismo. Inténtalo otra vez.',
 }) {
+  final statusCode = error is ApiException ? error.statusCode : null;
   var message = switch (error) {
     ApiException(message: final m) => m,
     _ => error.toString(),
@@ -25,6 +26,28 @@ String presentError(
   }
 
   final lower = message.toLowerCase();
+  if (statusCode != null && statusCode >= 500) {
+    return 'Algo falló de nuestro lado. Estamos intentando estabilizarlo; prueba otra vez en un momento.';
+  }
+  if (lower.contains('zoderror') ||
+      lower.contains('invalid_type') ||
+      lower.contains('invalid enum value') ||
+      lower.startsWith('[{')) {
+    return 'Revisa los datos e inténtalo otra vez.';
+  }
+  if (lower.contains('db_error') || lower.contains('database')) {
+    return 'No pudimos guardar el cambio ahora mismo. Inténtalo otra vez en un momento.';
+  }
+  if (lower.contains('validacion_error') ||
+      lower.contains('validation_error')) {
+    return 'Hay un dato que necesita revisión antes de continuar.';
+  }
+  if (lower.contains('not_found')) {
+    return 'No encontramos esa información. Actualiza la pantalla e inténtalo otra vez.';
+  }
+  if (lower.contains('forbidden') || lower.contains('unauthorized')) {
+    return 'Tu sesión necesita actualizarse. Vuelve a entrar e inténtalo otra vez.';
+  }
   if (lower == 'request failed') {
     return fallback;
   }

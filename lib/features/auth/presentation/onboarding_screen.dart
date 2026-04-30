@@ -1,8 +1,10 @@
+import 'package:flutter/physics.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/menudo_haptics.dart';
 import '../../../shared/widgets/menudo_button.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -12,21 +14,51 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends State<OnboardingScreen>
+    with SingleTickerProviderStateMixin {
   final PageController _pageController = PageController();
+  late final AnimationController _pageSpringController;
   int _currentPage = 0;
 
   @override
+  void initState() {
+    super.initState();
+    _pageSpringController = AnimationController.unbounded(vsync: this)
+      ..addListener(() {
+        if (!_pageController.hasClients) return;
+        final position = _pageController.position;
+        _pageController.jumpTo(
+          _pageSpringController.value.clamp(
+            position.minScrollExtent,
+            position.maxScrollExtent,
+          ),
+        );
+      });
+  }
+
+  @override
   void dispose() {
+    _pageSpringController.dispose();
     _pageController.dispose();
     super.dispose();
   }
 
   void _nextPage() {
+    MenudoHaptics.selection();
     if (_currentPage < 2) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+      if (!_pageController.hasClients) return;
+      final position = _pageController.position;
+      final targetPixels = ((_currentPage + 1) * position.viewportDimension)
+          .clamp(position.minScrollExtent, position.maxScrollExtent)
+          .toDouble();
+      _pageSpringController.value = position.pixels;
+      _pageSpringController.animateWith(
+        SpringSimulation(
+          const SpringDescription(mass: 1, stiffness: 520, damping: 38),
+          position.pixels,
+          targetPixels,
+          0,
+        ),
       );
     } else {
       context.go('/register');
@@ -36,7 +68,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: MenudoColors.appBg,
+      backgroundColor: context.menudo.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -44,7 +76,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Expanded(
               child: PageView(
                 controller: _pageController,
-                onPageChanged: (idx) => setState(() => _currentPage = idx),
+                onPageChanged: (idx) {
+                  MenudoHaptics.selection();
+                  setState(() => _currentPage = idx);
+                },
                 children: [
                   _buildPage(
                     title: 'Tu dinero,\nen un solo lugar.',
@@ -80,8 +115,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         height: 8,
                         decoration: BoxDecoration(
                           color: _currentPage == index
-                              ? MenudoColors.primary
-                              : MenudoColors.border,
+                              ? context.menudo.primary
+                              : context.menudo.border,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -97,7 +132,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     TextButton(
                       onPressed: () => context.go('/login'),
                       style: TextButton.styleFrom(
-                        foregroundColor: MenudoColors.textSecondary,
+                        foregroundColor: context.menudo.textSecondary,
                       ),
                       child: Text('Ya tengo cuenta'),
                     )
@@ -125,15 +160,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Icon(
             icon,
             size: 96,
-            color: MenudoColors.cardBg.withValues(alpha: 0.1),
+            color: context.menudo.primary.withValues(alpha: 0.15),
           ),
           SizedBox(height: (32)),
-          Text(title, style: MenudoTextStyles.h1, textAlign: TextAlign.center),
+          Text(title, style: MenudoTextStyles.h1.copyWith(color: context.menudo.textMain), textAlign: TextAlign.center),
           SizedBox(height: (16)),
           Text(
             subtitle,
             style: MenudoTextStyles.bodyLarge.copyWith(
-              color: MenudoColors.textSecondary,
+              color: context.menudo.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),

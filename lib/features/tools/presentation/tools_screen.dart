@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/shared/widgets/menudo_blurred_app_bar.dart';
 import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
@@ -54,50 +55,58 @@ class _ToolsScreenState extends State<ToolsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.menudo.background,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: context.menudo.surface,
+        backgroundColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         elevation: 0,
+        flexibleSpace: const MenudoBlurredBar(),
+        centerTitle: false,
         leading: MenudoGestureDetector(
           onTap: () {
             MenudoHaptics.light();
             Navigator.pop(context);
           },
           child: Padding(
-            padding: EdgeInsets.all(8),
+            padding: const EdgeInsets.all(8),
             child: Icon(
               MenudoCupertinoIcons.arrowLeft,
               color: context.menudo.textMain,
-              size: (22),
+              size: (24),
             ),
           ),
         ),
         title: Text(
           'Herramientas',
           style: TextStyle(
-            fontSize: 22,
+            fontSize: 24,
             fontWeight: FontWeight.w800,
             color: context.menudo.textMain,
+            letterSpacing: -0.5,
           ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: const Color(0xFFF3F4F6), height: 0.5),
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          MediaQuery.paddingOf(context).top + kToolbarHeight + 16,
+          16,
+          100,
+        ),
         children: [
           // ── Quick Links ────────────────────────────────────────────
-          Text(
-            "Accesos rápidos",
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: context.menudo.textMuted,
-              letterSpacing: 0.3,
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 12),
+            child: Text(
+              "Accesos rápidos",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: context.menudo.textMain,
+                letterSpacing: 0.2,
+              ),
             ),
           ).animate().fadeIn(duration: 300.ms),
-          SizedBox(height: (10)),
 
           Row(
             children: [
@@ -105,40 +114,36 @@ class _ToolsScreenState extends State<ToolsScreen> {
                 icon: MenudoCupertinoIcons.pieChart,
                 label: "Categorías",
                 color: AppColors.e6,
-                bg: AppColors.e1,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const CategoriesScreen()),
                 ),
               ),
-              SizedBox(width: (10)),
+              const SizedBox(width: (10)),
               _quickLink(
                 icon: MenudoCupertinoIcons.repeat2,
                 label: "Automáticas",
                 color: AppColors.o5,
-                bg: AppColors.o1,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const RecurringScreen()),
                 ),
               ),
-              SizedBox(width: (10)),
+              const SizedBox(width: (10)),
               _quickLink(
                 icon: MenudoCupertinoIcons.clock,
                 label: "Historial",
                 color: AppColors.p5,
-                bg: const Color(0xFFF3EEFF),
                 onTap: () {
                   Navigator.pop(context);
                   context.push('/history');
                 },
               ),
-              SizedBox(width: (10)),
+              const SizedBox(width: (10)),
               _quickLink(
                 icon: MenudoCupertinoIcons.wallet,
                 label: "Cuentas",
                 color: AppColors.b5,
-                bg: const Color(0xFFEFF6FF),
                 onTap: () {
                   Navigator.pop(context);
                   context.go('/wallet');
@@ -148,25 +153,27 @@ class _ToolsScreenState extends State<ToolsScreen> {
           ).animate().fadeIn(duration: 380.ms, delay: 50.ms),
 
           if (_showsIosShortcuts) ...[
-            SizedBox(height: (14)),
+            const SizedBox(height: (16)),
             _shortcutLauncherCard(
               context,
             ).animate().fadeIn(duration: 380.ms, delay: 80.ms),
           ],
 
-          SizedBox(height: (28)),
+          const SizedBox(height: (32)),
 
           // ── Loan calculator ────────────────────────────────────────
-          Text(
-            "Calculadoras financieras",
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: context.menudo.textMuted,
-              letterSpacing: 0.3,
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 12),
+            child: Text(
+              "Calculadoras",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: context.menudo.textMain,
+                letterSpacing: 0.2,
+              ),
             ),
           ).animate().fadeIn(duration: 300.ms, delay: 100.ms),
-          SizedBox(height: (10)),
 
           MenudoGestureDetector(
             onTap: () {
@@ -176,16 +183,31 @@ class _ToolsScreenState extends State<ToolsScreen> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: context.menudo.textOnDark,
-                borderRadius: BorderRadius.circular(20),
+                color: context.menudo.surface,
+                borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: _loanExpanded
                       ? AppColors.r5.withValues(alpha: 0.3)
-                      : const Color(0xFFF3F4F6),
+                      : context.menudo.border.withValues(alpha: 0.5),
                   width: 1.5,
                 ),
+                boxShadow: _loanExpanded
+                    ? [
+                        BoxShadow(
+                          color: AppColors.r5.withValues(alpha: 0.08),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,36 +215,36 @@ class _ToolsScreenState extends State<ToolsScreen> {
                   Row(
                     children: [
                       Container(
-                        width: 44,
-                        height: 44,
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.r1,
-                          borderRadius: BorderRadius.circular(13),
+                          color: AppColors.r5.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
                         ),
                         alignment: Alignment.center,
                         child: Icon(
                           MenudoCupertinoIcons.percent,
-                          size: (22),
+                          size: (24),
                           color: AppColors.r5,
                         ),
                       ),
-                      SizedBox(width: (14)),
+                      const SizedBox(width: (16)),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Calculadora de préstamo",
+                              "Préstamo",
                               style: TextStyle(
-                                fontSize: 15,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w800,
                                 color: context.menudo.textMain,
                               ),
                             ),
+                            const SizedBox(height: 2),
                             Text(
-                              "Cuota mensual e intereses totales",
+                              "Cuota mensual e intereses",
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 13,
                                 color: context.menudo.textMuted,
                               ),
                             ),
@@ -232,17 +254,24 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       AnimatedRotation(
                         turns: _loanExpanded ? 0.5 : 0,
                         duration: const Duration(milliseconds: 220),
-                        child: Icon(
-                          MenudoCupertinoIcons.chevronDown,
-                          size: (18),
-                          color: context.menudo.textMuted,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: context.menudo.background,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            MenudoCupertinoIcons.chevronDown,
+                            size: (16),
+                            color: context.menudo.textSecondary,
+                          ),
                         ),
                       ),
                     ],
                   ),
 
                   if (_loanExpanded) ...[
-                    SizedBox(height: (20)),
+                    const SizedBox(height: (24)),
                     _sliderRow(
                       "Monto",
                       _fmt(_loanMonto),
@@ -250,8 +279,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       10000,
                       2000000,
                       (v) => setState(() => _loanMonto = v),
+                      AppColors.r5,
                     ),
-                    SizedBox(height: (14)),
+                    const SizedBox(height: (16)),
                     _sliderRow(
                       "Tasa anual",
                       "${_loanTasa.round()}%",
@@ -259,8 +289,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       1,
                       50,
                       (v) => setState(() => _loanTasa = v),
+                      AppColors.r5,
                     ),
-                    SizedBox(height: (14)),
+                    const SizedBox(height: (16)),
                     _sliderRow(
                       "Plazo",
                       "$_loanMeses meses",
@@ -268,46 +299,100 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       3,
                       60,
                       (v) => setState(() => _loanMeses = v.round()),
+                      AppColors.r5,
                     ),
-                    SizedBox(height: (20)),
+                    const SizedBox(height: (24)),
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppColors.r1,
-                        borderRadius: BorderRadius.circular(14),
+                        color: context.menudo.background,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.r5.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
                       ),
-                      child: Row(
+                      child: Column(
                         children: [
-                          Expanded(
-                            child: _resultColumn(
-                              "CUOTA MENSUAL",
-                              _fmt(_loanCuota),
-                              AppColors.r5,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "CUOTA MENSUAL",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.r5.withValues(alpha: 0.8),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              Text(
+                                _fmt(_loanCuota),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.r5,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Divider(
+                              color: AppColors.r5.withValues(alpha: 0.1),
+                              height: 1,
                             ),
                           ),
-                          Container(
-                            width: 1,
-                            height: 40,
-                            color: AppColors.r5.withValues(alpha: 0.2),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "INTERESES",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: context.menudo.textMuted,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              Text(
+                                _fmt(_loanIntereses),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: context.menudo.textSecondary,
+                                ),
+                              ),
+                            ],
                           ),
-                          Expanded(
-                            child: _resultColumn(
-                              "INTERESES TOTALES",
-                              _fmt(_loanIntereses),
-                              AppColors.r5,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Divider(
+                              color: AppColors.r5.withValues(alpha: 0.1),
+                              height: 1,
                             ),
                           ),
-                          Container(
-                            width: 1,
-                            height: 40,
-                            color: AppColors.r5.withValues(alpha: 0.2),
-                          ),
-                          Expanded(
-                            child: _resultColumn(
-                              "TOTAL A PAGAR",
-                              _fmt(_loanTotal),
-                              context.menudo.primary,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "TOTAL A PAGAR",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: context.menudo.textMain,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              Text(
+                                _fmt(_loanTotal),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: context.menudo.textMain,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -318,7 +403,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
             ),
           ).animate().fadeIn(duration: 380.ms, delay: 150.ms),
 
-          SizedBox(height: (12)),
+          const SizedBox(height: (16)),
 
           // ── CDP Calculator ─────────────────────────────────────────
           MenudoGestureDetector(
@@ -329,16 +414,31 @@ class _ToolsScreenState extends State<ToolsScreen> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: context.menudo.textOnDark,
-                borderRadius: BorderRadius.circular(20),
+                color: context.menudo.surface,
+                borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: _cdpExpanded
                       ? AppColors.e6.withValues(alpha: 0.3)
-                      : const Color(0xFFF3F4F6),
+                      : context.menudo.border.withValues(alpha: 0.5),
                   width: 1.5,
                 ),
+                boxShadow: _cdpExpanded
+                    ? [
+                        BoxShadow(
+                          color: AppColors.e6.withValues(alpha: 0.08),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,36 +446,36 @@ class _ToolsScreenState extends State<ToolsScreen> {
                   Row(
                     children: [
                       Container(
-                        width: 44,
-                        height: 44,
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.e1,
-                          borderRadius: BorderRadius.circular(13),
+                          color: AppColors.e6.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
                         ),
                         alignment: Alignment.center,
                         child: Icon(
                           MenudoCupertinoIcons.building2,
-                          size: (22),
+                          size: (24),
                           color: AppColors.e6,
                         ),
                       ),
-                      SizedBox(width: (14)),
+                      const SizedBox(width: (16)),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Simulador de CDP",
+                              "Simulador CDP",
                               style: TextStyle(
-                                fontSize: 15,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w800,
                                 color: context.menudo.textMain,
                               ),
                             ),
+                            const SizedBox(height: 2),
                             Text(
-                              "Proyecta tus rendimientos en pesos",
+                              "Proyecta tus rendimientos",
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 13,
                                 color: context.menudo.textMuted,
                               ),
                             ),
@@ -385,17 +485,24 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       AnimatedRotation(
                         turns: _cdpExpanded ? 0.5 : 0,
                         duration: const Duration(milliseconds: 220),
-                        child: Icon(
-                          MenudoCupertinoIcons.chevronDown,
-                          size: (18),
-                          color: context.menudo.textMuted,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: context.menudo.background,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            MenudoCupertinoIcons.chevronDown,
+                            size: (16),
+                            color: context.menudo.textSecondary,
+                          ),
                         ),
                       ),
                     ],
                   ),
 
                   if (_cdpExpanded) ...[
-                    SizedBox(height: (20)),
+                    const SizedBox(height: (24)),
                     _sliderRow(
                       "Capital inicial",
                       _fmt(_cdpMonto),
@@ -403,8 +510,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       5000,
                       1000000,
                       (v) => setState(() => _cdpMonto = v),
+                      AppColors.e6,
                     ),
-                    SizedBox(height: (14)),
+                    const SizedBox(height: (16)),
                     _sliderRow(
                       "Tasa anual",
                       "${_cdpTasa.round()}%",
@@ -412,8 +520,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       1,
                       25,
                       (v) => setState(() => _cdpTasa = v),
+                      AppColors.e6,
                     ),
-                    SizedBox(height: (14)),
+                    const SizedBox(height: (16)),
                     _sliderRow(
                       "Plazo",
                       "$_cdpMeses meses",
@@ -421,34 +530,100 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       1,
                       36,
                       (v) => setState(() => _cdpMeses = v.round()),
+                      AppColors.e6,
                     ),
-                    SizedBox(height: (20)),
+                    const SizedBox(height: (24)),
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppColors.e1,
-                        borderRadius: BorderRadius.circular(14),
+                        color: context.menudo.background,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.e6.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
                       ),
-                      child: Row(
+                      child: Column(
                         children: [
-                          Expanded(
-                            child: _resultColumn(
-                              "RENDIMIENTO",
-                              _fmt(_cdpRendimiento),
-                              AppColors.e6,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "RENDIMIENTO",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.e6.withValues(alpha: 0.8),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              Text(
+                                "+${_fmt(_cdpRendimiento)}",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.e6,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Divider(
+                              color: AppColors.e6.withValues(alpha: 0.1),
+                              height: 1,
                             ),
                           ),
-                          Container(
-                            width: 1,
-                            height: 40,
-                            color: AppColors.e6.withValues(alpha: 0.2),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "CAPITAL INICIAL",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: context.menudo.textMuted,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              Text(
+                                _fmt(_cdpMonto),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: context.menudo.textSecondary,
+                                ),
+                              ),
+                            ],
                           ),
-                          Expanded(
-                            child: _resultColumn(
-                              "TOTAL FINAL",
-                              _fmt(_cdpTotal),
-                              context.menudo.primary,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Divider(
+                              color: AppColors.e6.withValues(alpha: 0.1),
+                              height: 1,
                             ),
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "TOTAL FINAL",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: context.menudo.textMain,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              Text(
+                                _fmt(_cdpTotal),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: context.menudo.textMain,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -467,7 +642,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
     required IconData icon,
     required String label,
     required Color color,
-    required Color bg,
     required VoidCallback onTap,
   }) {
     return Expanded(
@@ -476,33 +650,28 @@ class _ToolsScreenState extends State<ToolsScreen> {
           MenudoHaptics.light();
           onTap();
         },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: context.menudo.textOnDark,
-            border: Border.all(color: context.menudo.border, width: 1.5),
-            borderRadius: BorderRadius.circular(16),
-          ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
           child: Column(
             children: [
               Container(
-                width: (38),
-                height: (38),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: bg,
-                  borderRadius: BorderRadius.circular(11),
+                  color: color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
                 ),
-                alignment: Alignment.center,
-                child: Icon(icon, size: (18), color: color),
+                child: Icon(icon, size: (22), color: color),
               ),
-              SizedBox(height: 7),
+              const SizedBox(height: (10)),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: context.menudo.textSecondary,
+                  color: context.menudo.textMain,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
               ),
             ],
@@ -519,6 +688,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
     double min,
     double max,
     ValueChanged<double> onChanged,
+    Color activeColor,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -529,66 +699,44 @@ class _ToolsScreenState extends State<ToolsScreen> {
             Text(
               label,
               style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
                 color: context.menudo.textSecondary,
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: context.menudo.surface,
+                color: activeColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: activeColor.withValues(alpha: 0.2)),
               ),
               child: Text(
                 valueLabel,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: FontWeight.w800,
-                  color: context.menudo.textMain,
+                  color: activeColor,
                 ),
               ),
             ),
           ],
         ),
+        const SizedBox(height: 8),
         SliderTheme(
           data: SliderThemeData(
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-            trackHeight: 4,
-            activeTrackColor: AppColors.o5,
+            trackHeight: 6,
+            thumbShape: const RoundSliderThumbShape(
+              enabledThumbRadius: 10,
+              elevation: 2,
+            ),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+            activeTrackColor: activeColor,
             inactiveTrackColor: context.menudo.surface,
-            thumbColor: AppColors.o5,
-            overlayColor: AppColors.o5.withValues(alpha: 0.15),
+            thumbColor: activeColor,
+            overlayColor: activeColor.withValues(alpha: 0.15),
           ),
           child: Slider(value: value, min: min, max: max, onChanged: onChanged),
-        ),
-      ],
-    );
-  }
-
-  Widget _resultColumn(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.w700,
-            color: color.withValues(alpha: 0.6),
-            letterSpacing: 0.4,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            color: color,
-          ),
-          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -601,29 +749,37 @@ class _ToolsScreenState extends State<ToolsScreen> {
         context.push('/shortcuts');
       },
       child: Container(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: context.menudo.textOnDark,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+          color: context.menudo.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: context.menudo.border.withValues(alpha: 0.5),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
-              width: 50,
-              height: 50,
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.o1,
-                borderRadius: BorderRadius.circular(16),
+                color: AppColors.o5.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
               ),
-              alignment: Alignment.center,
               child: Icon(
                 MenudoCupertinoIcons.zap,
                 color: AppColors.o5,
                 size: (24),
               ),
             ),
-            SizedBox(width: (14)),
+            const SizedBox(width: (16)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -636,21 +792,29 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       color: context.menudo.textMain,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     "Gasto rápido desde accesos del dispositivo",
                     style: TextStyle(
                       fontSize: 13,
                       color: context.menudo.textMuted,
+                      height: 1.3,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(
-              MenudoCupertinoIcons.chevronRight,
-              color: context.menudo.textMuted,
-              size: (18),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: context.menudo.background,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                MenudoCupertinoIcons.chevronRight,
+                color: context.menudo.textSecondary,
+                size: (16),
+              ),
             ),
           ],
         ),

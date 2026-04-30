@@ -8,6 +8,7 @@ import 'package:financeproject/core/utils/menudo_haptics.dart';
 import '../../../../core/data/models.dart';
 import '../../../../core/preferences/app_preferences.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/error_presenter.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../shared/widgets/menudo_button.dart';
@@ -206,6 +207,13 @@ class _QuickExpenseShortcutSheetState
     final wallet = defaultWallet ?? (wallets.isNotEmpty ? wallets.first : null);
     final currency = wallet?.moneda ?? AppFormattingPreferences.currencyCode;
     final isCompact = media.size.height < 820;
+    final parsedAmount =
+        double.tryParse(_amountCtrl.text.trim().replaceAll(',', '.')) ?? 0;
+    final canSave =
+        !_isSaving &&
+        wallet != null &&
+        _selectedCategorySlug != null &&
+        parsedAmount > 0;
 
     return MenudoGestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -231,10 +239,10 @@ class _QuickExpenseShortcutSheetState
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
-                  20,
-                  8,
-                  20,
-                  media.padding.bottom + 18,
+                  AppSpacing.screen,
+                  AppSpacing.p8,
+                  AppSpacing.screen,
+                  media.padding.bottom + AppSpacing.p18,
                 ),
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
@@ -250,7 +258,7 @@ class _QuickExpenseShortcutSheetState
                         letterSpacing: -0.6,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    SizedBox(height: AppSpacing.p8),
                     Text(
                       wallet == null
                           ? 'Necesitas una cuenta antes de registrar gastos.'
@@ -261,77 +269,80 @@ class _QuickExpenseShortcutSheetState
                         color: colors.textSecondary,
                       ),
                     ),
-                    SizedBox(height: (18)),
+                    SizedBox(height: AppSpacing.p18),
                     MenudoCard(
-                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Monto',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: colors.textSecondary,
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.p18,
+                        AppSpacing.p16,
+                        AppSpacing.p18,
+                        AppSpacing.p18,
+                      ),
+                      child: TextField(
+                        controller: _amountCtrl,
+                        focusNode: _amountFocus,
+                        autofocus: true,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        textInputAction: TextInputAction.next,
+                        onChanged: (_) {
+                          MenudoHaptics.light();
+                          setState(() => _formMessage = null);
+                        },
+                        decoration: InputDecoration(
+                          hintText: '0.00',
+                          hintStyle: TextStyle(
+                            fontSize: 46,
+                            fontWeight: FontWeight.w900,
+                            color: colors.textMuted.withValues(alpha: 0.4),
+                            letterSpacing: -1.2,
+                          ),
+                          prefixText:
+                              '${formatMoney(0, currency: currency).replaceAll('0', '')} ',
+                          prefixStyle: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            color: colors.textMuted,
+                          ),
+                          filled: true,
+                          fillColor: colors.surface,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.p16,
+                            vertical: AppSpacing.p20,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: BorderSide(color: colors.border),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: BorderSide(color: colors.border),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: BorderSide(
+                              color: AppColors.o5,
+                              width: 1.6,
                             ),
                           ),
-                          SizedBox(height: (10)),
-                          TextField(
-                            controller: _amountCtrl,
-                            focusNode: _amountFocus,
-                            autofocus: true,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            textInputAction: TextInputAction.next,
-                            onChanged: (_) {
-                              MenudoHaptics.light();
-                              if (_formMessage == null) return;
-                              setState(() => _formMessage = null);
-                            },
-                            decoration: InputDecoration(
-                              prefixText:
-                                  '${formatMoney(0, currency: currency).replaceAll('0', '')} ',
-                              prefixStyle: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: colors.textMuted,
-                              ),
-                              filled: true,
-                              fillColor: colors.surface,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 18,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: BorderSide(color: colors.border),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: BorderSide(color: colors.border),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: BorderSide(
-                                  color: AppColors.o5,
-                                  width: 1.6,
-                                ),
-                              ),
-                            ),
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w900,
-                              color: colors.textMain,
-                              letterSpacing: -0.8,
-                            ),
-                          ),
-                        ],
+                        ),
+                        style: TextStyle(
+                          fontSize: 46,
+                          height: 1,
+                          fontWeight: FontWeight.w900,
+                          color: colors.textMain,
+                          letterSpacing: -1.2,
+                        ),
                       ),
                     ),
-                    SizedBox(height: (14)),
+                    SizedBox(height: AppSpacing.p14),
                     MenudoCard(
-                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.p18,
+                        AppSpacing.p16,
+                        AppSpacing.p18,
+                        AppSpacing.p18,
+                      ),
                       child: _OneTapCategoryGrid(
                         categories: topCategories,
                         selectedSlug: _selectedCategorySlug,
@@ -344,74 +355,71 @@ class _QuickExpenseShortcutSheetState
                         },
                       ),
                     ),
-                    SizedBox(height: (14)),
+                    SizedBox(height: AppSpacing.p14),
                     MenudoCard(
-                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Nota',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: colors.textSecondary,
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.p18,
+                        AppSpacing.p16,
+                        AppSpacing.p18,
+                        AppSpacing.p18,
+                      ),
+                      child: TextField(
+                        controller: _noteCtrl,
+                        textInputAction: TextInputAction.done,
+                        minLines: 1,
+                        maxLines: 3,
+                        onChanged: (_) {
+                          if (_formMessage == null) return;
+                          setState(() => _formMessage = null);
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Añade una nota...',
+                          hintStyle: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: colors.textMuted.withValues(alpha: 0.5),
+                          ),
+                          filled: true,
+                          fillColor: colors.surface,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.p16,
+                            vertical: AppSpacing.p16,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: BorderSide(color: colors.border),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: BorderSide(color: colors.border),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: BorderSide(
+                              color: AppColors.o5,
+                              width: 1.6,
                             ),
                           ),
-                          SizedBox(height: (10)),
-                          TextField(
-                            controller: _noteCtrl,
-                            textInputAction: TextInputAction.done,
-                            minLines: 1,
-                            maxLines: 3,
-                            onChanged: (_) {
-                              if (_formMessage == null) return;
-                              setState(() => _formMessage = null);
-                            },
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: colors.surface,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: BorderSide(color: colors.border),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: BorderSide(color: colors.border),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: BorderSide(
-                                  color: AppColors.o5,
-                                  width: 1.6,
-                                ),
-                              ),
-                            ),
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: colors.textMain,
-                            ),
-                          ),
-                        ],
+                        ),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: colors.textMain,
+                        ),
                       ),
                     ),
                     if (_formMessage != null) ...[
-                      SizedBox(height: (14)),
+                      SizedBox(height: AppSpacing.p14),
                       AnimatedBuilder(
                         animation: _shakeOffset,
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
+                            horizontal: AppSpacing.p14,
+                            vertical: AppSpacing.p12,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.r1,
+                            color: context.menudo.dangerLight,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: AppColors.r5.withValues(alpha: 0.16),
@@ -432,15 +440,15 @@ class _QuickExpenseShortcutSheetState
                         ),
                       ),
                     ],
-                    SizedBox(height: (18)),
+                    SizedBox(height: AppSpacing.p18),
                     MenudoButton(
                       label: _isSaving ? 'Guardando...' : 'Registrar gasto',
                       isFullWidth: true,
-                      isDisabled: _isSaving || wallet == null,
+                      isDisabled: !canSave,
                       onTap: _save,
                       icon: MenudoCupertinoIcons.plusCircle,
                     ),
-                    SizedBox(height: (10)),
+                    SizedBox(height: AppSpacing.p10),
                     Center(
                       child: Text(
                         widget.source == 'transaction_automation'
@@ -491,37 +499,23 @@ class _OneTapCategoryGrid extends StatelessWidget {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Categoría',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: colors.textSecondary,
-          ),
-        ),
-        SizedBox(height: (12)),
-        SizedBox(
-          height: 96,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: categories.length,
-            separatorBuilder: (_, _) => SizedBox(width: (10)),
-            itemBuilder: (context, index) {
-              final category = categories[index];
-              final selected = category.slug == selectedSlug;
-              return _OneTapCategoryTile(
-                category: category,
-                selected: selected,
-                onTap: () => onSelected(category),
-              );
-            },
-          ),
-        ),
-      ],
+    return SizedBox(
+      height: 96,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: categories.length,
+        separatorBuilder: (_, _) => SizedBox(width: AppSpacing.p10),
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          final selected = category.slug == selectedSlug;
+          return _OneTapCategoryTile(
+            category: category,
+            selected: selected,
+            onTap: () => onSelected(category),
+          );
+        },
+      ),
     );
   }
 }
@@ -552,7 +546,10 @@ class _OneTapCategoryTile extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           width: 82,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.p10,
+            vertical: AppSpacing.p10,
+          ),
           decoration: BoxDecoration(
             color: selected ? color.withValues(alpha: 0.13) : colors.background,
             borderRadius: BorderRadius.circular(20),
@@ -574,7 +571,7 @@ class _OneTapCategoryTile extends StatelessWidget {
                 alignment: Alignment.center,
                 child: Icon(category.icono, color: color, size: (22)),
               ),
-              SizedBox(height: 8),
+              SizedBox(height: AppSpacing.p8),
               Text(
                 category.nombre,
                 maxLines: 1,

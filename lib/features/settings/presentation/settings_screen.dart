@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
+import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,6 +17,7 @@ import '../../../core/theme/app_colors.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/display_utils.dart';
+import '../../../core/utils/error_presenter.dart';
 import '../../../core/utils/external_links.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../model/user_profile.dart';
@@ -25,6 +28,14 @@ import '../../../utils/app_env.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
+
+  bool get _showsIosShortcuts =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
+  Future<void> _openShortcutInstaller(BuildContext context) async {
+    MenudoHaptics.medium();
+    if (context.mounted) context.push('/shortcuts');
+  }
 
   Future<void> _pickLanguage(
     BuildContext context,
@@ -97,23 +108,12 @@ class SettingsScreen extends ConsumerWidget {
       }
       await ref.read(appPreferencesProvider.notifier).setMarket(selected);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            tr(
-              context,
-              es: 'Tu país y moneda principal ya quedaron actualizados.',
-              en: 'Your country and main currency have been updated.',
-            ),
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      MenudoHaptics.success();
     } catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error.toString()),
+          content: Text(presentError(error)),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -143,7 +143,7 @@ class SettingsScreen extends ConsumerWidget {
     final avatarEmoji = profile?.avatarEmoji?.trim();
 
     return Scaffold(
-      backgroundColor: MenudoColors.appBg,
+      backgroundColor: context.menudo.background,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -160,7 +160,7 @@ class SettingsScreen extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(22),
                       decoration: BoxDecoration(
-                        color: context.menudo.textMain,
+                        color: context.menudo.hero,
                         borderRadius: BorderRadius.circular(28),
                       ),
                       child: Row(
@@ -169,7 +169,7 @@ class SettingsScreen extends ConsumerWidget {
                             width: 68,
                             height: 68,
                             decoration: BoxDecoration(
-                              color: context.menudo.textOnDark.withValues(
+                              color: context.menudo.surface.withValues(
                                 alpha: 0.12,
                               ),
                               borderRadius: BorderRadius.circular(22),
@@ -213,16 +213,14 @@ class SettingsScreen extends ConsumerWidget {
                                         en: 'Active session',
                                       ),
                                   style: MenudoTextStyles.bodyMedium.copyWith(
-                                    color: context.menudo.textOnDark.withValues(
-                                      alpha: 0.82,
-                                    ),
+                                    color: context.menudo.textOnDarkSub,
                                   ),
                                 ),
                                 SizedBox(height: (10)),
                                 MenudoChip.custom(
                                   label: currentMarket.currencyCode,
                                   color: context.menudo.textOnDark,
-                                  bgColor: context.menudo.textOnDark.withValues(
+                                  bgColor: context.menudo.surface.withValues(
                                     alpha: 0.12,
                                   ),
                                 ),
@@ -264,7 +262,7 @@ class SettingsScreen extends ConsumerWidget {
                           Divider(
                             height: 1,
                             thickness: 0.5,
-                            color: MenudoColors.divider,
+                            color: context.menudo.divider,
                           ),
                           _SettingsTile(
                             icon:
@@ -314,7 +312,7 @@ class SettingsScreen extends ConsumerWidget {
                           Divider(
                             height: 1,
                             thickness: 0.5,
-                            color: MenudoColors.divider,
+                            color: context.menudo.divider,
                           ),
                           _SettingsTile(
                             icon: MenudoCupertinoIcons.public_rounded,
@@ -363,7 +361,7 @@ class SettingsScreen extends ConsumerWidget {
                           Divider(
                             height: 1,
                             thickness: 0.5,
-                            color: MenudoColors.divider,
+                            color: context.menudo.divider,
                           ),
                           _SettingsTile(
                             icon: MenudoCupertinoIcons.grid_view_rounded,
@@ -379,6 +377,27 @@ class SettingsScreen extends ConsumerWidget {
                             ),
                             onTap: () => context.push('/tools'),
                           ),
+                          if (_showsIosShortcuts) ...[
+                            Divider(
+                              height: 1,
+                              thickness: 0.5,
+                              color: context.menudo.divider,
+                            ),
+                            _SettingsTile(
+                              icon: MenudoCupertinoIcons.zap,
+                              title: tr(
+                                context,
+                                es: 'Atajo de Apple Pay',
+                                en: 'Apple Pay shortcut',
+                              ),
+                              subtitle: tr(
+                                context,
+                                es: 'App Shortcut listo para enlazar',
+                                en: 'App Shortcut ready to connect',
+                              ),
+                              onTap: () => _openShortcutInstaller(context),
+                            ),
+                          ],
                         ],
                       ),
                     ).animate().fadeIn(delay: 180.ms).slideY(begin: 0.04),
@@ -423,7 +442,7 @@ class SettingsScreen extends ConsumerWidget {
                             Divider(
                               height: 1,
                               thickness: 0.5,
-                              color: MenudoColors.divider,
+                              color: context.menudo.divider,
                             ),
                             _SettingsTile(
                               icon: MenudoCupertinoIcons.calendar_today_rounded,
@@ -505,7 +524,7 @@ class SettingsScreen extends ConsumerWidget {
                           Divider(
                             height: 1,
                             thickness: 0.5,
-                            color: MenudoColors.divider,
+                            color: context.menudo.divider,
                           ),
                           _SettingsTile(
                             icon: MenudoCupertinoIcons.privacy_tip_outlined,
@@ -527,7 +546,7 @@ class SettingsScreen extends ConsumerWidget {
                           Divider(
                             height: 1,
                             thickness: 0.5,
-                            color: MenudoColors.divider,
+                            color: context.menudo.divider,
                           ),
                           _SettingsTile(
                             icon: MenudoCupertinoIcons.description_outlined,
@@ -581,7 +600,7 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title.toUpperCase(),
         style: MenudoTextStyles.labelCaps.copyWith(
-          color: MenudoColors.textMuted,
+          color: context.menudo.textMuted,
         ),
       ),
     );
@@ -619,7 +638,11 @@ class _SettingsTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
               ),
               alignment: Alignment.center,
-              child: Icon(icon, size: (20), color: MenudoColors.textSecondary),
+              child: Icon(
+                icon,
+                size: (20),
+                color: context.menudo.textSecondary,
+              ),
             ),
             SizedBox(width: (14)),
             Expanded(
@@ -638,7 +661,7 @@ class _SettingsTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: MenudoTextStyles.bodySmall.copyWith(
-                      color: MenudoColors.textMuted,
+                      color: context.menudo.textMuted,
                     ),
                   ),
                 ],
@@ -648,7 +671,7 @@ class _SettingsTile extends StatelessWidget {
             if (onTap != null)
               Icon(
                 MenudoCupertinoIcons.chevron_right_rounded,
-                color: MenudoColors.textMuted,
+                color: context.menudo.textMuted,
               ),
           ],
         ),
@@ -720,7 +743,7 @@ class _PreferencesSheet<T> extends StatelessWidget {
     return Container(
       constraints: BoxConstraints(maxHeight: maxHeight),
       decoration: BoxDecoration(
-        color: context.menudo.textOnDark,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: SafeArea(
@@ -734,7 +757,7 @@ class _PreferencesSheet<T> extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: MenudoColors.divider,
+                  color: context.menudo.divider,
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -748,7 +771,7 @@ class _PreferencesSheet<T> extends StatelessWidget {
                   separatorBuilder: (context, index) => Divider(
                     height: 1,
                     thickness: 0.5,
-                    color: MenudoColors.divider,
+                    color: context.menudo.divider,
                   ),
                   itemBuilder: (context, index) => _PreferenceRow<T>(
                     option: options[index],
@@ -809,7 +832,7 @@ class _PreferenceRow<T> extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: MenudoTextStyles.bodySmall.copyWith(
-                      color: MenudoColors.textMuted,
+                      color: context.menudo.textMuted,
                     ),
                   ),
                 ],

@@ -102,11 +102,38 @@ String transactionCurrencyCode(
   MenudoTransaction transaction, {
   String fallbackCurrencyCode = '',
 }) {
-  final transactionCurrency = transaction.moneda.trim();
-  if (transactionCurrency.isNotEmpty) return transactionCurrency.toUpperCase();
+  final fallback = fallbackCurrencyCode.trim().isEmpty
+      ? AppFormattingPreferences.currencyCode
+      : fallbackCurrencyCode.trim().toUpperCase();
 
-  final fallback = fallbackCurrencyCode.trim();
-  return fallback.isEmpty ? fallback : fallback.toUpperCase();
+  String? resolved(String? value) {
+    final normalized = value?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return null;
+    if (normalized == 'DOP' && fallback.isNotEmpty && fallback != 'DOP') {
+      return null;
+    }
+    return normalized;
+  }
+
+  final sourceCurrency = resolved(transaction.fromWallet?.moneda);
+  if (sourceCurrency != null) {
+    return sourceCurrency;
+  }
+
+  final destinationCurrency = resolved(transaction.toWallet?.moneda);
+  if (destinationCurrency != null) {
+    return destinationCurrency;
+  }
+
+  return resolved(transaction.moneda) ?? fallback;
+}
+
+String _walletSnapshotCurrency(String? value) {
+  final fallback = AppFormattingPreferences.currencyCode;
+  final normalized = value?.trim().toUpperCase();
+  if (normalized == null || normalized.isEmpty) return fallback;
+  if (normalized == 'DOP' && fallback != 'DOP') return fallback;
+  return normalized;
 }
 
 Color _fallbackWalletColor(String? type) {
@@ -147,7 +174,7 @@ WalletAccount? resolveTransactionWallet(
     saldo: 0,
     color: _fallbackWalletColor(snapshot.tipo),
     icono: _fallbackWalletIcon(snapshot.tipo),
-    moneda: snapshot.moneda ?? AppFormattingPreferences.currencyCode,
+    moneda: _walletSnapshotCurrency(snapshot.moneda),
   );
 }
 

@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/data/mock_data.dart';
+import '../../../shared/widgets/menudo_blurred_app_bar.dart';
 
 import '../../../shared/widgets/glass_card.dart';
 import '../../../shared/widgets/asset_category_icon.dart';
@@ -27,7 +28,11 @@ class AssetDetailScreen extends StatelessWidget {
     final prefix = asset.currency == 'USD' ? '\$' : 'RD\$';
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: const MenudoBlurredBar(),
         title: Text(asset.name),
         leading: MenudoIconButton(
           icon: Icon(
@@ -71,10 +76,10 @@ class AssetDetailScreen extends StatelessWidget {
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: AppColors.surfaceLight,
+                                      color: context.menudo.surfaceElevated,
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: AppColors.cardBorder,
+                                        color: context.menudo.border,
                                       ),
                                     ),
                                     child: Text(
@@ -112,7 +117,7 @@ class AssetDetailScreen extends StatelessWidget {
                           children: [
                             Icon(
                               MenudoCupertinoIcons.sync,
-                              color: AppColors.textTertiary,
+                              color: context.menudo.textMuted,
                               size: (14),
                             ),
                             SizedBox(width: 4),
@@ -148,7 +153,7 @@ class AssetDetailScreen extends StatelessWidget {
                           drawVerticalLine: false,
                           horizontalInterval: _getInterval(asset.sparklineData),
                           getDrawingHorizontalLine: (value) => FlLine(
-                            color: AppColors.cardBorder,
+                            color: context.menudo.border,
                             strokeWidth: 1,
                           ),
                         ),
@@ -156,7 +161,7 @@ class AssetDetailScreen extends StatelessWidget {
                         borderData: FlBorderData(show: false),
                         lineTouchData: LineTouchData(
                           touchTooltipData: LineTouchTooltipData(
-                            getTooltipColor: (_) => AppColors.surface,
+                            getTooltipColor: (_) => context.menudo.surface,
                           ),
                         ),
                         lineBarsData: [

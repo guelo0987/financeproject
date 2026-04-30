@@ -34,6 +34,64 @@ String currentLocaleTag() {
   return AppFormattingPreferences.localeTag;
 }
 
+String moneyLocaleForCurrency(String currency) {
+  final normalized = currency.trim().toUpperCase();
+  if (normalized == 'DOP') return 'en_US';
+  return AppFormattingPreferences.localeTag;
+}
+
+double? parseMoneyInput(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return null;
+
+  final cleaned = trimmed
+      .replaceAll(RegExp(r'[^0-9,.\-]'), '')
+      .replaceAll(' ', '');
+  if (cleaned.isEmpty || cleaned == '-' || cleaned == '.' || cleaned == ',') {
+    return null;
+  }
+
+  final lastComma = cleaned.lastIndexOf(',');
+  final lastDot = cleaned.lastIndexOf('.');
+  String normalized = cleaned;
+
+  if (lastComma >= 0 && lastDot >= 0) {
+    final decimalSeparator = lastComma > lastDot ? ',' : '.';
+    final groupSeparator = decimalSeparator == ',' ? '.' : ',';
+    normalized = cleaned
+        .replaceAll(groupSeparator, '')
+        .replaceAll(decimalSeparator, '.');
+  } else if (lastComma >= 0) {
+    final parts = cleaned.split(',');
+    final lastPart = parts.last;
+    final commaLooksDecimal =
+        parts.length == 2 && lastPart.isNotEmpty && lastPart.length <= 2;
+    normalized = commaLooksDecimal
+        ? cleaned.replaceAll(',', '.')
+        : cleaned.replaceAll(',', '');
+  } else {
+    final parts = cleaned.split('.');
+    final lastPart = parts.last;
+    final dotLooksGrouped =
+        parts.length > 2 || (parts.length == 2 && lastPart.length == 3);
+    if (dotLooksGrouped) {
+      normalized = cleaned.replaceAll('.', '');
+    }
+  }
+
+  return double.tryParse(normalized);
+}
+
+String formatMoneyInputValue(double value, {String currency = ''}) {
+  final effectiveCurrency = currency.trim().isEmpty
+      ? AppFormattingPreferences.currencyCode
+      : currency.trim().toUpperCase();
+  return NumberFormat(
+    '#,##0.##',
+    moneyLocaleForCurrency(effectiveCurrency),
+  ).format(value.abs());
+}
+
 String formatMoney(
   double value, {
   String currency = '',
@@ -45,7 +103,7 @@ String formatMoney(
       : currency.trim().toUpperCase();
   final formatter = NumberFormat(
     keepDecimals ? '#,##0.00' : '#,##0',
-    AppFormattingPreferences.localeTag,
+    moneyLocaleForCurrency(effectiveCurrency),
   );
   final prefix = currencyPrefix(effectiveCurrency);
   final base = '$prefix${formatter.format(value.abs())}';

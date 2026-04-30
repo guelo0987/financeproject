@@ -88,7 +88,9 @@ class _SpendingBreakdownSheetState
       });
 
     final accentColor = widget.isGastos ? AppColors.r5 : AppColors.e6;
-    final accentLight = widget.isGastos ? AppColors.r1 : AppColors.e1;
+    final accentLight = widget.isGastos
+        ? context.menudo.dangerLight
+        : context.menudo.successLight;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.92,
@@ -114,7 +116,7 @@ class _SpendingBreakdownSheetState
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 20),
                     decoration: BoxDecoration(
-                      color: context.menudo.textOnDark.withValues(alpha: 0.2),
+                      color: context.menudo.surface.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -131,7 +133,7 @@ class _SpendingBreakdownSheetState
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: context.menudo.textOnDark.withValues(
+                              color: context.menudo.surface.withValues(
                                 alpha: 0.45,
                               ),
                               letterSpacing: 1.5,
@@ -143,7 +145,7 @@ class _SpendingBreakdownSheetState
                             style: TextStyle(
                               fontSize: 36,
                               fontWeight: FontWeight.w800,
-                              color: context.menudo.textOnDark,
+                              color: context.menudo.surface,
                               letterSpacing: -1.5,
                             ),
                           ),
@@ -152,7 +154,7 @@ class _SpendingBreakdownSheetState
                             widget.periodoLabel,
                             style: TextStyle(
                               fontSize: 13,
-                              color: context.menudo.textOnDark.withValues(
+                              color: context.menudo.surface.withValues(
                                 alpha: 0.45,
                               ),
                             ),
@@ -172,8 +174,8 @@ class _SpendingBreakdownSheetState
                             : MenudoCupertinoIcons.trendingUp,
                         size: (24),
                         color: widget.isGastos
-                            ? const Color(0xFFFCA5A5)
-                            : const Color(0xFF6EE7B7),
+                            ? context.menudo.danger
+                            : context.menudo.success,
                       ),
                     ),
                   ],
@@ -243,7 +245,7 @@ class _SpendingBreakdownSheetState
                             "$label $pct%",
                             style: TextStyle(
                               fontSize: 11,
-                              color: context.menudo.textOnDark.withValues(
+                              color: context.menudo.surface.withValues(
                                 alpha: 0.55,
                               ),
                               fontWeight: FontWeight.w600,
@@ -322,13 +324,13 @@ class _SpendingBreakdownSheetState
                             child: Container(
                               margin: const EdgeInsets.only(bottom: 10),
                               decoration: BoxDecoration(
-                                color: context.menudo.textOnDark,
+                                color: context.menudo.surface,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: isExpanded
                                       ? color.withValues(alpha: 0.35)
-                                      : const Color(0xFFF3F4F6),
-                                  width: 1.5,
+                                      : context.menudo.border,
+                                  width: 1,
                                 ),
                               ),
                               child: Column(
@@ -463,7 +465,7 @@ class _SpendingBreakdownSheetState
                                       margin: const EdgeInsets.symmetric(
                                         horizontal: 16,
                                       ),
-                                      color: const Color(0xFFF3F4F6),
+                                      color: context.menudo.divider,
                                     ),
                                     ...keyTxns.asMap().entries.map((entry) {
                                       final t = entry.value;

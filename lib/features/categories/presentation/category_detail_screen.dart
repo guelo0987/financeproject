@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/menudo_blurred_app_bar.dart';
 import '../../../core/data/models.dart';
 import '../../../shared/widgets/menudo_loading_view.dart';
 import '../providers/category_providers.dart';
@@ -113,10 +114,12 @@ class CategoryDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: context.menudo.background,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: context.menudo.background,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        flexibleSpace: const MenudoBlurredBar(),
         leading: MenudoGestureDetector(
           onTap: () {
             MenudoHaptics.light();
@@ -165,7 +168,7 @@ class CategoryDetailScreen extends ConsumerWidget {
           Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: context.menudo.textOnDark,
+                  color: context.menudo.surface,
                   borderRadius: BorderRadius.circular(22),
                   border: Border.all(color: context.menudo.border),
                 ),
@@ -268,8 +271,8 @@ class CategoryDetailScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
               decoration: BoxDecoration(
-                color: context.menudo.textOnDark,
-                border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+                color: context.menudo.surface,
+                border: Border.all(color: context.menudo.border),
                 borderRadius: BorderRadius.circular(22),
               ),
               child: Column(
@@ -312,11 +315,8 @@ class CategoryDetailScreen extends ConsumerWidget {
           else
             Container(
                   decoration: BoxDecoration(
-                    color: context.menudo.textOnDark,
-                    border: Border.all(
-                      color: const Color(0xFFF3F4F6),
-                      width: 1.5,
-                    ),
+                    color: context.menudo.surface,
+                    border: Border.all(color: context.menudo.border),
                     borderRadius: BorderRadius.circular(22),
                   ),
                   child: Column(
@@ -346,7 +346,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                             Divider(
                               height: 1,
                               thickness: 0.5,
-                              color: Color(0xFFF3F4F6),
+                              color: context.menudo.divider,
                               indent: 68,
                               endIndent: 16,
                             ),

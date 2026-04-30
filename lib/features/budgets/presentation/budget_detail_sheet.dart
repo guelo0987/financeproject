@@ -8,8 +8,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
+import 'package:financeproject/shared/widgets/menudo_destructive_dialog.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
+import '../../../../core/preferences/app_preferences.dart';
 import '../../../../core/utils/error_presenter.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../shared/widgets/menudo_loading_view.dart';
@@ -77,6 +79,16 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     );
   }
 
+  bool _canDeleteBudget(MenudoBudget budget, int? currentUserId) {
+    if (_isCurrentUserOwner(budget, currentUserId)) return true;
+
+    // Personal budgets are only loaded for the signed-in owner. Some backend
+    // payloads do not include owner metadata, so keep the destructive action
+    // visible and let the API enforce permissions.
+    final members = _members.isNotEmpty ? _members : budget.miembros;
+    return budget.espacioId == null && members.isEmpty;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -122,136 +134,63 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   }
 
   Future<void> _deleteBudget() async {
-    final confirm = await showModalBottomSheet<bool>(
+    final confirm = await MenudoDestructiveDialog.show(
       context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        final safeBottom = MediaQuery.of(sheetContext).padding.bottom;
-        return SafeArea(
-          top: false,
-          child: Container(
-            decoration: BoxDecoration(
-              color: context.menudo.background,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + safeBottom),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: context.menudo.textMuted,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                SizedBox(height: (18)),
-                Center(
-                  child: Text(
-                    'Eliminar presupuesto',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: context.menudo.textMain,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Esto borrará ${widget.budget.nombre} y todo lo relacionado.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.4,
-                    color: context.menudo.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: (16)),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.o1,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppColors.o5.withValues(alpha: 0.14),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Se eliminará',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          color: context.menudo.textMain,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        '• Movimientos del presupuesto\n• Historial del presupuesto\n• Plan de ingresos\n• Límites por categoría\n• Espacio compartido e invitaciones',
-                        style: TextStyle(
-                          fontSize: 13,
-                          height: 1.45,
-                          color: context.menudo.textSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: (18)),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(52),
-                        ),
-                        onPressed: () => Navigator.of(sheetContext).pop(false),
-                        child: Text('Cancelar'),
-                      ),
-                    ),
-                    SizedBox(width: (12)),
-                    Expanded(
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.r5,
-                          foregroundColor: context.menudo.textOnDark,
-                          minimumSize: const Size.fromHeight(52),
-                        ),
-                        onPressed: () => Navigator.of(sheetContext).pop(true),
-                        child: Text('Sí, eliminar'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      title: 'Eliminar presupuesto',
+      message:
+          'Esto borrará ${widget.budget.nombre}, sus movimientos, historial, plan, límites y accesos compartidos.',
+      confirmLabel: 'Eliminar',
     );
 
     if (confirm != true || !mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final b = widget.budget;
+
+    Future<void> restoreBudget() async {
+      try {
+        await ref.read(budgetControllerProvider.notifier).createBudget(
+              b,
+              const {},
+              const {},
+            );
+        MenudoHaptics.success();
+      } catch (error) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(presentError(error)),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
 
     try {
       await ref
           .read(budgetControllerProvider.notifier)
           .deleteBudget(widget.budget.id);
       if (!mounted) return;
+      MenudoHaptics.success();
       Navigator.of(context).pop(true);
+
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('"${b.nombre}" fue eliminado.'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 6),
+            action: SnackBarAction(
+              label: 'Deshacer',
+              onPressed: () {
+                unawaited(restoreBudget());
+              },
+            ),
+          ),
+        );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(presentError(error)),
           behavior: SnackBarBehavior.floating,
@@ -267,109 +206,106 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         final safeBottom = MediaQuery.of(sheetContext).padding.bottom;
-        return SafeArea(
-          top: false,
-          child: Container(
-            decoration: BoxDecoration(
-              color: context.menudo.background,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + safeBottom),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: context.menudo.textMuted,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                SizedBox(height: (18)),
-                Text(
-                  'Salir del presupuesto',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: context.menudo.textMain,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Se quitará de tu lista, pero seguirá intacto para quien lo creó y para el resto del equipo.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.4,
-                    color: context.menudo.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: (14)),
-                Container(
-                  padding: const EdgeInsets.all(14),
+        return Container(
+          decoration: BoxDecoration(
+            color: context.menudo.background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + safeBottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
                   decoration: BoxDecoration(
-                    color: context.menudo.surface,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: context.menudo.border),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: (34),
-                        height: (34),
-                        decoration: BoxDecoration(
-                          color: context.menudo.surface,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        alignment: Alignment.center,
-                        child: Icon(
-                          MenudoCupertinoIcons.users,
-                          size: (15),
-                          color: context.menudo.textMain,
-                        ),
-                      ),
-                      SizedBox(width: (12)),
-                      Expanded(
-                        child: Text(
-                          _currentBudget().nombre,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: context.menudo.textMain,
-                          ),
-                        ),
-                      ),
-                    ],
+                    color: context.menudo.textMuted,
+                    borderRadius: BorderRadius.circular(999),
                   ),
                 ),
-                SizedBox(height: (18)),
-                Row(
+              ),
+              SizedBox(height: (18)),
+              Text(
+                'Salir del presupuesto',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: context.menudo.textMain,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Se quitará de tu lista, pero seguirá intacto para quien lo creó y para el resto del equipo.',
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.4,
+                  color: context.menudo.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: (14)),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: context.menudo.surface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: context.menudo.border),
+                ),
+                child: Row(
                   children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(sheetContext).pop(false),
-                        child: Text('Quedarme'),
+                    Container(
+                      width: (34),
+                      height: (34),
+                      decoration: BoxDecoration(
+                        color: context.menudo.surface,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        MenudoCupertinoIcons.users,
+                        size: (15),
+                        color: context.menudo.textMain,
                       ),
                     ),
                     SizedBox(width: (12)),
                     Expanded(
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: context.menudo.primary,
-                          foregroundColor: context.menudo.textOnDark,
+                      child: Text(
+                        _currentBudget().nombre,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: context.menudo.textMain,
                         ),
-                        onPressed: () => Navigator.of(sheetContext).pop(true),
-                        child: Text('Salir'),
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              SizedBox(height: (18)),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(false),
+                      child: Text('Quedarme'),
+                    ),
+                  ),
+                  SizedBox(width: (12)),
+                  Expanded(
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: context.menudo.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () => Navigator.of(sheetContext).pop(true),
+                      child: Text('Salir'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         );
       },
@@ -391,78 +327,6 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-    }
-  }
-
-  Future<void> _openBudgetActions() async {
-    MenudoHaptics.light();
-    final currentBudget = _currentBudget();
-    final currentUserId = int.tryParse(ref.read(authProvider).userId ?? '');
-    final isOwner = _isCurrentUserOwner(currentBudget, currentUserId);
-    final members = _members.isNotEmpty ? _members : currentBudget.miembros;
-    final isMember = members.any((member) => member.userId == currentUserId);
-    final canLeave = !isOwner && (currentBudget.espacioId != null || isMember);
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => Container(
-        decoration: BoxDecoration(
-          color: context.menudo.background,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: context.menudo.textMuted,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-                SizedBox(height: (20)),
-                _BudgetActionOption(
-                  icon: MenudoCupertinoIcons.pencil,
-                  label: 'Editar presupuesto',
-                  onTap: () => Navigator.pop(sheetContext, 'edit'),
-                ),
-                if (isOwner) ...[
-                  SizedBox(height: (10)),
-                  _BudgetActionOption(
-                    icon: MenudoCupertinoIcons.trash2,
-                    label: 'Eliminar presupuesto',
-                    color: AppColors.r5,
-                    onTap: () => Navigator.pop(sheetContext, 'delete'),
-                  ),
-                ] else if (canLeave) ...[
-                  SizedBox(height: (10)),
-                  _BudgetActionOption(
-                    icon: MenudoCupertinoIcons.logOut,
-                    label: 'Salir del presupuesto',
-                    color: AppColors.o5,
-                    onTap: () => Navigator.pop(sheetContext, 'leave'),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    if (!mounted) return;
-    if (action == 'edit') {
-      await _openBudgetEditor();
-    } else if (action == 'delete') {
-      await _deleteBudget();
-    } else if (action == 'leave') {
-      await _leaveBudget();
     }
   }
 
@@ -1014,8 +878,15 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
     final double left = displayBudget.availableToSpend;
     final bool isShared =
         _members.length > 1 || displayBudget.espacioId != null;
-    final currentUserId = int.tryParse(ref.watch(authProvider).userId ?? '');
-    final canDeleteBudget = _isCurrentUserOwner(displayBudget, currentUserId);
+    final auth = ref.watch(authProvider);
+    final currentUserId =
+        auth.profile?.userId ?? int.tryParse(auth.userId ?? '');
+    final canDeleteBudget = _canDeleteBudget(displayBudget, currentUserId);
+    final members = _members.isNotEmpty ? _members : displayBudget.miembros;
+    final isOwner = _isCurrentUserOwner(displayBudget, currentUserId);
+    final isMember = members.any((member) => member.userId == currentUserId);
+    final canLeaveBudget =
+        !isOwner && (displayBudget.espacioId != null || isMember);
     final media = MediaQuery.of(context);
     final sheetHeight =
         media.size.height * (media.size.height < 860 ? 0.96 : 0.92);
@@ -1081,8 +952,8 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                     ),
                     SizedBox(width: (12)),
                     _HeaderAction(
-                      icon: MenudoCupertinoIcons.moreHorizontal,
-                      onTap: _openBudgetActions,
+                      icon: MenudoCupertinoIcons.pencil,
+                      onTap: _openBudgetEditor,
                     ),
                     if (canDeleteBudget) ...[
                       SizedBox(width: 8),
@@ -1090,6 +961,14 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                         icon: MenudoCupertinoIcons.trash2,
                         isDestructive: true,
                         onTap: _deleteBudget,
+                      ),
+                    ],
+                    if (canLeaveBudget) ...[
+                      SizedBox(width: 8),
+                      _HeaderAction(
+                        icon: MenudoCupertinoIcons.logOut,
+                        isDestructive: true,
+                        onTap: _leaveBudget,
                       ),
                     ],
                     SizedBox(width: 8),
@@ -1668,7 +1547,7 @@ class _BudgetOverviewCard extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.e1,
+                  color: context.menudo.successLight,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -1855,8 +1734,8 @@ class _HeaderAction extends StatelessWidget {
     return MenudoGestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(14),
@@ -1864,52 +1743,6 @@ class _HeaderAction extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: Icon(icon, color: foreground, size: (18)),
-      ),
-    );
-  }
-}
-
-class _BudgetActionOption extends StatelessWidget {
-  const _BudgetActionOption({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.color,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.menudo;
-    final resolvedColor = color ?? colors.textMain;
-
-    return MenudoGestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: colors.border),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: (18), color: resolvedColor),
-            SizedBox(width: (12)),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: resolvedColor,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -2018,13 +1851,13 @@ class _MemberRow extends StatelessWidget {
           decoration: BoxDecoration(
             color: member.c,
             shape: BoxShape.circle,
-            border: Border.all(color: context.menudo.textOnDark, width: 2),
+            border: Border.all(color: context.menudo.surface, width: 2),
           ),
           alignment: Alignment.center,
           child: Text(
             member.i,
             style: TextStyle(
-              color: context.menudo.textOnDark,
+              color: context.menudo.surface,
               fontSize: 13,
               fontWeight: FontWeight.w900,
             ),
@@ -2054,7 +1887,9 @@ class _MemberRow extends StatelessWidget {
                     color: member.isOwner
                         ? context.menudo.textMain
                         : AppColors.o5,
-                    bgColor: member.isOwner ? AppColors.e1 : AppColors.o1,
+                    bgColor: member.isOwner
+                        ? context.menudo.successLight
+                        : context.menudo.primaryLight,
                     isSmall: true,
                   ),
                 ],
@@ -2099,9 +1934,9 @@ class _InlineInfoCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isError
-            ? AppColors.r1
+            ? context.menudo.dangerLight
             : isSuccess
-            ? AppColors.e1
+            ? context.menudo.successLight
             : context.menudo.surface,
         borderRadius: BorderRadius.circular(16),
       ),
@@ -2171,7 +2006,7 @@ class _PlanStateCard extends StatelessWidget {
         ? AppColors.e6
         : context.menudo.textMain;
     final background = tone == _PlanStateTone.success
-        ? AppColors.e1
+        ? context.menudo.successLight
         : context.menudo.surface;
 
     return Container(
@@ -2449,22 +2284,11 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
     final targetUserId = member.userId;
     if (targetUserId == null) return;
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await MenudoDestructiveDialog.show(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Quitar miembro'),
-        content: Text('${member.n} perderá acceso a este presupuesto.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text('Sí, quitar'),
-          ),
-        ],
-      ),
+      title: 'Quitar miembro',
+      message: '${member.n} perderá acceso a este presupuesto.',
+      confirmLabel: 'Sí, quitar',
     );
 
     if (confirmed != true || !mounted) return;
@@ -2477,12 +2301,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
       if (!mounted) return;
       await _loadMembers();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${member.n} ya no tiene acceso a este presupuesto.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      MenudoHaptics.success();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2733,8 +2552,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                         : null,
                                     style: FilledButton.styleFrom(
                                       backgroundColor: AppColors.e6,
-                                      foregroundColor:
-                                          context.menudo.textOnDark,
+                                      foregroundColor: context.menudo.surface,
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 16,
                                       ),
@@ -2748,7 +2566,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                             height: (16),
                                             child: CircularProgressIndicator(
                                               strokeWidth: 2,
-                                              color: context.menudo.textOnDark,
+                                              color: context.menudo.surface,
                                             ),
                                           )
                                         : activeInviteCooldown != null
@@ -2840,7 +2658,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                 child: Text(
                                   member.i,
                                   style: TextStyle(
-                                    color: context.menudo.textOnDark,
+                                    color: context.menudo.surface,
                                     fontWeight: FontWeight.w900,
                                   ),
                                 ),
@@ -2871,8 +2689,8 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
                                               ? context.menudo.textMain
                                               : AppColors.o5,
                                           bgColor: member.isOwner
-                                              ? AppColors.e1
-                                              : AppColors.o1,
+                                              ? context.menudo.successLight
+                                              : context.menudo.primaryLight,
                                           isSmall: true,
                                         ),
                                       ],
@@ -3047,7 +2865,7 @@ class _CategoryDetailCard extends StatelessWidget {
                 MenudoChip.custom(
                   label: "Excedido",
                   color: AppColors.o5,
-                  bgColor: AppColors.o1,
+                  bgColor: context.menudo.primaryLight,
                   isSmall: true,
                 ),
             ],
@@ -3541,7 +3359,7 @@ class _HistorySnapshotCard extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.e1,
+                  color: context.menudo.successLight,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -3626,7 +3444,7 @@ class _HistorySnapshotCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.e1,
+                color: context.menudo.successLight,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -3877,6 +3695,7 @@ class _HistoryTransactionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final amount = transaction.signedAmount;
     final amountColor = amount >= 0 ? AppColors.e6 : AppColors.o5;
+    final transactionCurrency = _effectiveHistoryCurrency(transaction.moneda);
     final secondaryLabel = _joinDistinctSecondaryLabels([
       _historyCompactDate(transaction.fecha),
       transaction.usuarioNombre,
@@ -3931,7 +3750,7 @@ class _HistoryTransactionRow extends StatelessWidget {
         ),
         SizedBox(width: (10)),
         Text(
-          fmt(amount, signed: true),
+          fmt(amount, currency: transactionCurrency, signed: true),
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w900,
@@ -3940,6 +3759,14 @@ class _HistoryTransactionRow extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _effectiveHistoryCurrency(String value) {
+    final fallback = AppFormattingPreferences.currencyCode;
+    final normalized = value.trim().toUpperCase();
+    if (normalized.isEmpty) return fallback;
+    if (normalized == 'DOP' && fallback != 'DOP') return fallback;
+    return normalized;
   }
 }
 

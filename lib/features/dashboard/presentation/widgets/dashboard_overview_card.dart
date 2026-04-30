@@ -1,4 +1,5 @@
 import 'package:financeproject/core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/app_spacing.dart';
 import 'package:financeproject/core/utils/formatters.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -33,7 +34,7 @@ class DashboardOverviewCard extends StatelessWidget {
         : 'Balance del mes -${formatMoney(monthBalance.abs(), currency: currencyCode)}';
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.p20),
       decoration: BoxDecoration(
         color: colors.hero,
         borderRadius: BorderRadius.circular(30),
@@ -53,11 +54,11 @@ class DashboardOverviewCard extends StatelessWidget {
               Flexible(
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
+                    horizontal: AppSpacing.p10,
+                    vertical: AppSpacing.p6,
                   ),
                   decoration: BoxDecoration(
-                    color: context.menudo.textOnDark.withValues(alpha: 0.12),
+                    color: Colors.white.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Row(
@@ -66,20 +67,18 @@ class DashboardOverviewCard extends StatelessWidget {
                       Icon(
                         CupertinoIcons.creditcard_fill,
                         size: (12),
-                        color: context.menudo.textOnDark.withValues(
-                          alpha: 0.82,
-                        ),
+                        color: Colors.white.withValues(alpha: 0.82),
                       ),
-                      SizedBox(width: 6),
+                      SizedBox(width: AppSpacing.p6),
                       Flexible(
                         child: Text(
                           accountLabel,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: context.menudo.textOnDark,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -96,23 +95,23 @@ class DashboardOverviewCard extends StatelessWidget {
                   onTap: onWalletTap,
                   child: Icon(
                     CupertinoIcons.ellipsis,
-                    color: context.menudo.textOnDark.withValues(alpha: 0.86),
+                    color: Colors.white.withValues(alpha: 0.86),
                     size: (18),
                   ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: (18)),
+          const SizedBox(height: AppSpacing.p18),
           Text(
             'Disponible ahora',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: context.menudo.textOnDark.withValues(alpha: 0.76),
+              color: Colors.white.withValues(alpha: 0.76),
             ),
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.p6),
           SizedBox(
             height: 52,
             child: FittedBox(
@@ -120,32 +119,29 @@ class DashboardOverviewCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 formatMoney(availableNow, currency: currencyCode),
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 42,
                   fontWeight: FontWeight.w900,
-                  color: context.menudo.textOnDark,
+                  color: Colors.white,
                   letterSpacing: -1.6,
                 ),
               ),
             ),
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.p6),
           Text(
             monthLabel,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: monthPositive
-                  ? context.menudo.textOnDark.withValues(alpha: 0.84)
+                  ? Colors.white.withValues(alpha: 0.84)
                   : const Color(0xFFFFD8AE),
             ),
           ),
-          SizedBox(height: (14)),
-          Divider(
-            color: context.menudo.textOnDark.withValues(alpha: 0.12),
-            height: 1,
-          ),
-          SizedBox(height: (14)),
+          const SizedBox(height: AppSpacing.p14),
+          Divider(color: Colors.white.withValues(alpha: 0.12), height: 1),
+          const SizedBox(height: AppSpacing.p14),
           Row(
             children: [
               Expanded(
@@ -154,7 +150,7 @@ class DashboardOverviewCard extends StatelessWidget {
                   value: formatMoney(incomeThisMonth, currency: currencyCode),
                 ),
               ),
-              SizedBox(width: (12)),
+              const SizedBox(width: AppSpacing.p12),
               Expanded(
                 child: _BudgetMetaPill(
                   label: 'Gastos del mes',
@@ -178,12 +174,12 @@ class _BudgetMetaPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppSpacing.p14),
       decoration: BoxDecoration(
-        color: context.menudo.textOnDark.withValues(alpha: 0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: context.menudo.textOnDark.withValues(alpha: 0.08),
+          color: Colors.white.withValues(alpha: 0.08),
           width: 0.5,
         ),
       ),
@@ -195,17 +191,17 @@ class _BudgetMetaPill extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
-              color: context.menudo.textOnDark.withValues(alpha: 0.52),
+              color: Colors.white.withValues(alpha: 0.52),
               letterSpacing: 0.6,
             ),
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.p6),
           Text(
             value,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w900,
-              color: context.menudo.textOnDark,
+              color: Colors.white,
               letterSpacing: -0.3,
             ),
           ),

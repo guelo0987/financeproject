@@ -23,7 +23,7 @@ class AssetsScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: MenudoColors.appBg,
+      backgroundColor: context.menudo.background,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -41,7 +41,7 @@ class AssetsScreen extends StatelessWidget {
                         MenudoIconButton(
                           icon: Icon(
                             MenudoCupertinoIcons.add_circle,
-                            color: MenudoColors.primary,
+                            color: context.menudo.primary,
                             size: (28),
                           ),
                           onPressed: () {},
@@ -49,12 +49,12 @@ class AssetsScreen extends StatelessWidget {
                       ],
                     ),
                     SizedBox(height: (16)),
-                    const MenudoTextField(
+                    MenudoTextField(
                       label: '',
                       hint: 'Buscar activo...',
                       prefixIcon: Icon(
                         MenudoCupertinoIcons.search,
-                        color: MenudoColors.textSecondary,
+                        color: context.menudo.textSecondary,
                       ),
                     ),
                   ],
@@ -88,25 +88,25 @@ class AssetsScreen extends StatelessWidget {
                                 centerSpaceRadius: 60,
                                 sections: [
                                   PieChartSectionData(
-                                    color: MenudoColors.success,
+                                    color: context.menudo.success,
                                     value: 40,
                                     title: '',
                                     radius: 24,
                                   ),
                                   PieChartSectionData(
-                                    color: MenudoColors.primary,
+                                    color: context.menudo.primary,
                                     value: 30,
                                     title: '',
                                     radius: 24,
                                   ),
                                   PieChartSectionData(
-                                    color: MenudoColors.warning,
+                                    color: context.menudo.warning,
                                     value: 20,
                                     title: '',
                                     radius: 24,
                                   ),
                                   PieChartSectionData(
-                                    color: MenudoColors.danger,
+                                    color: context.menudo.danger,
                                     value: 10,
                                     title: '',
                                     radius: 24,
@@ -121,7 +121,7 @@ class AssetsScreen extends StatelessWidget {
                                   Text(
                                     'Total',
                                     style: MenudoTextStyles.bodySmall.copyWith(
-                                      color: MenudoColors.textMuted,
+                                      color: context.menudo.textMuted,
                                     ),
                                   ),
                                   Text('RD\$1.2M', style: MenudoTextStyles.h2),
@@ -137,14 +137,18 @@ class AssetsScreen extends StatelessWidget {
                         runSpacing: 12,
                         alignment: WrapAlignment.center,
                         children: [
-                          _buildLegend('Efectivo', MenudoColors.success, '40%'),
+                          _buildLegend(
+                            'Efectivo',
+                            context.menudo.success,
+                            '40%',
+                          ),
                           _buildLegend(
                             'Inversiones',
-                            MenudoColors.primary,
+                            context.menudo.primary,
                             '30%',
                           ),
-                          _buildLegend('Bienes', MenudoColors.warning, '20%'),
-                          _buildLegend('Otros', MenudoColors.danger, '10%'),
+                          _buildLegend('Bienes', context.menudo.warning, '20%'),
+                          _buildLegend('Otros', context.menudo.danger, '10%'),
                         ],
                       ),
                     ],
@@ -168,7 +172,7 @@ class AssetsScreen extends StatelessWidget {
                       Text(
                         category.name.toUpperCase(),
                         style: MenudoTextStyles.labelCaps.copyWith(
-                          color: MenudoColors.textMuted,
+                          color: context.menudo.textMuted,
                         ),
                       ),
                       SizedBox(height: (12)),
@@ -183,14 +187,13 @@ class AssetsScreen extends StatelessWidget {
                                   width: 48,
                                   height: 48,
                                   decoration: BoxDecoration(
-                                    color: MenudoColors.primaryLight.withValues(
-                                      alpha: 0.3,
-                                    ),
+                                    color: context.menudo.primaryLight
+                                        .withValues(alpha: 0.3),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                   child: Icon(
                                     MenudoCupertinoIcons.account_balance,
-                                    color: MenudoColors.primary,
+                                    color: context.menudo.primary,
                                   ),
                                 ),
                                 SizedBox(width: (16)),
@@ -210,7 +213,7 @@ class AssetsScreen extends StatelessWidget {
                                         asset.currency,
                                         style: MenudoTextStyles.bodySmall
                                             .copyWith(
-                                              color: MenudoColors.textMuted,
+                                              color: context.menudo.textMuted,
                                             ),
                                       ),
                                     ],

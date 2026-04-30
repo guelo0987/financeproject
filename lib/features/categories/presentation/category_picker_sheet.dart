@@ -157,7 +157,7 @@ class _CategoryPickerSheetState extends ConsumerState<CategoryPickerSheet> {
                       icon: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.o1,
+                          color: context.menudo.primaryLight,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -346,7 +346,7 @@ class _CategoryPickerSheetState extends ConsumerState<CategoryPickerSheet> {
                                   builder: (context, constraints) {
                                     final isWide = constraints.maxWidth > 560;
                                     final crossAxisCount = isWide ? 3 : 2;
-                                    final tileHeight = isWide ? 92.0 : 104.0;
+                                    final tileHeight = isWide ? 96.0 : 112.0;
 
                                     return GridView.builder(
                                       shrinkWrap: true,

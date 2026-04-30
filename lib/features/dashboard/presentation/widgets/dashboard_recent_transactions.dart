@@ -1,5 +1,6 @@
 import 'package:financeproject/core/data/models.dart';
 import 'package:financeproject/core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/app_spacing.dart';
 import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:financeproject/features/transactions/presentation/transaction_detail_sheet.dart';
 import 'package:financeproject/features/transactions/presentation/transaction_presentation_utils.dart';
@@ -22,7 +23,7 @@ class DashboardRecentTransactions extends StatelessWidget {
 
     if (recent.isEmpty) {
       return Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.p20),
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(24),
@@ -96,7 +97,7 @@ class DashboardSectionHeader extends StatelessWidget {
             ),
           ),
         ),
-        if (trailing != null) ...[SizedBox(width: (12)), trailing!],
+        if (trailing != null) ...[SizedBox(width: AppSpacing.p12), trailing!],
       ],
     );
   }
@@ -141,7 +142,10 @@ class _TransactionTile extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.p16,
+                vertical: AppSpacing.p14,
+              ),
               child: Row(
                 children: [
                   Container(
@@ -153,7 +157,7 @@ class _TransactionTile extends StatelessWidget {
                     ),
                     child: Icon(transaction.icono, size: (20), color: color),
                   ),
-                  SizedBox(width: (14)),
+                  SizedBox(width: AppSpacing.p14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,7 +172,7 @@ class _TransactionTile extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        SizedBox(height: 2),
+                        SizedBox(height: AppSpacing.p2),
                         Text(
                           subtitle,
                           style: TextStyle(
@@ -180,7 +184,7 @@ class _TransactionTile extends StatelessWidget {
                       ],
                     ),
                   ),
-                  SizedBox(width: (12)),
+                  SizedBox(width: AppSpacing.p12),
                   Text(
                     amountLabel,
                     style: TextStyle(

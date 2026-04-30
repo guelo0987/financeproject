@@ -43,7 +43,6 @@ class _MenudoGaugeState extends State<MenudoGauge>
   Widget build(BuildContext context) {
     final colors = context.menudo;
     final budget = widget.budget;
-    final isDark = widget.isDark;
     final double ingresos = budget.displayIncomeBase > 0
         ? budget.displayIncomeBase
         : 1;
@@ -63,9 +62,7 @@ class _MenudoGaugeState extends State<MenudoGauge>
                 CustomPaint(
                   size: const Size(260, 160),
                   painter: _GaugePainter(
-                    color: isDark
-                        ? colors.textOnDark.withValues(alpha: 0.1)
-                        : AppColors.g2,
+                    color: colors.border,
                     strokeWidth: 18,
                     startAngle: 180,
                     sweepAngle: 180,
@@ -88,9 +85,7 @@ class _MenudoGaugeState extends State<MenudoGauge>
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: isDark
-                      ? colors.textOnDark.withValues(alpha: 0.5)
-                      : AppColors.g4,
+                  color: colors.textMuted,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -100,7 +95,7 @@ class _MenudoGaugeState extends State<MenudoGauge>
                 style: TextStyle(
                   fontSize: 34,
                   fontWeight: FontWeight.w900,
-                  color: isDark ? colors.textOnDark : AppColors.e8,
+                  color: colors.textMain,
                   letterSpacing: -1.2,
                 ),
               ),

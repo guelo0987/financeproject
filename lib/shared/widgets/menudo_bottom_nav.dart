@@ -5,6 +5,7 @@ import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:flutter/physics.dart';
 import 'package:financeproject/core/utils/menudo_haptics.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_motion.dart';
 
 class MenudoBottomNav extends StatelessWidget {
   final int currentIndex;
@@ -112,7 +113,7 @@ class _NavItem extends StatelessWidget {
                 AnimatedScale(
                   scale: isActive ? 1.1 : 1.0,
                   duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOutBack,
+                  curve: MenudoMotion.springBack,
                   child: Icon(icon, size: (22), color: color),
                 ),
                 SizedBox(height: 4),
@@ -130,7 +131,7 @@ class _NavItem extends StatelessWidget {
                 SizedBox(height: 6),
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOut,
+                  curve: MenudoMotion.spring,
                   width: isActive ? 4 : 0,
                   height: 4,
                   decoration: BoxDecoration(

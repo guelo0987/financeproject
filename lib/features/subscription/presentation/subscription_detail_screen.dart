@@ -22,7 +22,7 @@ class SubscriptionDetailScreen extends ConsumerWidget {
     final subscription = ref.watch(subscriptionProvider);
 
     return Scaffold(
-      backgroundColor: MenudoColors.appBg,
+      backgroundColor: context.menudo.background,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -47,7 +47,7 @@ class SubscriptionDetailScreen extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.all(22),
                   decoration: BoxDecoration(
-                    color: context.menudo.textMain,
+                    color: context.menudo.hero,
                     borderRadius: BorderRadius.circular(28),
                   ),
                   child: Column(
@@ -55,8 +55,8 @@ class SubscriptionDetailScreen extends ConsumerWidget {
                     children: [
                       MenudoChip.custom(
                         label: _statusChipLabel(subscription),
-                        color: context.menudo.textOnDark,
-                        bgColor: context.menudo.textOnDark.withValues(
+                        color: Colors.white,
+                        bgColor: Colors.white.withValues(
                           alpha: 0.12,
                         ),
                       ),
@@ -64,14 +64,14 @@ class SubscriptionDetailScreen extends ConsumerWidget {
                       Text(
                         _headline(subscription),
                         style: MenudoTextStyles.h2.copyWith(
-                          color: context.menudo.textOnDark,
+                          color: Colors.white,
                         ),
                       ),
                       SizedBox(height: 8),
                       Text(
                         _subtitle(subscription),
                         style: MenudoTextStyles.bodyMedium.copyWith(
-                          color: context.menudo.textOnDark.withValues(
+                          color: Colors.white.withValues(
                             alpha: 0.82,
                           ),
                         ),
@@ -84,7 +84,7 @@ class SubscriptionDetailScreen extends ConsumerWidget {
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: context.menudo.textOnDark.withValues(
+                            color: Colors.white.withValues(
                               alpha: 0.1,
                             ),
                             borderRadius: BorderRadius.circular(18),
@@ -94,14 +94,14 @@ class SubscriptionDetailScreen extends ConsumerWidget {
                               Icon(
                                 MenudoCupertinoIcons.calendar_today_rounded,
                                 size: (16),
-                                color: context.menudo.textOnDark,
+                                color: Colors.white,
                               ),
                               SizedBox(width: (10)),
                               Expanded(
                                 child: Text(
                                   _dateLabel(subscription),
                                   style: MenudoTextStyles.bodySmall.copyWith(
-                                    color: context.menudo.textOnDark,
+                                    color: Colors.white,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -171,7 +171,7 @@ class SubscriptionDetailScreen extends ConsumerWidget {
                       ? 'Si quieres cambiar, cancelar o revisar cobros, lo haces desde esa gestión.'
                       : 'Si ya habías pagado antes, también puedes recuperar tu acceso desde la pantalla de planes.',
                   style: MenudoTextStyles.bodySmall.copyWith(
-                    color: MenudoColors.textMuted,
+                    color: context.menudo.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -204,7 +204,7 @@ class _BenefitRow extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: AppColors.e1,
+            color: context.menudo.successLight,
             borderRadius: BorderRadius.circular(14),
           ),
           alignment: Alignment.center,
@@ -225,7 +225,7 @@ class _BenefitRow extends StatelessWidget {
               Text(
                 subtitle,
                 style: MenudoTextStyles.bodySmall.copyWith(
-                  color: MenudoColors.textMuted,
+                  color: context.menudo.textMuted,
                 ),
               ),
             ],
@@ -250,12 +250,12 @@ class _CircleActionButton extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: context.menudo.textOnDark,
+          color: context.menudo.surface,
           shape: BoxShape.circle,
-          border: Border.all(color: MenudoColors.border),
+          border: Border.all(color: context.menudo.border),
         ),
         alignment: Alignment.center,
-        child: Icon(icon, size: (18), color: MenudoColors.textMain),
+        child: Icon(icon, size: (18), color: context.menudo.textMain),
       ),
     );
   }

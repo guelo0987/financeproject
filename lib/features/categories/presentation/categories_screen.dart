@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:financeproject/core/utils/menudo_haptics.dart';
@@ -5,9 +6,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/menudo_blurred_app_bar.dart';
 import '../../../core/data/models.dart';
 import '../../../core/utils/error_presenter.dart';
 import '../../../shared/widgets/menudo_button.dart';
+import '../../../shared/widgets/menudo_destructive_dialog.dart';
 import '../providers/category_providers.dart';
 
 class CategoriesScreen extends ConsumerStatefulWidget {
@@ -165,93 +168,77 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
   Future<void> _confirmDeleteCategory(MenudoCategory category) async {
     final isParent = category.esParent;
-    final confirm = await showModalBottomSheet<bool>(
+    final label = isParent ? 'grupo' : 'categoría';
+    final confirm = await MenudoDestructiveDialog.show(
       context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        final safeBottom = MediaQuery.of(sheetContext).padding.bottom;
-        final label = isParent ? 'grupo' : 'categoría';
-
-        return SafeArea(
-          top: false,
-          child: Container(
-            decoration: BoxDecoration(
-              color: context.menudo.background,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + safeBottom),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: context.menudo.textMuted,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                SizedBox(height: (18)),
-                Text(
-                  isParent ? 'Eliminar grupo' : 'Eliminar categoría',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: context.menudo.textMain,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Intentaremos borrar ${category.nombre}. Si ese $label ya tiene movimientos o sigue en uso, no se podrá eliminar.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.4,
-                    color: context.menudo.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: (18)),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(sheetContext).pop(false),
-                        child: Text('Cancelar'),
-                      ),
-                    ),
-                    SizedBox(width: (12)),
-                    Expanded(
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.r5,
-                          foregroundColor: context.menudo.textOnDark,
-                        ),
-                        onPressed: () => Navigator.of(sheetContext).pop(true),
-                        child: Text('Eliminar'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      title: isParent ? 'Eliminar grupo' : 'Eliminar categoría',
+      message:
+          'Intentaremos borrar ${category.nombre}. Si ese $label ya tiene movimientos o sigue en uso, no se podrá eliminar.',
     );
 
     if (confirm != true || !mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final c = category;
+
+    Future<void> restoreCategory() async {
+      try {
+        final categoryToRestore = MenudoCategory(
+          id: 0,
+          slug: c.slug,
+          nombre: c.nombre,
+          tipo: c.tipo,
+          icono: c.icono,
+          color: c.color,
+          esSistema: false,
+          categoriaParadreId: c.categoriaParadreId,
+        );
+
+        if (c.esParent) {
+          await ref
+              .read(categoryNotifierProvider.notifier)
+              .addParentCategory(categoryToRestore);
+        } else {
+          await ref
+              .read(categoryNotifierProvider.notifier)
+              .addCategory(categoryToRestore);
+        }
+        MenudoHaptics.success();
+      } catch (error) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(presentError(error)),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
 
     try {
       await ref
           .read(categoryNotifierProvider.notifier)
           .removeCategory(category.id);
+      if (!mounted) return;
+      MenudoHaptics.success();
+
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('"${c.nombre}" fue eliminada.'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 6),
+            action: SnackBarAction(
+              label: 'Deshacer',
+              onPressed: () {
+                unawaited(restoreCategory());
+              },
+            ),
+          ),
+        );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(presentError(error)),
           behavior: SnackBarBehavior.floating,
@@ -290,9 +277,11 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
     return Scaffold(
       backgroundColor: context.menudo.background,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: context.menudo.background,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
+        flexibleSpace: const MenudoBlurredBar(),
         elevation: 0,
         leading: MenudoIconButton(
           icon: Icon(
@@ -387,7 +376,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
-                          color: context.menudo.textOnDark,
+                          color: context.menudo.surface,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: context.menudo.border),
                         ),
@@ -480,7 +469,7 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
     return Container(
       height: media.size.height * 0.86,
       decoration: BoxDecoration(
-        color: context.menudo.textOnDark,
+        color: context.menudo.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + bottomPadding),
@@ -544,7 +533,7 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: context.menudo.textOnDark,
+                            color: context.menudo.surface,
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(
                               color: parent.color.withValues(alpha: 0.18),
@@ -655,7 +644,7 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                 ),
                 margin: const EdgeInsets.only(bottom: 10),
                 decoration: BoxDecoration(
-                  color: context.menudo.textOnDark,
+                  color: context.menudo.surface,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: context.menudo.border),
                 ),
@@ -775,20 +764,16 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final width = constraints.maxWidth;
-                    final crossAxisCount = width >= 840
-                        ? 5
-                        : width >= 520
-                        ? 4
-                        : 3;
+                    final crossAxisCount = width >= 760 ? 2 : 1;
 
                     return GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: crossAxisCount,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        childAspectRatio: 0.82,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        mainAxisExtent: 72,
                       ),
                       itemCount: subs.length + 1,
                       itemBuilder: (context, i) {
@@ -826,71 +811,59 @@ class _SubcategoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return MenudoGestureDetector(
       onTap: onManage ?? () => MenudoHaptics.light(),
-      child: Column(
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: context.menudo.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: context.menudo.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: category.color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              alignment: Alignment.center,
+              child: Icon(category.icono, size: (21), color: category.color),
+            ),
+            SizedBox(width: (12)),
+            Expanded(
+              child: Text(
+                category.nombre,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.18,
+                  fontWeight: FontWeight.w800,
+                  color: context.menudo.textMain,
+                ),
+              ),
+            ),
+            if (onManage != null) ...[
+              SizedBox(width: (8)),
               Container(
-                width: 64,
-                height: 64,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: context.menudo.textOnDark,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: category.color.withValues(alpha: 0.15),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: category.color.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+                  color: context.menudo.surfaceElevated,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: context.menudo.border),
                 ),
                 alignment: Alignment.center,
-                child: Icon(category.icono, size: (24), color: category.color),
-              ),
-              if (onManage != null)
-                Positioned(
-                  top: -6,
-                  right: -6,
-                  child: MenudoGestureDetector(
-                    onTap: onManage,
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      width: (24),
-                      height: (24),
-                      decoration: BoxDecoration(
-                        color: context.menudo.textOnDark,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: context.menudo.border),
-                      ),
-                      alignment: Alignment.center,
-                      child: Icon(
-                        MenudoCupertinoIcons.moreHorizontal,
-                        size: (12),
-                        color: context.menudo.textSecondary,
-                      ),
-                    ),
-                  ),
+                child: Icon(
+                  MenudoCupertinoIcons.moreHorizontal,
+                  size: (17),
+                  color: context.menudo.textSecondary,
                 ),
+              ),
             ],
-          ),
-          SizedBox(height: 8),
-          Text(
-            category.nombre,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 11,
-              height: 1.2,
-              fontWeight: FontWeight.w700,
-              color: context.menudo.textMain,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -904,36 +877,47 @@ class _AddSubcategoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return MenudoGestureDetector(
       onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: context.menudo.surface.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: context.menudo.border,
-                style: BorderStyle.solid,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: context.menudo.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: context.menudo.border,
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: context.menudo.surfaceElevated,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                MenudoCupertinoIcons.plus,
+                size: (20),
+                color: context.menudo.textMuted,
               ),
             ),
-            alignment: Alignment.center,
-            child: Icon(
-              MenudoCupertinoIcons.plus,
-              size: (22),
-              color: context.menudo.textMuted,
+            SizedBox(width: (12)),
+            Expanded(
+              child: Text(
+                'Nueva categoría',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: context.menudo.textSecondary,
+                ),
+              ),
             ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Nueva',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: context.menudo.textMuted,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -969,15 +953,8 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
     MenudoCupertinoIcons.bus,
     MenudoCupertinoIcons.plane,
     MenudoCupertinoIcons.home,
-    MenudoCupertinoIcons.building2,
-    MenudoCupertinoIcons.wallet,
-    MenudoCupertinoIcons.banknote,
-    MenudoCupertinoIcons.walletCards,
-    MenudoCupertinoIcons.piggyBank,
     MenudoCupertinoIcons.receipt,
-    MenudoCupertinoIcons.landmark,
     MenudoCupertinoIcons.heart,
-    MenudoCupertinoIcons.heartPulse,
     MenudoCupertinoIcons.pill,
     MenudoCupertinoIcons.stethoscope,
     MenudoCupertinoIcons.bookOpen,
@@ -1263,7 +1240,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: context.menudo.textOnDark,
+                      color: context.menudo.surface,
                       borderRadius: BorderRadius.circular(22),
                       border: Border.all(color: context.menudo.border),
                     ),
@@ -1342,7 +1319,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: context.menudo.textOnDark,
+                        color: context.menudo.surface,
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(
                           color: _color.withValues(alpha: 0.14),
@@ -1401,7 +1378,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                               decoration: BoxDecoration(
                                 color: _selectedType == type
                                     ? _color.withValues(alpha: 0.1)
-                                    : context.menudo.textOnDark,
+                                    : context.menudo.surface,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
                                   color: _selectedType == type
@@ -1448,48 +1425,54 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                     ),
                   ),
                   SizedBox(height: (10)),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: _colorOptions.map((colorOption) {
-                      final isSelected = colorOption == _color;
-                      return MenudoGestureDetector(
-                        onTap: () => _selectColor(colorOption),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          width: (36),
-                          height: (36),
-                          decoration: BoxDecoration(
-                            color: colorOption,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected
-                                  ? context.menudo.primary
-                                  : context.menudo.border,
-                              width: isSelected ? 2.2 : 1.2,
-                            ),
-                            boxShadow: isSelected
-                                ? [
-                                    BoxShadow(
-                                      color: colorOption.withValues(
-                                        alpha: 0.18,
+                  SizedBox(
+                    height: 44,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: _colorOptions.length,
+                      separatorBuilder: (_, _) => SizedBox(width: (10)),
+                      itemBuilder: (context, index) {
+                        final colorOption = _colorOptions[index];
+                        final isSelected = colorOption == _color;
+                        return MenudoGestureDetector(
+                          onTap: () => _selectColor(colorOption),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: colorOption,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected
+                                    ? context.menudo.primary
+                                    : context.menudo.border,
+                                width: isSelected ? 2.4 : 1.2,
+                              ),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: colorOption.withValues(
+                                          alpha: 0.18,
+                                        ),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
                                       ),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ]
+                                    ]
+                                  : null,
+                            ),
+                            child: isSelected
+                                ? Icon(
+                                    MenudoCupertinoIcons.check,
+                                    size: (16),
+                                    color: context.menudo.surface,
+                                  )
                                 : null,
                           ),
-                          child: isSelected
-                              ? Icon(
-                                  MenudoCupertinoIcons.check,
-                                  size: (16),
-                                  color: context.menudo.textOnDark,
-                                )
-                              : null,
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      },
+                    ),
                   ),
                   SizedBox(height: (24)),
                   Text(
@@ -1501,40 +1484,46 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                     ),
                   ),
                   SizedBox(height: (10)),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: _iconOptions.map((icon) {
-                      final isSelected = icon == _icon;
-                      return MenudoGestureDetector(
-                        onTap: () => _selectIcon(icon),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? _color.withValues(alpha: 0.1)
-                                : context.menudo.textOnDark,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
+                  SizedBox(
+                    height: 52,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: _iconOptions.length,
+                      separatorBuilder: (_, _) => SizedBox(width: (10)),
+                      itemBuilder: (context, index) {
+                        final icon = _iconOptions[index];
+                        final isSelected = icon == _icon;
+                        return MenudoGestureDetector(
+                          onTap: () => _selectIcon(icon),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? _color.withValues(alpha: 0.1)
+                                  : context.menudo.surface,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isSelected
+                                    ? _color
+                                    : context.menudo.border,
+                                width: isSelected ? 1.6 : 1.1,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              icon,
+                              size: (19),
                               color: isSelected
                                   ? _color
-                                  : context.menudo.border,
-                              width: isSelected ? 1.6 : 1.1,
+                                  : context.menudo.textMuted,
                             ),
                           ),
-                          alignment: Alignment.center,
-                          child: Icon(
-                            icon,
-                            size: (18),
-                            color: isSelected
-                                ? _color
-                                : context.menudo.textMuted,
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -1586,7 +1575,7 @@ class _CategoryActionTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         decoration: BoxDecoration(
-          color: context.menudo.textOnDark,
+          color: context.menudo.surface,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: context.menudo.border),
         ),

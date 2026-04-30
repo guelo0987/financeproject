@@ -50,8 +50,13 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     super.dispose();
   }
 
-  void _showMessage(String message) {
+  void _showMessage(String message, {bool success = false}) {
     if (!mounted) return;
+    if (success) {
+      MenudoHaptics.success();
+      return;
+    }
+    MenudoHaptics.error();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
@@ -147,7 +152,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     setState(() => _isResending = true);
     try {
       await ref.read(authProvider.notifier).requestPasswordReset(email);
-      _showMessage('Te enviamos otro correo para continuar el cambio.');
+      _showMessage(
+        'Te enviamos otro correo para continuar el cambio.',
+        success: true,
+      );
     } catch (error) {
       _showMessage(presentError(error));
     } finally {
@@ -202,7 +210,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     if (!authState.requiresPasswordReset) {
       final inactiveMessage = _linkErrorMessage;
       return Scaffold(
-        backgroundColor: MenudoColors.appBg,
+        backgroundColor: context.menudo.background,
         body: SafeArea(
           child: inactiveMessage != null
               ? Padding(
@@ -214,7 +222,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       Icon(
                         MenudoCupertinoIcons.lock_reset_rounded,
                         size: 52,
-                        color: MenudoColors.warning,
+                        color: context.menudo.warning,
                       ),
                       SizedBox(height: (18)),
                       Text(
@@ -226,7 +234,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       Text(
                         inactiveMessage,
                         style: MenudoTextStyles.bodyMedium.copyWith(
-                          color: MenudoColors.textMuted,
+                          color: context.menudo.textMuted,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -255,7 +263,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                             ? 'Abre el correo más reciente. Si ya venció, pide otro sin empezar de cero.'
                             : 'Estamos esperando validar el correo para $resetEmail. Si no pasa nada, pide otro desde aquí.',
                         style: MenudoTextStyles.bodyMedium.copyWith(
-                          color: MenudoColors.textMuted,
+                          color: context.menudo.textMuted,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -263,9 +271,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: context.menudo.textOnDark,
+                          color: context.menudo.surface,
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: MenudoColors.border),
+                          border: Border.all(color: context.menudo.border),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -280,7 +288,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                             Text(
                               '1. Usa el correo más reciente.\n2. Si ya venció, pide otro.\n3. Cuando sea válido, Menudo te traerá aquí.',
                               style: MenudoTextStyles.bodySmall.copyWith(
-                                color: MenudoColors.textMuted,
+                                color: context.menudo.textMuted,
                                 height: 1.45,
                               ),
                             ),
@@ -316,7 +324,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     }
 
     return Scaffold(
-      backgroundColor: MenudoColors.appBg,
+      backgroundColor: context.menudo.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(24, 28, 24, 28 + keyboardInset),
@@ -334,7 +342,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     ? 'Elige una contraseña nueva para recuperar tu cuenta.'
                     : 'Elige una contraseña nueva para $resetEmail.',
                 style: MenudoTextStyles.bodyMedium.copyWith(
-                  color: MenudoColors.textMuted,
+                  color: context.menudo.textMuted,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -342,9 +350,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: context.menudo.textOnDark,
+                  color: context.menudo.surface,
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: MenudoColors.border),
+                  border: Border.all(color: context.menudo.border),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -363,7 +371,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           _obscurePassword
                               ? MenudoCupertinoIcons.visibility_off_outlined
                               : MenudoCupertinoIcons.visibility_outlined,
-                          color: MenudoColors.textMuted,
+                          color: context.menudo.textMuted,
                         ),
                       ),
                     ),
@@ -382,7 +390,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                           _obscureConfirm
                               ? MenudoCupertinoIcons.visibility_off_outlined
                               : MenudoCupertinoIcons.visibility_outlined,
-                          color: MenudoColors.textMuted,
+                          color: context.menudo.textMuted,
                         ),
                       ),
                     ),
@@ -432,7 +440,7 @@ class _ResetField extends StatelessWidget {
         Text(
           label,
           style: MenudoTextStyles.bodySmall.copyWith(
-            color: MenudoColors.textMuted,
+            color: context.menudo.textMuted,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -448,7 +456,7 @@ class _ResetField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: MenudoTextStyles.bodyMedium.copyWith(
-              color: MenudoColors.textMuted,
+              color: context.menudo.textMuted,
             ),
             filled: true,
             fillColor: context.menudo.background,

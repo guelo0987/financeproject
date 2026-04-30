@@ -7,6 +7,7 @@ import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/error_presenter.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/menudo_haptics.dart';
 import '../../../../model/models.dart';
 import '../../../../shared/widgets/menudo_loading_view.dart';
 import '../../auth/auth_state.dart';
@@ -37,13 +38,6 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
         content: Text(presentError(error)),
         behavior: SnackBarBehavior.floating,
       ),
-    );
-  }
-
-  void _showMessage(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -79,7 +73,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
       if (budgetId != null) {
         await _showBudgetDetails(budgetId);
       } else {
-        _showMessage('Listo. Ya puedes ver este presupuesto.');
+        MenudoHaptics.success();
       }
     } catch (error) {
       _showError(error);
@@ -96,7 +90,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
     setState(() => _markingAll = true);
     try {
       await ref.read(alertControllerProvider.notifier).markAllAsRead();
-      _showMessage('Listo. Ya revisaste todas tus alertas.');
+      MenudoHaptics.success();
     } catch (error) {
       _showError(error);
     } finally {
@@ -331,7 +325,7 @@ class _HeaderCircleButton extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: context.menudo.textOnDark,
+          color: context.menudo.surface,
           shape: BoxShape.circle,
           border: Border.all(color: context.menudo.border),
         ),
@@ -362,7 +356,7 @@ class _StateCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: context.menudo.textOnDark,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: context.menudo.border),
       ),
@@ -433,7 +427,7 @@ class _AlertCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: context.menudo.textOnDark,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: alert.isRead
@@ -546,7 +540,7 @@ class _AlertCard extends StatelessWidget {
                       onPressed: isBusy ? null : onAccept,
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.o5,
-                        foregroundColor: context.menudo.textOnDark,
+                        foregroundColor: context.menudo.surface,
                       ),
                       child: isBusy
                           ? SizedBox(
@@ -554,7 +548,7 @@ class _AlertCard extends StatelessWidget {
                               height: (16),
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: context.menudo.textOnDark,
+                                color: context.menudo.surface,
                               ),
                             )
                           : Text('Aceptar'),
@@ -569,7 +563,7 @@ class _AlertCard extends StatelessWidget {
                       onPressed: isBusy ? null : onOpenBudget,
                       style: FilledButton.styleFrom(
                         backgroundColor: context.menudo.textMain,
-                        foregroundColor: context.menudo.textOnDark,
+                        foregroundColor: context.menudo.surface,
                       ),
                       child: isBusy
                           ? SizedBox(
@@ -577,7 +571,7 @@ class _AlertCard extends StatelessWidget {
                               height: (16),
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: context.menudo.textOnDark,
+                                color: context.menudo.surface,
                               ),
                             )
                           : Text('Ver presupuesto'),

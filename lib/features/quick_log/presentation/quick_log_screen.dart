@@ -119,19 +119,6 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
     final value = double.tryParse(_amount) ?? 0;
     if (value > 0 && _selectedCategory != null) {
       MenudoHaptics.success();
-      // Mock save — show confirmation
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${_isIncome ? "Entrada" : "Salida"} de ${formatMoney(value)} registrada',
-          ),
-          backgroundColor: _isIncome ? AppColors.positive : AppColors.negative,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
       setState(() {
         _amount = '0';
         _description = '';
@@ -162,11 +149,11 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                   Container(
                     height: 48,
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
+                      color: context.menudo.surfaceElevated,
                       borderRadius: BorderRadius.circular(
                         AppConstants.radiusRound,
                       ),
-                      border: Border.all(color: AppColors.cardBorder),
+                      border: Border.all(color: context.menudo.border),
                     ),
                     child: Row(
                       children: [
@@ -195,7 +182,7 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                                   style: AppTextStyles.labelLarge.copyWith(
                                     color: _isIncome
                                         ? AppColors.positive
-                                        : AppColors.textTertiary,
+                                        : context.menudo.textMuted,
                                   ),
                                 ),
                               ),
@@ -227,7 +214,7 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                                   style: AppTextStyles.labelLarge.copyWith(
                                     color: !_isIncome
                                         ? AppColors.negative
-                                        : AppColors.textTertiary,
+                                        : context.menudo.textMuted,
                                   ),
                                 ),
                               ),
@@ -269,9 +256,9 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceLight,
+                  color: context.menudo.surfaceElevated,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.cardBorder),
+                  border: Border.all(color: context.menudo.border),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -283,7 +270,7 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                         decoration: InputDecoration(
                           hintText: 'Descripción (ej. "Uber al trabajo")',
                           hintStyle: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textTertiary,
+                            color: context.menudo.textMuted,
                           ),
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
@@ -365,16 +352,16 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                       decoration: BoxDecoration(
                         color: isSelected
                             ? (_isIncome
-                                  ? AppColors.positiveDim
-                                  : AppColors.negativeDim)
-                            : AppColors.surfaceLight,
+                                  ? context.menudo.successLight
+                                  : context.menudo.dangerLight)
+                            : context.menudo.surfaceElevated,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color: isSelected
                               ? (_isIncome
                                     ? AppColors.positive
                                     : AppColors.negative)
-                              : AppColors.cardBorder,
+                              : context.menudo.border,
                           width: isSelected ? 1.5 : 1,
                         ),
                       ),
@@ -388,15 +375,15 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                                 ? (_isIncome
                                       ? AppColors.positive
                                       : AppColors.negative)
-                                : AppColors.textSecondary,
+                                : context.menudo.textSecondary,
                           ),
                           SizedBox(height: 4),
                           Text(
                             cat.label,
                             style: AppTextStyles.labelSmall.copyWith(
                               color: isSelected
-                                  ? AppColors.textPrimary
-                                  : AppColors.textSecondary,
+                                  ? context.menudo.textMain
+                                  : context.menudo.textSecondary,
                               fontSize: 9,
                             ),
                             maxLines: 1,
@@ -410,9 +397,8 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceLight.withValues(
-                                  alpha: 0.8,
-                                ),
+                                color: context.menudo.surfaceElevated
+                                    .withValues(alpha: 0.8),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -468,10 +454,10 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                                   child: Container(
                                     height: 56,
                                     decoration: BoxDecoration(
-                                      color: AppColors.surfaceLight,
+                                      color: context.menudo.surfaceElevated,
                                       borderRadius: BorderRadius.circular(14),
                                       border: Border.all(
-                                        color: AppColors.cardBorder,
+                                        color: context.menudo.border,
                                       ),
                                     ),
                                     child: Center(
@@ -479,7 +465,8 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                                           ? Icon(
                                               MenudoCupertinoIcons
                                                   .backspace_outlined,
-                                              color: AppColors.textSecondary,
+                                              color:
+                                                  context.menudo.textSecondary,
                                               size: (22),
                                             )
                                           : Text(
@@ -513,9 +500,9 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                     backgroundColor: _isIncome
                         ? AppColors.positive
                         : AppColors.negative,
-                    foregroundColor: AppColors.background,
-                    disabledBackgroundColor: AppColors.surfaceLight,
-                    disabledForegroundColor: AppColors.textTertiary,
+                    foregroundColor: context.menudo.background,
+                    disabledBackgroundColor: context.menudo.surfaceElevated,
+                    disabledForegroundColor: context.menudo.textMuted,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -525,8 +512,8 @@ class _QuickLogScreenState extends State<QuickLogScreen> {
                     'Registrar ${_isIncome ? "Entrada" : "Salida"}',
                     style: AppTextStyles.labelLarge.copyWith(
                       color: (parsedAmount > 0 && _selectedCategory != null)
-                          ? AppColors.background
-                          : AppColors.textTertiary,
+                          ? context.menudo.background
+                          : context.menudo.textMuted,
                     ),
                   ),
                 ),

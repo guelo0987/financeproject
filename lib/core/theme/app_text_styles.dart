@@ -28,38 +28,32 @@ abstract class MenudoTextStyles {
     fontSize: 28,
     fontWeight: FontWeight.w800,
     letterSpacing: -0.5,
-    color: MenudoColors.textMain,
   );
 
   static final TextStyle h2 = _textStyle(
     fontSize: 24,
     fontWeight: FontWeight.w800,
     letterSpacing: -0.5,
-    color: MenudoColors.textMain,
   );
 
   static final TextStyle h3 = _textStyle(
     fontSize: 17,
     fontWeight: FontWeight.w800,
-    color: MenudoColors.textMain,
   );
 
   static final TextStyle bodyLarge = _textStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
-    color: MenudoColors.textMain,
   );
 
   static final TextStyle bodyMedium = _textStyle(
     fontSize: 14,
     fontWeight: FontWeight.w600,
-    color: MenudoColors.textMain,
   );
 
   static final TextStyle bodySmall = _textStyle(
     fontSize: 12,
     fontWeight: FontWeight.w500,
-    color: MenudoColors.textMain,
   );
 
   static final TextStyle labelCaps = _textStyle(

@@ -65,6 +65,11 @@ class IosShortcutsBridge {
     await _channel.invokeMethod<void>('clearQuickExpenseContext');
   }
 
+  Future<void> flushQueuedQuickExpenses() async {
+    if (!_supportsShortcuts) return;
+    await _channel.invokeMethod<void>('flushQueuedQuickExpenses');
+  }
+
   void setShortcutHandler(
     FutureOr<void> Function(MenudoShortcutPayload payload)? handler,
   ) {

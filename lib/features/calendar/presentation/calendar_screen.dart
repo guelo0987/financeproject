@@ -1,8 +1,11 @@
+import 'dart:ui';
+
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../core/theme/app_motion.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -103,24 +106,29 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             expandedHeight: 120.0,
             floating: false,
             pinned: true,
-            backgroundColor: context.menudo.surface,
+            backgroundColor: context.menudo.navBar,
             elevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsetsDirectional.only(
-                start: 20,
-                bottom: 16,
-              ),
-              centerTitle: false,
-              title: Text(
-                'Calendario',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: context.menudo.textMain,
-                  letterSpacing: -0.8,
+            flexibleSpace: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                child: FlexibleSpaceBar(
+                  titlePadding: const EdgeInsetsDirectional.only(
+                    start: 20,
+                    bottom: 16,
+                  ),
+                  centerTitle: false,
+                  title: Text(
+                    'Calendario',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: context.menudo.textMain,
+                      letterSpacing: -0.8,
+                    ),
+                  ),
+                  background: ColoredBox(color: context.menudo.navBar),
                 ),
               ),
-              background: Container(color: context.menudo.surface),
             ),
             actions: [
               _MonthPill(label: '${_monthName(now.month)} ${now.year}'),
@@ -140,7 +148,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       )
                       .animate()
                       .fadeIn(duration: 400.ms)
-                      .slideY(begin: 0.1, end: 0, curve: Curves.easeOutBack),
+                      .slideY(begin: 0.1, end: 0, curve: MenudoMotion.springBack),
 
                   SizedBox(height: (20)),
 
@@ -176,7 +184,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       )
                       .animate()
                       .fadeIn(duration: 500.ms, delay: 300.ms)
-                      .slideY(begin: 0.05, end: 0, curve: Curves.easeOut),
+                      .slideY(begin: 0.05, end: 0, curve: MenudoMotion.spring),
 
                   SizedBox(height: (120)),
                 ],
@@ -233,11 +241,11 @@ class _CalendarSummary extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: context.menudo.textMain,
+        color: context.menudo.hero,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: context.menudo.textMain.withValues(alpha: 0.3),
+            color: context.menudo.hero.withValues(alpha: 0.3),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -253,7 +261,7 @@ class _CalendarSummary extends StatelessWidget {
                 "GASTADO ESTE MES",
                 style: TextStyle(
                   fontSize: 10,
-                  color: context.menudo.textOnDark.withValues(alpha: 0.45),
+                  color: Colors.white.withValues(alpha: 0.45),
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.2,
                 ),
@@ -264,7 +272,7 @@ class _CalendarSummary extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
-                  color: context.menudo.textOnDark,
+                  color: Colors.white,
                   letterSpacing: -1.2,
                 ),
               ),
@@ -273,7 +281,7 @@ class _CalendarSummary extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: context.menudo.textOnDark.withValues(alpha: 0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Column(
@@ -282,7 +290,7 @@ class _CalendarSummary extends StatelessWidget {
                   "DÍAS",
                   style: TextStyle(
                     fontSize: 9,
-                    color: context.menudo.textOnDark.withValues(alpha: 0.45),
+                    color: Colors.white.withValues(alpha: 0.45),
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1,
                   ),
@@ -292,7 +300,7 @@ class _CalendarSummary extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
-                    color: context.menudo.textOnDark,
+                    color: Colors.white,
                   ),
                 ),
               ],
@@ -322,7 +330,7 @@ class _HeatmapCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: context.menudo.textOnDark,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: context.menudo.border),
       ),
@@ -400,7 +408,9 @@ class _DayCell extends StatelessWidget {
     if (isSelected) {
       bgColor = context.menudo.primary;
     } else if (amount > 0) {
-      bgColor = AppColors.o5.withValues(alpha: 0.1 + (intensity * 0.8));
+      bgColor = context.menudo.primary.withValues(
+        alpha: 0.1 + (intensity * 0.8),
+      );
     } else if (isToday) {
       bgColor = context.menudo.surfaceElevated;
     }
@@ -428,9 +438,11 @@ class _DayCell extends StatelessWidget {
                 ? FontWeight.w900
                 : FontWeight.w600,
             color: isSelected
-                ? context.menudo.textOnDark
+                ? context.menudo.surface
                 : amount > 0
-                ? (intensity > 0.5 ? context.menudo.textOnDark : AppColors.o5)
+                ? (intensity > 0.5
+                      ? context.menudo.surface
+                      : context.menudo.primary)
                 : context.menudo.textSecondary,
           ),
         ),
@@ -460,7 +472,7 @@ class _HeatmapLegend extends StatelessWidget {
             height: (14),
             margin: const EdgeInsets.only(right: 4),
             decoration: BoxDecoration(
-              color: AppColors.o5.withValues(alpha: op),
+              color: context.menudo.primary.withValues(alpha: op),
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -510,7 +522,7 @@ class _DayHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.r1,
+              color: context.menudo.dangerLight,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -518,7 +530,7 @@ class _DayHeader extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
-                color: AppColors.r5,
+                color: context.menudo.danger,
               ),
             ),
           ),
@@ -570,7 +582,7 @@ class _DayTransactionsList extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: context.menudo.textOnDark,
+        color: context.menudo.surface,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: context.menudo.border),
       ),
@@ -673,7 +685,7 @@ class _DayTransactionTile extends StatelessWidget {
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
                     color: transaction.tipo == "ingreso"
-                        ? AppColors.e6
+                        ? context.menudo.success
                         : context.menudo.textMain,
                   ),
                 ),
@@ -684,7 +696,7 @@ class _DayTransactionTile extends StatelessWidget {
             Divider(
               height: 1,
               thickness: 0.5,
-              color: context.menudo.surface,
+              color: context.menudo.divider,
               indent: 78,
               endIndent: 20,
             ),

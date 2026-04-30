@@ -2,11 +2,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../core/theme/app_motion.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../controllers/demo_mode_controller.dart';
 import '../../../core/preferences/app_preferences.dart';
 import '../../../core/preferences/app_preferences_controller.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/display_utils.dart';
 import '../../../core/utils/error_presenter.dart';
 import '../../alerts/providers/alert_providers.dart';
@@ -160,7 +162,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screen,
+              AppSpacing.p16,
+              AppSpacing.screen,
+              AppSpacing.p24,
+            ),
             children: [
               DashboardHeader(
                     avatarEmoji: avatarEmoji,
@@ -173,9 +180,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   )
                   .animate()
                   .fadeIn(duration: 400.ms)
-                  .slideX(begin: -0.05, end: 0, curve: Curves.easeOutBack),
+                  .slideX(begin: -0.05, end: 0, curve: MenudoMotion.springBack),
 
-              SizedBox(height: (22)),
+              SizedBox(height: AppSpacing.p22),
               DashboardOverviewCard(
                     accountLabel: wallets.length == 1
                         ? (defaultWallet?.nombre ?? 'Mi cuenta')
@@ -194,11 +201,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   .fadeIn(duration: 500.ms, delay: 100.ms)
                   .scale(
                     begin: const Offset(0.95, 0.95),
-                    curve: Curves.easeOutBack,
+                    curve: MenudoMotion.springBack,
                     delay: 100.ms,
                   ),
 
-              SizedBox(height: (20)),
+              SizedBox(height: AppSpacing.p20),
               if (_needsWalletTour(wallets, demoMode) &&
                   !_dismissedWalletSuggestion) ...[
                 WalletSetupSuggestionCard(
@@ -208,7 +215,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     setState(() => _dismissedWalletSuggestion = true);
                   },
                 ).animate().fadeIn(duration: 320.ms, delay: 160.ms),
-                SizedBox(height: (20)),
+                SizedBox(height: AppSpacing.p20),
               ],
               DashboardActionGrid(
                     onIncomeTap: () =>
@@ -222,9 +229,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   )
                   .animate()
                   .fadeIn(duration: 400.ms, delay: 200.ms)
-                  .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
+                  .slideY(begin: 0.1, end: 0, curve: MenudoMotion.spring),
 
-              SizedBox(height: (28)),
+              SizedBox(height: AppSpacing.p28),
               DashboardSectionHeader(
                 title: "Recientes",
                 trailing: TextButton(
@@ -249,7 +256,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
               ).animate().fadeIn(duration: 400.ms, delay: 440.ms),
 
-              SizedBox(height: 4),
+              SizedBox(height: AppSpacing.p4),
 
               DashboardRecentTransactions(
                     recent: recent,
@@ -257,7 +264,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   )
                   .animate()
                   .fadeIn(duration: 500.ms, delay: 520.ms)
-                  .slideY(begin: 0.05, end: 0, curve: Curves.easeOut),
+                  .slideY(begin: 0.05, end: 0, curve: MenudoMotion.spring),
             ],
           ),
         ),

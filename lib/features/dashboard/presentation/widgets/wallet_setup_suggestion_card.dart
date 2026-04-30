@@ -1,4 +1,5 @@
 import 'package:financeproject/core/theme/app_colors.dart';
+import 'package:financeproject/core/theme/app_spacing.dart';
 import 'package:financeproject/shared/widgets/menudo_button.dart';
 import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:flutter/cupertino.dart';
@@ -18,7 +19,7 @@ class WalletSetupSuggestionCard extends StatelessWidget {
     final colors = context.menudo;
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(AppSpacing.p18),
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(26),
@@ -44,7 +45,7 @@ class WalletSetupSuggestionCard extends StatelessWidget {
                   color: colors.success,
                 ),
               ),
-              SizedBox(width: (12)),
+              SizedBox(width: AppSpacing.p12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,7 +59,7 @@ class WalletSetupSuggestionCard extends StatelessWidget {
                         letterSpacing: -0.2,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    SizedBox(height: AppSpacing.p4),
                     Text(
                       'Menudo puede registrar movimientos mejor si sabe de dónde entra o sale el dinero.',
                       style: TextStyle(
@@ -90,7 +91,7 @@ class WalletSetupSuggestionCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: (14)),
+          SizedBox(height: AppSpacing.p14),
           MenudoButton(
             label: 'Agregar cuenta',
             onTap: onConfigure,

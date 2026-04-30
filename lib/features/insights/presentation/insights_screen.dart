@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/menudo_card.dart';
 import '../../../shared/widgets/menudo_chip.dart';
 
@@ -21,7 +22,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: MenudoColors.appBg,
+      backgroundColor: context.menudo.background,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -46,7 +47,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     Text(
                       'Lee tendencias, compara meses y detecta dónde tu dinero cambia de ritmo.',
                       style: MenudoTextStyles.bodySmall.copyWith(
-                        color: MenudoColors.textSecondary,
+                        color: context.menudo.textSecondary,
                         height: 1.4,
                       ),
                     ),
@@ -57,7 +58,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: MenudoColors.divider,
+                        color: context.menudo.divider,
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Row(
@@ -99,12 +100,12 @@ class _InsightsScreenState extends State<InsightsScreen> {
           constraints: const BoxConstraints(minHeight: 48),
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           decoration: BoxDecoration(
-            color: isSelected ? context.menudo.textOnDark : Colors.transparent,
+            color: isSelected ? context.menudo.surface : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: context.menudo.background.withValues(alpha: 0.18),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -118,8 +119,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               color: isSelected
-                  ? MenudoColors.textMain
-                  : MenudoColors.textSecondary,
+                  ? context.menudo.textMain
+                  : context.menudo.textSecondary,
             ),
           ),
         ),
@@ -164,8 +165,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         sideTitles: SideTitles(
                           showTitles: true,
                           getTitlesWidget: (double value, TitleMeta meta) {
-                            const style = TextStyle(
-                              color: MenudoColors.textMuted,
+                            final style = TextStyle(
+                              color: context.menudo.textMuted,
                               fontWeight: FontWeight.bold,
                               fontSize: 10,
                             );
@@ -234,28 +235,28 @@ class _InsightsScreenState extends State<InsightsScreen> {
                   Container(
                     width: (12),
                     height: (12),
-                    color: MenudoColors.success,
+                    color: context.menudo.success,
                   ),
                   SizedBox(width: 6),
                   Text(
                     'Ingresos',
                     style: TextStyle(
                       fontSize: 12,
-                      color: MenudoColors.textMuted,
+                      color: context.menudo.textMuted,
                     ),
                   ),
                   SizedBox(width: (20)),
                   Container(
                     width: (12),
                     height: (12),
-                    color: MenudoColors.danger,
+                    color: context.menudo.danger,
                   ),
                   SizedBox(width: 6),
                   Text(
                     'Gastos',
                     style: TextStyle(
                       fontSize: 12,
-                      color: MenudoColors.textMuted,
+                      color: context.menudo.textMuted,
                     ),
                   ),
                 ],
@@ -274,13 +275,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
       barRods: [
         BarChartRodData(
           toY: y1,
-          color: MenudoColors.success,
+          color: context.menudo.success,
           width: 8,
           borderRadius: BorderRadius.circular(4),
         ),
         BarChartRodData(
           toY: y2,
-          color: MenudoColors.danger,
+          color: context.menudo.danger,
           width: 8,
           borderRadius: BorderRadius.circular(4),
         ),
@@ -308,47 +309,47 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     centerSpaceRadius: 50,
                     sections: [
                       PieChartSectionData(
-                        color: MenudoColors.danger,
+                        color: context.menudo.danger,
                         value: 40,
                         title: '40%',
                         radius: 30,
                         titleStyle: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: context.menudo.textOnDark,
+                          color: context.menudo.surface,
                         ),
                       ),
                       PieChartSectionData(
-                        color: MenudoColors.warning,
+                        color: context.menudo.warning,
                         value: 30,
                         title: '30%',
                         radius: 30,
                         titleStyle: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: context.menudo.textOnDark,
+                          color: context.menudo.surface,
                         ),
                       ),
                       PieChartSectionData(
-                        color: MenudoColors.primary,
+                        color: context.menudo.primary,
                         value: 15,
                         title: '15%',
                         radius: 30,
                         titleStyle: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: context.menudo.textOnDark,
+                          color: context.menudo.surface,
                         ),
                       ),
                       PieChartSectionData(
-                        color: MenudoColors.success,
+                        color: context.menudo.success,
                         value: 15,
                         title: '15%',
                         radius: 30,
                         titleStyle: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: context.menudo.textOnDark,
+                          color: context.menudo.surface,
                         ),
                       ),
                     ],
@@ -358,19 +359,27 @@ class _InsightsScreenState extends State<InsightsScreen> {
               SizedBox(height: (16)),
               _buildExpenseLegend(
                 'Vivienda',
-                MenudoColors.danger,
-                'RD\$25,000',
+                context.menudo.danger,
+                formatMoney(25000),
               ),
               SizedBox(height: 8),
-              _buildExpenseLegend('Comida', MenudoColors.warning, 'RD\$18,000'),
+              _buildExpenseLegend(
+                'Comida',
+                context.menudo.warning,
+                formatMoney(18000),
+              ),
               SizedBox(height: 8),
               _buildExpenseLegend(
                 'Transporte',
-                MenudoColors.primary,
-                'RD\$9,000',
+                context.menudo.primary,
+                formatMoney(9000),
               ),
               SizedBox(height: 8),
-              _buildExpenseLegend('Ocio', MenudoColors.success, 'RD\$9,000'),
+              _buildExpenseLegend(
+                'Ocio',
+                context.menudo.success,
+                formatMoney(9000),
+              ),
             ],
           ),
         ),
@@ -404,7 +413,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
         Text(
           amount,
           style: MenudoTextStyles.amountSmall.copyWith(
-            color: MenudoColors.textSecondary,
+            color: context.menudo.textSecondary,
           ),
         ),
       ],
@@ -426,7 +435,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
               Text(
                 '+12.4% este año',
                 style: TextStyle(
-                  color: MenudoColors.success,
+                  color: context.menudo.success,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -438,10 +447,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     gridData: FlGridData(
                       show: true,
                       drawVerticalLine: false,
-                      getDrawingHorizontalLine: (val) => const FlLine(
-                        color: MenudoColors.divider,
-                        strokeWidth: 1,
-                      ),
+                      getDrawingHorizontalLine: (val) =>
+                          FlLine(color: context.menudo.divider, strokeWidth: 1),
                     ),
                     titlesData: const FlTitlesData(
                       rightTitles: AxisTitles(
@@ -463,12 +470,12 @@ class _InsightsScreenState extends State<InsightsScreen> {
                           FlSpot(5, 1.8),
                         ],
                         isCurved: true,
-                        color: MenudoColors.primary,
+                        color: context.menudo.primary,
                         barWidth: 3,
                         dotData: const FlDotData(show: false),
                         belowBarData: BarAreaData(
                           show: true,
-                          color: MenudoColors.primary.withValues(alpha: 0.1),
+                          color: context.menudo.primary.withValues(alpha: 0.1),
                         ),
                       ),
                     ],
@@ -494,10 +501,10 @@ class _InsightsIntroCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.e0, context.menudo.textOnDark],
+          colors: [context.menudo.successLight, context.menudo.surface],
         ),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.e1),
+        border: Border.all(color: context.menudo.successLight),
       ),
       child: Row(
         children: [
@@ -505,7 +512,7 @@ class _InsightsIntroCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: AppColors.e1,
+              color: context.menudo.successLight,
               borderRadius: BorderRadius.circular(14),
             ),
             alignment: Alignment.center,
@@ -520,7 +527,7 @@ class _InsightsIntroCard extends StatelessWidget {
             child: Text(
               'Usa estas vistas para detectar gasto desordenado, comparar flujo de caja y entender si tu presupuesto va mejorando.',
               style: MenudoTextStyles.bodySmall.copyWith(
-                color: MenudoColors.textSecondary,
+                color: context.menudo.textSecondary,
                 height: 1.4,
                 fontWeight: FontWeight.w600,
               ),

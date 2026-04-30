@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../core/theme/app_motion.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
@@ -25,11 +26,16 @@ class WalletScreen extends ConsumerStatefulWidget {
 }
 
 class _WalletScreenState extends ConsumerState<WalletScreen> {
+  String _effectiveCurrency(String? currency) {
+    final fallback = AppFormattingPreferences.currencyCode;
+    final normalized = currency?.trim().toUpperCase();
+    if (normalized == null || normalized.isEmpty) return fallback;
+    if (normalized == 'DOP' && fallback != 'DOP') return fallback;
+    return normalized;
+  }
+
   String _fmt(double val, {String? currency}) {
-    return formatMoney(
-      val,
-      currency: currency ?? AppFormattingPreferences.currencyCode,
-    );
+    return formatMoney(val, currency: _effectiveCurrency(currency));
   }
 
   String _fmtAggregate(double val, {required String currencyCode}) {
@@ -52,16 +58,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     try {
       await ref.read(walletNotifierProvider.notifier).addWallet(result);
       if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Listo. Tu cuenta ya aparece en la cartera.'),
-          backgroundColor: AppColors.e6,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      MenudoHaptics.success();
     } catch (error) {
       if (!mounted) return;
       messenger.showSnackBar(
@@ -200,7 +197,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   ),
                   child: Icon(
                     MenudoCupertinoIcons.plus,
-                    color: context.menudo.textOnDark,
+                    color: context.menudo.surface,
                     size: (18),
                   ),
                 ),
@@ -224,7 +221,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     )
                     .animate()
                     .fadeIn(duration: 500.ms)
-                    .slideY(begin: 0.1, end: 0, curve: Curves.easeOutBack),
+                    .slideY(begin: 0.1, end: 0, curve: MenudoMotion.springBack),
 
                 SizedBox(height: (28)),
 
@@ -246,7 +243,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         margin: const EdgeInsets.only(bottom: 18),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppColors.r1,
+                          color: context.menudo.dangerLight,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                             color: AppColors.r5.withValues(alpha: 0.18),
@@ -275,7 +272,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                 },
                                 style: FilledButton.styleFrom(
                                   backgroundColor: context.menudo.textMain,
-                                  foregroundColor: context.menudo.textOnDark,
+                                  foregroundColor: context.menudo.surface,
                                 ),
                                 child: Text('Cerrar sesión'),
                               ),
@@ -323,14 +320,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         )
                         .animate()
                         .fadeIn(duration: 500.ms, delay: 200.ms)
-                        .slideY(begin: 0.05, end: 0, curve: Curves.easeOut);
+                        .slideY(begin: 0.05, end: 0, curve: MenudoMotion.spring);
                   }),
                 ],
               ],
             ),
           ),
         ),
-        const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
+        SliverToBoxAdapter(
+          child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 40),
+        ),
       ],
     );
   }
@@ -357,7 +356,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: context.menudo.textMain.withValues(alpha: 0.3),
+            color: context.menudo.hero.withValues(alpha: 0.3),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -373,7 +372,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   "PATRIMONIO NETO",
                   style: TextStyle(
                     fontSize: 11,
-                    color: context.menudo.textOnDark.withValues(alpha: 0.45),
+                    color: Colors.white.withValues(alpha: 0.45),
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.5,
                   ),
@@ -386,7 +385,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: context.menudo.textOnDark.withValues(alpha: 0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
@@ -394,7 +393,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
-                      color: context.menudo.textOnDark.withValues(alpha: 0.82),
+                      color: Colors.white.withValues(alpha: 0.82),
                     ),
                   ),
                 ),
@@ -406,7 +405,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             style: TextStyle(
               fontSize: 40,
               fontWeight: FontWeight.w900,
-              color: context.menudo.textOnDark,
+              color: Colors.white,
               letterSpacing: -1.8,
             ),
           ),
@@ -417,7 +416,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 child: _SummaryStat(
                   label: "ACTIVOS",
                   value: activosLabel,
-                  color: const Color(0xFF6EE7B7),
+                  color: context.menudo.success,
                 ),
               ),
               SizedBox(width: (12)),
@@ -425,7 +424,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 child: _SummaryStat(
                   label: "DEUDAS",
                   value: deudaLabel,
-                  color: const Color(0xFFFCA5A5),
+                  color: context.menudo.danger,
                 ),
               ),
             ],
@@ -486,7 +485,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             onPressed: () => _openAddWallet(context),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.o5,
-              foregroundColor: context.menudo.textOnDark,
+              foregroundColor: context.menudo.surface,
             ),
             child: Text('Agregar primera cuenta'),
           ),
@@ -511,10 +510,10 @@ class _SummaryStat extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: context.menudo.textOnDark.withValues(alpha: 0.08),
+        color: Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: context.menudo.textOnDark.withValues(alpha: 0.1),
+          color: Colors.white.withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -524,7 +523,7 @@ class _SummaryStat extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 10,
-              color: context.menudo.textOnDark.withValues(alpha: 0.35),
+              color: Colors.white.withValues(alpha: 0.35),
               fontWeight: FontWeight.w800,
               letterSpacing: 0.8,
             ),
@@ -720,13 +719,13 @@ class _WalletTile extends StatelessWidget {
                             _WalletPill(
                               label: 'PRINCIPAL',
                               fg: context.menudo.textMain,
-                              bg: AppColors.e1,
+                              bg: context.menudo.successLight,
                             ),
                           if (!wallet.incluirEnPatrimonio)
                             _WalletPill(
                               label: 'EXCLUIDA',
                               fg: context.menudo.textSecondary,
-                              bg: context.menudo.surface,
+                              bg: context.menudo.surfaceElevated,
                             ),
                         ],
                       ),
