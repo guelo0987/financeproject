@@ -162,6 +162,7 @@ enum QuickExpenseShortcutContextStore {
         MenudoAppShortcutsProvider.updateAppShortcutParameters()
       }
       #endif
+      QuickExpenseNotificationCategoryRegistry.register()
       print("[shortcuts] synced quick expense context")
     } catch {
       print("[shortcuts] failed to sync quick expense context: \(error.localizedDescription)")
@@ -203,6 +204,7 @@ enum QuickExpenseShortcutContextStore {
       MenudoAppShortcutsProvider.updateAppShortcutParameters()
     }
     #endif
+    QuickExpenseNotificationCategoryRegistry.register()
     print("[shortcuts] cleared quick expense context")
   }
 }
@@ -403,7 +405,22 @@ final class MenudoShortcutsBridge: NSObject {
   private func handle(call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "presentShortcutSetup":
+      MenudoShortcutFeedback.requestNotificationAuthorizationIfNeeded()
       presentShortcutSetup()
+      result(nil)
+    case "openShortcutsApp":
+      openShortcutsApp(result: result)
+    case "requestShortcutNotificationAuthorization":
+      MenudoShortcutFeedback.requestNotificationAuthorizationIfNeeded()
+      result(nil)
+    case "previewShortcutFeedback":
+      MenudoShortcutFeedback.requestNotificationAuthorizationIfNeeded()
+      MenudoShortcutFeedback.expenseSaved(
+        amount: 250,
+        merchant: "Apple Pay",
+        categoryName: "Comida",
+        currencyCode: "DOP"
+      )
       result(nil)
     case "syncQuickExpenseContext":
       QuickExpenseShortcutContextStore.save(rawPayload: call.arguments)
@@ -423,6 +440,19 @@ final class MenudoShortcutsBridge: NSObject {
       result(nil)
     default:
       result(FlutterMethodNotImplemented)
+    }
+  }
+
+  private func openShortcutsApp(result: @escaping FlutterResult) {
+    DispatchQueue.main.async {
+      guard let url = URL(string: "shortcuts://") else {
+        result(false)
+        return
+      }
+
+      UIApplication.shared.open(url, options: [:]) { success in
+        result(success)
+      }
     }
   }
 
@@ -516,6 +546,7 @@ final class MenudoShortcutsBridge: NSObject {
 @available(iOS 16.0, *)
 private struct MenudoShortcutSetupNativeView: View {
   @Environment(\.dismiss) private var dismiss
+  @State private var displaySiriTip = true
 
   var body: some View {
     NavigationStack {
@@ -533,6 +564,12 @@ private struct MenudoShortcutSetupNativeView: View {
           }
 
           VStack(spacing: 14) {
+            SiriTipView(
+              intent: QuickExpenseShortcutIntent(),
+              isVisible: $displaySiriTip
+            )
+            .frame(maxWidth: .infinity)
+
             ShortcutsLink()
               .frame(maxWidth: .infinity)
               .padding(.vertical, 2)
@@ -541,6 +578,7 @@ private struct MenudoShortcutSetupNativeView: View {
               nativeSimpleStep("1", "Abre Menudo una vez con tu sesión iniciada.")
               nativeSimpleStep("2", "En la automatización de Apple Pay, elige “Registrar Gasto”.")
               nativeSimpleStep("3", "Siri puede pedir monto o categoría sin abrir Flutter.")
+              nativeSimpleStep("4", "Opcional: Ajustes > Accesibilidad > Tocar > Toque posterior > Tocar dos veces > Registrar Gasto.")
             }
           }
           .padding(20)

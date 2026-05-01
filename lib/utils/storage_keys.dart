@@ -17,6 +17,7 @@ abstract final class StorageKeys {
   static const pendingVerificationEmail = 'menudo_pending_verification_email';
   static const pendingPasswordResetEmail =
       'menudo_pending_password_reset_email';
+  static const shortcutOnboardingSeen = 'menudo_shortcut_onboarding_seen';
   static const demoMode = 'menudo_demo_mode';
   static const budgetInviteCooldowns = 'menudo_budget_invite_cooldowns';
 }

@@ -160,6 +160,13 @@ struct QuickExpenseShortcutIntent: AppIntent {
         }
         if QuickExpenseNetworkClient.shouldQueue(statusCode: httpResponse.statusCode) {
           QueuedQuickExpenseStore.enqueue(expense)
+          MenudoShortcutFeedback.expenseSaved(
+            amount: amount,
+            merchant: merchantName,
+            categoryName: resolvedCategory.name,
+            currencyCode: context.defaultWallet.currency,
+            queued: true
+          )
           return .result(
             dialog: IntentDialog("No había conexión estable. Menudo guardará este gasto cuando vuelva a conectarse.")
           )
@@ -170,9 +177,23 @@ struct QuickExpenseShortcutIntent: AppIntent {
       }
 
       QuickExpenseIdempotencyStore.mark(idempotencyKey)
+      PendingShortcutStore.storeQuickExpense(source: "app_intent")
+      MenudoShortcutFeedback.expenseSaved(
+        amount: amount,
+        merchant: merchantName,
+        categoryName: resolvedCategory.name,
+        currencyCode: context.defaultWallet.currency
+      )
       return .result(dialog: IntentDialog("Gasto registrado en Menudo."))
     } catch {
       QueuedQuickExpenseStore.enqueue(expense)
+      MenudoShortcutFeedback.expenseSaved(
+        amount: amount,
+        merchant: merchantName,
+        categoryName: resolvedCategory.name,
+        currencyCode: context.defaultWallet.currency,
+        queued: true
+      )
       return .result(
         dialog: IntentDialog("No había conexión estable. Menudo guardará este gasto cuando vuelva a conectarse.")
       )
@@ -273,6 +294,8 @@ struct QuickExpenseShortcutIntent: AppIntent {
     merchant: String?,
     context: QuickExpenseShortcutRuntimeContext
   ) {
+    MenudoShortcutFeedback.requestNotificationAuthorizationIfNeeded()
+
     let content = UNMutableNotificationContent()
     content.title = "Gasto sin categoría"
     content.body = "\(merchant ?? "Nuevo gasto") por \(amount). Toca para elegir categoría."

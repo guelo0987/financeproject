@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/auth/auth_state.dart';
+import '../../../features/budgets/budget_providers.dart';
 import '../../../features/categories/providers/category_providers.dart';
 import '../../../features/transactions/providers/transaction_providers.dart';
 import '../../../features/wallet/providers/wallet_providers.dart';
@@ -27,6 +29,9 @@ class _IosShortcutsCoordinatorState
     with WidgetsBindingObserver {
   String? _lastShortcutContextSignature;
   bool _syncScheduled = false;
+  bool _dataRefreshScheduled = false;
+  bool _forceDataRefreshPending = false;
+  DateTime? _lastDataRefreshAt;
 
   bool get _supportsShortcuts =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
@@ -40,9 +45,12 @@ class _IosShortcutsCoordinatorState
     bridge.setShortcutHandler((_) async {
       await bridge.clearPendingShortcut();
       await bridge.flushQueuedQuickExpenses();
+      _scheduleExternalDataRefresh(force: true);
+      _scheduleShortcutContextSync();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(iosShortcutsBridgeProvider).clearPendingShortcut();
+      _scheduleExternalDataRefresh();
       _scheduleShortcutContextSync();
     });
   }
@@ -59,8 +67,31 @@ class _IosShortcutsCoordinatorState
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _scheduleExternalDataRefresh();
       _scheduleShortcutContextSync();
     }
+  }
+
+  Future<void> _refreshExternalData({bool force = false}) async {
+    if (!_supportsShortcuts || !mounted) return;
+
+    final auth = ref.read(authProvider);
+    if (!auth.isAuthenticated || auth.userId == null) return;
+
+    final now = DateTime.now();
+    final lastRefreshAt = _lastDataRefreshAt;
+    if (!force &&
+        lastRefreshAt != null &&
+        now.difference(lastRefreshAt) < const Duration(seconds: 8)) {
+      return;
+    }
+
+    _lastDataRefreshAt = now;
+    await Future.wait([
+      ref.read(transactionNotifierProvider.notifier).refresh(),
+      ref.read(walletNotifierProvider.notifier).refresh(),
+      ref.read(budgetNotifierProvider.notifier).refresh(),
+    ]);
   }
 
   Future<void> _syncShortcutContext() async {
@@ -131,6 +162,20 @@ class _IosShortcutsCoordinatorState
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _syncScheduled = false;
       await _syncShortcutContext();
+    });
+  }
+
+  void _scheduleExternalDataRefresh({bool force = false}) {
+    if (!_supportsShortcuts) return;
+    _forceDataRefreshPending = _forceDataRefreshPending || force;
+    if (_dataRefreshScheduled) return;
+
+    _dataRefreshScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _dataRefreshScheduled = false;
+      final shouldForce = _forceDataRefreshPending;
+      _forceDataRefreshPending = false;
+      unawaited(_refreshExternalData(force: shouldForce));
     });
   }
 

@@ -13,6 +13,7 @@ import '../../../core/utils/menudo_haptics.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_loading_view.dart';
 import '../../../shared/widgets/menudo_tap_target.dart';
+import '../../../shared/widgets/menudo_toast.dart';
 import '../auth_state.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
@@ -54,12 +55,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     if (!mounted) return;
     if (success) {
       MenudoHaptics.success();
+      MenudoToast.success(context, title: message);
       return;
     }
     MenudoHaptics.error();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
+    MenudoToast.error(context, title: 'Revisa esto', message: message);
   }
 
   void _startRecoveryFallbackTimer() {

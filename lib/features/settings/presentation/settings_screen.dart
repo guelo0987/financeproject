@@ -24,6 +24,7 @@ import '../../../model/user_profile.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_card.dart';
 import '../../../shared/widgets/menudo_chip.dart';
+import '../../../shared/widgets/menudo_toast.dart';
 import '../../../utils/app_env.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -109,13 +110,13 @@ class SettingsScreen extends ConsumerWidget {
       await ref.read(appPreferencesProvider.notifier).setMarket(selected);
       if (!context.mounted) return;
       MenudoHaptics.success();
+      MenudoToast.success(context, title: 'Moneda actualizada');
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(presentError(error)),
-          behavior: SnackBarBehavior.floating,
-        ),
+      MenudoToast.error(
+        context,
+        title: 'No se pudo cambiar',
+        message: presentError(error),
       );
     }
   }

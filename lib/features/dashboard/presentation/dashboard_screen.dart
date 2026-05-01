@@ -15,6 +15,7 @@ import '../../alerts/providers/alert_providers.dart';
 import '../../../../core/data/models.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/menudo_loading_view.dart';
+import '../../../../shared/widgets/menudo_toast.dart';
 import '../../auth/auth_state.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
 import '../../transactions/providers/transaction_providers.dart';
@@ -45,11 +46,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   void _showError(Object error) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(presentError(error)),
-        behavior: SnackBarBehavior.floating,
-      ),
+    MenudoToast.error(
+      context,
+      title: 'No se pudo completar',
+      message: presentError(error),
     );
   }
 
@@ -80,6 +80,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     try {
       await ref.read(walletNotifierProvider.notifier).addWallet(wallet);
       MenudoHaptics.success();
+      if (!mounted) return;
+      MenudoToast.success(
+        context,
+        title: 'Cuenta creada',
+        message: wallet.nombre,
+      );
     } catch (error) {
       _showError(error);
     }

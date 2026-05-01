@@ -13,7 +13,7 @@ import AppIntents
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     UNUserNotificationCenter.current().delegate = self
-    registerNotificationCategories()
+    QuickExpenseNotificationCategoryRegistry.register()
 
     #if canImport(AppIntents)
     if #available(iOS 16.0, *) {
@@ -35,24 +35,6 @@ import AppIntents
     #endif
   }
 
-  private func registerNotificationCategories() {
-    let center = UNUserNotificationCenter.current()
-    
-    let foodAction = UNNotificationAction(identifier: "CAT_comida", title: "Comida 🍔", options: .foreground)
-    let shoppingAction = UNNotificationAction(identifier: "CAT_compras", title: "Compras 🛍️", options: .foreground)
-    let transportAction = UNNotificationAction(identifier: "CAT_transporte", title: "Transporte 🚗", options: .foreground)
-    let miscAction = UNNotificationAction(identifier: "CAT_varios", title: "Otros 📦", options: .foreground)
-    
-    let category = UNNotificationCategory(
-      identifier: "EXPENSE_MISSING_CATEGORY",
-      actions: [foodAction, shoppingAction, transportAction, miscAction],
-      intentIdentifiers: [],
-      options: .customDismissAction
-    )
-    
-    center.setNotificationCategories([category])
-  }
-
   override func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     didReceive response: UNNotificationResponse,
@@ -63,22 +45,34 @@ import AppIntents
     if actionIdentifier.hasPrefix("CAT_") {
       let categorySlug = String(actionIdentifier.dropFirst(4))
       let userInfo = response.notification.request.content.userInfo
-      handleNotificationAction(categorySlug: categorySlug, userInfo: userInfo)
+      handleNotificationAction(
+        categorySlug: categorySlug,
+        userInfo: userInfo,
+        completionHandler: completionHandler
+      )
+      return
     }
     
     // Si no es una de nuestras acciones, dejamos que FlutterAppDelegate maneje el comportamiento por defecto
     super.userNotificationCenter(center, didReceive: response, withCompletionHandler: completionHandler)
   }
 
-  private func handleNotificationAction(categorySlug: String, userInfo: [AnyHashable: Any]) {
+  private func handleNotificationAction(
+    categorySlug: String,
+    userInfo: [AnyHashable: Any],
+    completionHandler: @escaping () -> Void
+  ) {
     guard let amount = userInfo["amount"] as? Double,
           let description = userInfo["description"] as? String,
           let idempotencyKey = userInfo["idempotencyKey"] as? String else {
+      completionHandler()
       return
     }
     
     Task {
+      defer { completionHandler() }
       if let context = QuickExpenseShortcutContextStore.load() {
+        let categoryName = context.categories.first { $0.slug == categorySlug }?.name ?? categorySlug
         let expense = QueuedQuickExpense(
           idempotencyKey: idempotencyKey,
           fecha: currentDateString(),
@@ -93,10 +87,37 @@ import AppIntents
         )
         
         do {
-          _ = try await QuickExpenseNetworkClient.post(expense: expense, context: context)
+          let response = try await QuickExpenseNetworkClient.post(expense: expense, context: context)
+          guard (200 ... 299).contains(response.statusCode) else {
+            if QuickExpenseNetworkClient.shouldQueue(statusCode: response.statusCode) {
+              QueuedQuickExpenseStore.enqueue(expense)
+              MenudoShortcutFeedback.expenseSaved(
+                amount: amount,
+                merchant: description,
+                categoryName: categoryName,
+                currencyCode: context.defaultWallet.currency,
+                queued: true
+              )
+            }
+            return
+          }
           QuickExpenseIdempotencyStore.mark(idempotencyKey)
+          PendingShortcutStore.storeQuickExpense(source: "notification_action")
+          MenudoShortcutFeedback.expenseSaved(
+            amount: amount,
+            merchant: description,
+            categoryName: categoryName,
+            currencyCode: context.defaultWallet.currency
+          )
         } catch {
           QueuedQuickExpenseStore.enqueue(expense)
+          MenudoShortcutFeedback.expenseSaved(
+            amount: amount,
+            merchant: description,
+            categoryName: categoryName,
+            currencyCode: context.defaultWallet.currency,
+            queued: true
+          )
         }
       }
     }

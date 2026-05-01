@@ -13,6 +13,7 @@ import '../../../../core/preferences/app_preferences_controller.dart';
 import '../../../../core/utils/error_presenter.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../shared/widgets/menudo_loading_view.dart';
+import '../../../../shared/widgets/menudo_toast.dart';
 import '../../auth/auth_state.dart';
 import '../providers/wallet_providers.dart';
 import 'wallet_detail_sheet.dart';
@@ -44,7 +45,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   }
 
   Future<void> _openAddWallet(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final rootContext = Navigator.of(context, rootNavigator: true).context;
     final result = await showModalBottomSheet<WalletAccount>(
       context: context,
       useRootNavigator: true,
@@ -57,25 +58,28 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
     try {
       await ref.read(walletNotifierProvider.notifier).addWallet(result);
-      if (!mounted) return;
+      if (!rootContext.mounted) return;
       MenudoHaptics.success();
+      MenudoToast.success(
+        rootContext,
+        title: 'Cuenta creada',
+        message: result.nombre,
+      );
     } catch (error) {
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(presentError(error)),
-          behavior: SnackBarBehavior.floating,
-        ),
+      if (!rootContext.mounted) return;
+      MenudoToast.error(
+        rootContext,
+        title: 'No se pudo crear',
+        message: presentError(error),
       );
     }
   }
 
   void _showWalletError(BuildContext context, Object error) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(presentError(error)),
-        behavior: SnackBarBehavior.floating,
-      ),
+    MenudoToast.error(
+      context,
+      title: 'No se pudo completar',
+      message: presentError(error),
     );
   }
 
@@ -320,7 +324,11 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         )
                         .animate()
                         .fadeIn(duration: 500.ms, delay: 200.ms)
-                        .slideY(begin: 0.05, end: 0, curve: MenudoMotion.spring);
+                        .slideY(
+                          begin: 0.05,
+                          end: 0,
+                          curve: MenudoMotion.spring,
+                        );
                   }),
                 ],
               ],
@@ -512,9 +520,7 @@ class _SummaryStat extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

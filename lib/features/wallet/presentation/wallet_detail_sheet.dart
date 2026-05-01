@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import 'package:financeproject/shared/widgets/menudo_destructive_dialog.dart';
+import 'package:financeproject/shared/widgets/menudo_toast.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/data/models.dart';
 import '../../../core/preferences/app_preferences.dart';
@@ -111,13 +112,17 @@ class _DefaultWalletToggleState extends ConsumerState<_DefaultWalletToggle> {
                               .setDefaultWallet(widget.walletId);
                           if (!context.mounted) return;
                           MenudoHaptics.success();
+                          MenudoToast.success(
+                            context,
+                            title: 'Cuenta preferida',
+                            message: 'Esta cuenta quedó como principal.',
+                          );
                         } catch (error) {
                           if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(presentError(error)),
-                              behavior: SnackBarBehavior.floating,
-                            ),
+                          MenudoToast.error(
+                            context,
+                            title: 'No se pudo cambiar',
+                            message: presentError(error),
                           );
                         } finally {
                           if (mounted) {
@@ -258,13 +263,21 @@ class _NetWorthWalletToggleState extends ConsumerState<_NetWorthWalletToggle> {
                               );
                           if (!context.mounted) return;
                           MenudoHaptics.success();
+                          MenudoToast.success(
+                            context,
+                            title: !wallet.incluirEnPatrimonio
+                                ? 'Cuenta incluida'
+                                : 'Cuenta excluida',
+                            message: !wallet.incluirEnPatrimonio
+                                ? 'Cuenta dentro de tu patrimonio.'
+                                : 'Cuenta fuera de tu patrimonio.',
+                          );
                         } catch (error) {
                           if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(presentError(error)),
-                              behavior: SnackBarBehavior.floating,
-                            ),
+                          MenudoToast.error(
+                            context,
+                            title: 'No se pudo cambiar',
+                            message: presentError(error),
                           );
                         } finally {
                           if (mounted) {
@@ -343,11 +356,10 @@ class WalletDetailSheet extends ConsumerWidget {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(presentError(error)),
-        behavior: SnackBarBehavior.floating,
-      ),
+    MenudoToast.error(
+      context,
+      title: 'No se pudo completar',
+      message: presentError(error),
     );
   }
 
@@ -411,6 +423,11 @@ class WalletDetailSheet extends ConsumerWidget {
         await walletNotifier.updateWallet(updatedWallet);
         if (rootContext.mounted) {
           MenudoHaptics.success();
+          MenudoToast.success(
+            rootContext,
+            title: 'Cuenta actualizada',
+            message: updatedWallet.nombre,
+          );
         }
       } catch (error) {
         if (rootContext.mounted) {
@@ -420,6 +437,9 @@ class WalletDetailSheet extends ConsumerWidget {
     }
 
     Future<void> deleteWallet() async {
+      final walletNotifier = ref.read(walletNotifierProvider.notifier);
+      final rootNavigator = Navigator.of(context, rootNavigator: true);
+      final rootContext = rootNavigator.context;
       final confirmed = await MenudoDestructiveDialog.show(
         context: context,
         title: 'Eliminar cuenta',
@@ -431,53 +451,54 @@ class WalletDetailSheet extends ConsumerWidget {
       if (confirmed != true) return;
       if (!context.mounted) return;
 
-      final messenger = ScaffoldMessenger.of(context);
-
       Future<void> restoreWallet() async {
         try {
-          await ref
-              .read(walletNotifierProvider.notifier)
-              .addWallet(
-                WalletAccount(
-                  id: 0,
-                  nombre: w.nombre,
-                  tipo: w.tipo,
-                  saldo: w.saldo,
-                  color: w.color,
-                  icono: w.icono,
-                  moneda: w.moneda,
-                  incluirEnPatrimonio: w.incluirEnPatrimonio,
-                ),
-              );
+          await walletNotifier.addWallet(
+            WalletAccount(
+              id: 0,
+              nombre: w.nombre,
+              tipo: w.tipo,
+              saldo: w.saldo,
+              color: w.color,
+              icono: w.icono,
+              moneda: w.moneda,
+              incluirEnPatrimonio: w.incluirEnPatrimonio,
+            ),
+          );
           MenudoHaptics.success();
+          if (rootContext.mounted) {
+            MenudoToast.success(
+              rootContext,
+              title: 'Cuenta restaurada',
+              message: w.nombre,
+            );
+          }
         } catch (error) {
-          if (context.mounted) {
-            _showError(context, error);
+          if (rootContext.mounted) {
+            MenudoToast.error(
+              rootContext,
+              title: 'No se pudo restaurar',
+              message: presentError(error),
+            );
           }
         }
       }
 
       try {
-        await ref.read(walletNotifierProvider.notifier).removeWallet(w.id);
-        if (context.mounted) {
+        await walletNotifier.removeWallet(w.id);
+        if (rootContext.mounted) {
+          if (context.mounted) {
+            Navigator.pop(context);
+          }
           MenudoHaptics.success();
-          Navigator.pop(context);
-
-          messenger
-            ..hideCurrentSnackBar()
-            ..showSnackBar(
-              SnackBar(
-                content: Text('"${w.nombre}" fue eliminada.'),
-                behavior: SnackBarBehavior.floating,
-                duration: const Duration(seconds: 6),
-                action: SnackBarAction(
-                  label: 'Deshacer',
-                  onPressed: () {
-                    unawaited(restoreWallet());
-                  },
-                ),
-              ),
-            );
+          MenudoToast.undo(
+            rootContext,
+            title: 'Cuenta eliminada',
+            message: w.nombre,
+            onUndo: () {
+              unawaited(restoreWallet());
+            },
+          );
         }
       } catch (error) {
         if (context.mounted) {

@@ -12,16 +12,23 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/error_presenter.dart';
 import '../../../../shared/widgets/menudo_button.dart';
 import '../../../../shared/widgets/menudo_chip.dart';
+import '../../../../shared/widgets/menudo_toast.dart';
 import '../../../auth/auth_state.dart';
 import '../../../categories/providers/category_providers.dart';
 import '../../../categories/presentation/categories_screen.dart';
 import '../../budget_providers.dart';
 
 class CreateBudgetWizard extends ConsumerStatefulWidget {
-  const CreateBudgetWizard({super.key, this.initialBudget, this.initialStep});
+  const CreateBudgetWizard({
+    super.key,
+    this.initialBudget,
+    this.initialStep,
+    this.fullScreen = false,
+  });
 
   final MenudoBudget? initialBudget;
   final int? initialStep;
+  final bool fullScreen;
 
   @override
   ConsumerState<CreateBudgetWizard> createState() => _CreateBudgetWizardState();
@@ -325,6 +332,7 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
 
     try {
       final notifier = ref.read(budgetNotifierProvider.notifier);
+      final rootContext = Navigator.of(context, rootNavigator: true).context;
       final categoryMap = {
         for (final category in categories) category.slug: category.id,
       };
@@ -341,6 +349,13 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
       if (!mounted) return;
       MenudoHaptics.success();
       Navigator.pop(context, true);
+      if (rootContext.mounted) {
+        MenudoToast.success(
+          rootContext,
+          title: _isEditing ? 'Presupuesto actualizado' : 'Presupuesto creado',
+          message: budget.nombre,
+        );
+      }
     } catch (error) {
       _showError(presentError(error));
     } finally {
@@ -352,8 +367,10 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    MenudoToast.error(
+      context,
+      title: 'Revisa el presupuesto',
+      message: message,
     );
   }
 
@@ -530,19 +547,14 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
   Widget build(BuildContext context) {
     final keyboardBottom = MediaQuery.of(context).viewInsets.bottom;
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.95,
-      decoration: BoxDecoration(
-        color: context.menudo.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: Column(
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: Column(
-              children: [
+    final content = Column(
+      children: [
+        // Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+          child: Column(
+            children: [
+              if (!widget.fullScreen)
                 Container(
                   width: 40,
                   height: 4,
@@ -552,130 +564,146 @@ class _CreateBudgetWizardState extends ConsumerState<CreateBudgetWizard> {
                   ),
                   margin: const EdgeInsets.only(bottom: 14),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    MenudoGestureDetector(
-                      onTap: () {
-                        if (_step == 0) {
-                          Navigator.pop(context);
-                        } else {
-                          setState(() => _step--);
-                        }
-                      },
-                      child: Container(
-                        width: (30),
-                        height: (30),
-                        decoration: BoxDecoration(
-                          color: context.menudo.surface,
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: Icon(
-                          _step == 0
-                              ? MenudoCupertinoIcons.close
-                              : MenudoCupertinoIcons.arrow_back,
-                          size: (16),
-                          color: context.menudo.textSecondary,
-                        ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  MenudoGestureDetector(
+                    onTap: () {
+                      if (_step == 0) {
+                        Navigator.pop(context);
+                      } else {
+                        setState(() => _step--);
+                      }
+                    },
+                    child: Container(
+                      width: (30),
+                      height: (30),
+                      decoration: BoxDecoration(
+                        color: context.menudo.surface,
+                        shape: BoxShape.circle,
                       ),
-                    ),
-                    Row(
-                      children: List.generate(
-                        _steps.length,
-                        (index) => AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                          height: 8,
-                          width: index <= _step ? 20 : 8,
-                          decoration: BoxDecoration(
-                            color: index < _step
-                                ? context.menudo.primary
-                                : index == _step
-                                ? AppColors.o5
-                                : context.menudo.border,
-                            borderRadius: BorderRadius.circular(100),
-                          ),
-                        ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        _step == 0
+                            ? MenudoCupertinoIcons.close
+                            : MenudoCupertinoIcons.arrow_back,
+                        size: (16),
+                        color: context.menudo.textSecondary,
                       ),
-                    ),
-                    Text(
-                      "${_step + 1}/${_steps.length}",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: context.menudo.textMuted,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          SizedBox(height: (24)),
-
-          Expanded(
-            child: AnimatedPadding(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              padding: EdgeInsets.only(bottom: keyboardBottom > 0 ? 20 : 0),
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _buildCurrentStep(),
-              ),
-            ),
-          ),
-
-          // Footer
-          Container(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              12,
-              20,
-              24 + MediaQuery.of(context).viewInsets.bottom,
-            ),
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: context.menudo.divider)),
-            ),
-            child: _step == _lastStepIndex || _isSaving
-                ? MenudoButton(
-                    label: _isSaving
-                        ? (_isEditing
-                            ? "Guardando presupuesto..."
-                            : "Creando presupuesto...")
-                        : (_isEditing
-                            ? "Guardar presupuesto"
-                            : _miembros.isNotEmpty
-                                ? "Crear e invitar"
-                                : "Crear presupuesto"),
-                    isFullWidth: true,
-                    isDisabled: !_canNext() || _isSaving,
-                    onTap: () => _onNextOrSave(),
-                  )
-                : FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: context.menudo.surface,
-                      foregroundColor: context.menudo.textMain,
-                      minimumSize: const Size.fromHeight(56),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(color: context.menudo.border, width: 2),
-                      ),
-                      elevation: 0,
-                    ),
-                    onPressed: (!_canNext() || _isSaving) ? null : () => _onNextOrSave(),
-                    child: Text(
-                      "Siguiente \u2192",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                     ),
                   ),
+                  Row(
+                    children: List.generate(
+                      _steps.length,
+                      (index) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                        height: 8,
+                        width: index <= _step ? 20 : 8,
+                        decoration: BoxDecoration(
+                          color: index < _step
+                              ? context.menudo.primary
+                              : index == _step
+                              ? AppColors.o5
+                              : context.menudo.border,
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    "${_step + 1}/${_steps.length}",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.menudo.textMuted,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
+
+        SizedBox(height: (24)),
+
+        Expanded(
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(bottom: keyboardBottom > 0 ? 20 : 0),
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _buildCurrentStep(),
+            ),
+          ),
+        ),
+
+        // Footer
+        Container(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            12,
+            20,
+            24 + MediaQuery.of(context).viewInsets.bottom,
+          ),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: context.menudo.divider)),
+          ),
+          child: _step == _lastStepIndex || _isSaving
+              ? MenudoButton(
+                  label: _isSaving
+                      ? (_isEditing
+                            ? "Guardando presupuesto..."
+                            : "Creando presupuesto...")
+                      : (_isEditing
+                            ? "Guardar presupuesto"
+                            : _miembros.isNotEmpty
+                            ? "Crear e invitar"
+                            : "Crear presupuesto"),
+                  isFullWidth: true,
+                  isDisabled: !_canNext() || _isSaving,
+                  onTap: () => _onNextOrSave(),
+                )
+              : FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: context.menudo.surface,
+                    foregroundColor: context.menudo.textMain,
+                    minimumSize: const Size.fromHeight(56),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: context.menudo.border, width: 2),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: (!_canNext() || _isSaving)
+                      ? null
+                      : () => _onNextOrSave(),
+                  child: Text(
+                    "Siguiente \u2192",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  ),
+                ),
+        ),
+      ],
+    );
+
+    if (widget.fullScreen) {
+      return Scaffold(
+        backgroundColor: context.menudo.surface,
+        body: SafeArea(bottom: false, child: content),
+      );
+    }
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.95,
+      decoration: BoxDecoration(
+        color: context.menudo.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
+      child: content,
     );
   }
 

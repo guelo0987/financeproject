@@ -220,7 +220,7 @@ class _QuickExpenseShortcutSheetState
       child: Container(
         height: media.size.height * (isCompact ? 0.76 : 0.72),
         decoration: BoxDecoration(
-          color: colors.background,
+          color: colors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(34)),
         ),
         child: Column(
@@ -231,7 +231,7 @@ class _QuickExpenseShortcutSheetState
                 height: 5,
                 width: 40,
                 decoration: BoxDecoration(
-                  color: colors.divider,
+                  color: colors.border,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -551,7 +551,9 @@ class _OneTapCategoryTile extends StatelessWidget {
             vertical: AppSpacing.p10,
           ),
           decoration: BoxDecoration(
-            color: selected ? color.withValues(alpha: 0.13) : colors.background,
+            color: selected
+                ? color.withValues(alpha: 0.13)
+                : colors.surfaceElevated,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: selected ? color.withValues(alpha: 0.8) : colors.border,

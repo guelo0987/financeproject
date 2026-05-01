@@ -11,6 +11,7 @@ import '../../../core/data/models.dart';
 import '../../../core/utils/error_presenter.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_destructive_dialog.dart';
+import '../../../shared/widgets/menudo_toast.dart';
 import '../providers/category_providers.dart';
 
 class CategoriesScreen extends ConsumerStatefulWidget {
@@ -22,6 +23,7 @@ class CategoriesScreen extends ConsumerStatefulWidget {
 
 class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   final _searchCtrl = TextEditingController();
+  String _selectedType = 'gasto';
 
   @override
   void dispose() {
@@ -33,6 +35,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     BuildContext context, {
     MenudoCategory? parent,
     MenudoCategory? category,
+    String? initialType,
   }) {
     MenudoHaptics.medium();
     showModalBottomSheet(
@@ -47,7 +50,9 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         if (category != null) {
           return AddCategorySheet(existingCategory: category);
         }
-        return const _CategoryCreationLauncherSheet();
+        return _CategoryCreationLauncherSheet(
+          initialType: initialType ?? _selectedType,
+        );
       },
     );
   }
@@ -169,6 +174,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   Future<void> _confirmDeleteCategory(MenudoCategory category) async {
     final isParent = category.esParent;
     final label = isParent ? 'grupo' : 'categoría';
+    final rootContext = Navigator.of(context, rootNavigator: true).context;
     final confirm = await MenudoDestructiveDialog.show(
       context: context,
       title: isParent ? 'Eliminar grupo' : 'Eliminar categoría',
@@ -178,7 +184,6 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
     if (confirm != true || !mounted) return;
 
-    final messenger = ScaffoldMessenger.of(context);
     final c = category;
 
     Future<void> restoreCategory() async {
@@ -204,13 +209,21 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               .addCategory(categoryToRestore);
         }
         MenudoHaptics.success();
+        if (rootContext.mounted) {
+          MenudoToast.success(
+            rootContext,
+            title: 'Categoría restaurada',
+            message: c.nombre,
+          );
+        }
       } catch (error) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(presentError(error)),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        if (rootContext.mounted) {
+          MenudoToast.error(
+            rootContext,
+            title: 'No se pudo restaurar',
+            message: presentError(error),
+          );
+        }
       }
     }
 
@@ -218,31 +231,23 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       await ref
           .read(categoryNotifierProvider.notifier)
           .removeCategory(category.id);
-      if (!mounted) return;
+      if (!rootContext.mounted) return;
       MenudoHaptics.success();
 
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text('"${c.nombre}" fue eliminada.'),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 6),
-            action: SnackBarAction(
-              label: 'Deshacer',
-              onPressed: () {
-                unawaited(restoreCategory());
-              },
-            ),
-          ),
-        );
+      MenudoToast.undo(
+        rootContext,
+        title: 'Categoría eliminada',
+        message: c.nombre,
+        onUndo: () {
+          unawaited(restoreCategory());
+        },
+      );
     } catch (error) {
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(presentError(error)),
-          behavior: SnackBarBehavior.floating,
-        ),
+      if (!rootContext.mounted) return;
+      MenudoToast.error(
+        rootContext,
+        title: 'No se pudo eliminar',
+        message: presentError(error),
       );
     }
   }
@@ -272,7 +277,14 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final grouped = ref.watch(groupedCategoriesProvider);
+    final allGrouped = ref.watch(groupedCategoriesProvider);
+    final grouped = {
+      for (final entry in allGrouped.entries)
+        if (entry.key.tipo == _selectedType)
+          entry.key: entry.value
+              .where((category) => category.tipo == _selectedType)
+              .toList(),
+    };
     final entries = _filteredEntries(grouped);
 
     return Scaffold(
@@ -303,7 +315,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: MenudoIconButton(
-              onPressed: () => _showCategorySheet(context),
+              onPressed: () =>
+                  _showCategorySheet(context, initialType: _selectedType),
               style: IconButton.styleFrom(
                 backgroundColor: context.menudo.surface,
                 shape: RoundedRectangleBorder(
@@ -369,6 +382,14 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               ),
             ),
             SizedBox(height: (16)),
+            _CategoryTypeFilter(
+              selectedType: _selectedType,
+              onChanged: (type) {
+                MenudoHaptics.selection();
+                setState(() => _selectedType = type);
+              },
+            ),
+            SizedBox(height: (16)),
             Expanded(
               child: entries.isEmpty
                   ? Center(
@@ -427,8 +448,138 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   }
 }
 
+class _CategoryTypeFilter extends StatelessWidget {
+  final String selectedType;
+  final ValueChanged<String> onChanged;
+
+  const _CategoryTypeFilter({
+    required this.selectedType,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final options = const [
+      _CategoryTypeOption(
+        type: 'gasto',
+        label: 'Gastos',
+        icon: MenudoCupertinoIcons.tag,
+        color: AppColors.r5,
+      ),
+      _CategoryTypeOption(
+        type: 'ingreso',
+        label: 'Ingresos',
+        icon: MenudoCupertinoIcons.trendingUp,
+        color: AppColors.e6,
+      ),
+      _CategoryTypeOption(
+        type: 'transferencia',
+        label: 'Mover',
+        icon: MenudoCupertinoIcons.arrowLeftRight,
+        color: AppColors.b5,
+      ),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: context.menudo.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.menudo.border),
+      ),
+      child: Row(
+        children: [
+          for (final option in options)
+            Expanded(
+              child: _CategoryTypePill(
+                option: option,
+                isSelected: option.type == selectedType,
+                onTap: () => onChanged(option.type),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryTypeOption {
+  final String type;
+  final String label;
+  final IconData icon;
+  final Color color;
+
+  const _CategoryTypeOption({
+    required this.type,
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
+}
+
+class _CategoryTypePill extends StatelessWidget {
+  final _CategoryTypeOption option;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _CategoryTypePill({
+    required this.option,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MenudoGestureDetector(
+      onTap: isSelected ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        constraints: const BoxConstraints(minHeight: 44),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? option.color.withValues(alpha: 0.14)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected
+                ? option.color.withValues(alpha: 0.24)
+                : Colors.transparent,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              option.icon,
+              size: 16,
+              color: isSelected ? option.color : context.menudo.textMuted,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                option.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: isSelected ? option.color : context.menudo.textMuted,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _CategoryCreationLauncherSheet extends ConsumerWidget {
-  const _CategoryCreationLauncherSheet();
+  final String initialType;
+
+  const _CategoryCreationLauncherSheet({required this.initialType});
 
   Future<void> _openSubcategoryCreator(
     BuildContext context,
@@ -452,7 +603,7 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
       useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const AddCategorySheet(),
+      builder: (_) => AddCategorySheet(initialType: initialType),
     );
     if (created == true && context.mounted) {
       Navigator.pop(context, true);
@@ -461,8 +612,13 @@ class _CategoryCreationLauncherSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final parents = ref.watch(groupedCategoriesProvider).keys.toList()
-      ..sort((a, b) => a.nombre.compareTo(b.nombre));
+    final parents =
+        ref
+            .watch(groupedCategoriesProvider)
+            .keys
+            .where((parent) => parent.tipo == initialType)
+            .toList()
+          ..sort((a, b) => a.nombre.compareTo(b.nombre));
     final media = MediaQuery.of(context);
     final bottomPadding = media.padding.bottom;
 
@@ -1021,9 +1177,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    MenudoToast.error(context, title: 'Revisa la categoría', message: message);
   }
 
   void _syncAppearance({bool forceDefaultIcon = false}) {
@@ -1141,6 +1295,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
     final parent = widget.parent;
     final existingCategory = widget.existingCategory;
 
+    final rootContext = Navigator.of(context, rootNavigator: true).context;
     setState(() => _isSaving = true);
     try {
       final category = MenudoCategory(
@@ -1168,6 +1323,15 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
       if (!mounted) return;
       MenudoHaptics.success();
       Navigator.pop(context, true);
+      if (rootContext.mounted) {
+        MenudoToast.success(
+          rootContext,
+          title: existingCategory != null
+              ? 'Categoría actualizada'
+              : 'Categoría creada',
+          message: name,
+        );
+      }
     } catch (error) {
       _showError(presentError(error));
     } finally {

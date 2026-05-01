@@ -13,24 +13,28 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/error_presenter.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../shared/widgets/menudo_button.dart';
+import '../../../../shared/widgets/menudo_toast.dart';
 import '../../auth/auth_state.dart';
 import '../../budgets/budget_providers.dart';
 import '../../categories/providers/category_providers.dart';
-import '../../categories/presentation/category_picker_sheet.dart';
 import '../../transactions/providers/transaction_providers.dart';
 import '../../transactions/presentation/transaction_presentation_utils.dart';
 import '../../wallet/providers/wallet_providers.dart';
+
+enum _TransactionEntryStep { amount, details }
 
 class RegisterTransactionSheet extends ConsumerStatefulWidget {
   final MenudoTransaction? transaction;
   final String? initialType;
   final int? initialFromAccountId;
+  final int? initialBudgetId;
 
   const RegisterTransactionSheet({
     super.key,
     this.transaction,
     this.initialType,
     this.initialFromAccountId,
+    this.initialBudgetId,
   });
 
   @override
@@ -43,6 +47,7 @@ class _RegisterTransactionSheetState
     with SingleTickerProviderStateMixin {
   String _amount = "";
   int _selectedTypeIndex = 0; // 0: Gasto, 1: Ingreso, 2: Transferencia
+  _TransactionEntryStep _step = _TransactionEntryStep.amount;
   int? _budgetId;
   String? _catKey;
   String? _nota;
@@ -50,6 +55,7 @@ class _RegisterTransactionSheetState
   int? _toAccountId;
   bool _isSaving = false;
   String? _formMessage;
+  bool _budgetSelectionInitialized = false;
   late final AnimationController _shakeController;
   late final Animation<double> _shakeOffset;
 
@@ -78,6 +84,11 @@ class _RegisterTransactionSheetState
       };
     }
 
+    if (!_isEditing && widget.initialBudgetId != null) {
+      _budgetId = widget.initialBudgetId;
+      _budgetSelectionInitialized = true;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_isEditing) return;
 
@@ -98,6 +109,7 @@ class _RegisterTransactionSheetState
 
     if (_isEditing) {
       final txn = widget.transaction!;
+      _step = _TransactionEntryStep.details;
       _amount = txn.monto.abs().toStringAsFixed(
         txn.monto.abs() % 1 == 0 ? 0 : 2,
       );
@@ -187,6 +199,37 @@ class _RegisterTransactionSheetState
     });
   }
 
+  void _goToDetails(List<WalletAccount> wallets) {
+    final amountValue = double.tryParse(_amount) ?? 0;
+    if (amountValue <= 0) {
+      _showError('Escribe un monto mayor que cero.');
+      return;
+    }
+
+    final hasFromAccount =
+        _fromAccountId != null &&
+        wallets.any((wallet) => wallet.id == _fromAccountId);
+    if (!hasFromAccount) {
+      _showError('Agrega una cuenta para guardar este movimiento.');
+      return;
+    }
+
+    MenudoHaptics.medium();
+    setState(() {
+      _formMessage = null;
+      _step = _TransactionEntryStep.details;
+    });
+  }
+
+  void _returnToAmount() {
+    if (_isEditing) return;
+    MenudoHaptics.light();
+    setState(() {
+      _formMessage = null;
+      _step = _TransactionEntryStep.amount;
+    });
+  }
+
   Future<void> _saveTransaction() async {
     if (_isSaving) return;
 
@@ -272,7 +315,7 @@ class _RegisterTransactionSheetState
           DateTime.now().toIso8601String().split('T').first,
       desc: description,
       catKey: _selectedType == 'transferencia' ? '' : _catKey!,
-      budgetId: _budgetId,
+      budgetId: _selectedType == 'transferencia' ? null : _budgetId,
       categoryId: _selectedType == 'transferencia'
           ? null
           : selectedCategory?.id,
@@ -306,8 +349,16 @@ class _RegisterTransactionSheetState
       await ref.read(budgetNotifierProvider.notifier).refresh();
 
       if (!mounted) return;
+      final rootContext = Navigator.of(context, rootNavigator: true).context;
       MenudoHaptics.success();
       Navigator.pop(context);
+      if (rootContext.mounted) {
+        MenudoToast.success(
+          rootContext,
+          title: _isEditing ? 'Movimiento actualizado' : 'Movimiento guardado',
+          message: transaction.desc,
+        );
+      }
     } catch (error) {
       _showError(presentError(error));
     } finally {
@@ -378,6 +429,52 @@ class _RegisterTransactionSheetState
         configured;
   }
 
+  List<_CategoryChoiceGroup> _categoryGroupsFor(
+    List<MenudoCategory> categories,
+  ) {
+    final filtered = categories
+        .where((category) => category.tipo == _selectedType)
+        .toList();
+    final parents = filtered.where((category) => category.esParent).toList()
+      ..sort((a, b) => a.nombre.compareTo(b.nombre));
+    final children = filtered.where((category) => !category.esParent).toList()
+      ..sort((a, b) => a.nombre.compareTo(b.nombre));
+    final childrenByParent = <int?, List<MenudoCategory>>{};
+
+    for (final child in children) {
+      childrenByParent
+          .putIfAbsent(child.categoriaParadreId, () => [])
+          .add(child);
+    }
+
+    final groups = <_CategoryChoiceGroup>[
+      for (final parent in parents)
+        if ((childrenByParent[parent.id] ?? const <MenudoCategory>[])
+            .isNotEmpty)
+          _CategoryChoiceGroup(
+            parent: parent,
+            categories: childrenByParent[parent.id]!,
+          ),
+    ];
+
+    final orphanCategories = childrenByParent.entries
+        .where(
+          (entry) =>
+              entry.key == null ||
+              !parents.any((parent) => parent.id == entry.key),
+        )
+        .expand((entry) => entry.value)
+        .toList();
+
+    if (orphanCategories.isNotEmpty) {
+      groups.add(
+        _CategoryChoiceGroup(parent: null, categories: orphanCategories),
+      );
+    }
+
+    return groups;
+  }
+
   void _maybeSeedFromAccount(List<WalletAccount> wallets) {
     if (wallets.isEmpty) return;
 
@@ -406,6 +503,28 @@ class _RegisterTransactionSheetState
       setState(() {
         _fromAccountId = fallbackId;
       });
+    });
+  }
+
+  void _maybeSeedBudget(List<MenudoBudget> budgets) {
+    if (_isEditing || _budgetSelectionInitialized || budgets.isEmpty) return;
+
+    final preferredBudgetId =
+        widget.initialBudgetId ?? ref.read(selectedBudgetIdProvider);
+    final activeBudget = budgets.where((budget) => budget.activo).firstOrNull;
+    final fallbackBudgetId = activeBudget?.id ?? budgets.first.id;
+    final nextBudgetId =
+        preferredBudgetId != null &&
+            budgets.any((budget) => budget.id == preferredBudgetId)
+        ? preferredBudgetId
+        : fallbackBudgetId;
+
+    _budgetSelectionInitialized = true;
+    if (_budgetId == nextBudgetId) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _budgetId != null) return;
+      setState(() => _budgetId = nextBudgetId);
     });
   }
 
@@ -475,28 +594,6 @@ class _RegisterTransactionSheetState
     return '$whole.${parts.sublist(1).join()}';
   }
 
-  Future<void> _pickCategory() async {
-    if (_selectedType == 'transferencia') return;
-
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => CategoryPickerSheet(
-        initialCatKey: _catKey,
-        allowedType: _selectedType,
-      ),
-    );
-
-    if (selected != null && mounted) {
-      setState(() {
-        _catKey = selected;
-        _formMessage = null;
-      });
-    }
-  }
-
   Future<void> _pickBudget(List<MenudoBudget> budgets) async {
     if (budgets.isEmpty) return;
 
@@ -557,6 +654,7 @@ class _RegisterTransactionSheetState
     final wallets = ref.watch(effectiveWalletsProvider);
     _maybeSeedFromAccount(wallets);
     final budgets = ref.watch(effectiveBudgetsProvider);
+    _maybeSeedBudget(budgets);
     final categories = ref.watch(effectiveCategoriesProvider);
     final categoriesBySlug = {
       for (final category in categories) category.slug: category,
@@ -587,6 +685,26 @@ class _RegisterTransactionSheetState
         media.padding.bottom + (compactSheet ? 8.0 : 10.0);
     final amountPrefix = currencyPrefix(_transactionCurrencyFor(wallets));
 
+    final categoryChoiceGroups = _categoryGroupsFor(categories);
+    final isAmountStep = _step == _TransactionEntryStep.amount && !_isEditing;
+    final canContinue = amountValue > 0 && !_isSaving;
+    final showMissingFields = !isAmountStep && missingFields.isNotEmpty;
+    final primaryLabel = isAmountStep
+        ? switch (_selectedType) {
+            'ingreso' => 'Registrar ingreso',
+            'transferencia' => 'Preparar movimiento',
+            _ => 'Registrar gasto',
+          }
+        : _isSaving
+        ? 'Guardando movimiento...'
+        : _isEditing
+        ? 'Guardar movimiento'
+        : switch (_selectedType) {
+            'ingreso' => 'Guardar ingreso',
+            'transferencia' => 'Mover dinero',
+            _ => 'Guardar gasto',
+          };
+
     return Container(
       height: media.size.height * (compactSheet ? 0.95 : 0.92),
       decoration: BoxDecoration(
@@ -608,203 +726,202 @@ class _RegisterTransactionSheetState
           ),
           Padding(
             padding: EdgeInsets.fromLTRB(
-              24,
-              compactSheet ? 10 : 14,
-              24,
-              compactSheet ? 14 : 20,
+              20,
+              compactSheet ? 6 : 10,
+              20,
+              compactSheet ? 12 : 16,
             ),
-            child: Container(
-              decoration: BoxDecoration(
-                color: context.menudo.surface,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              padding: const EdgeInsets.all(4),
-              child: Row(
-                children: [
-                  _TypeSegment(
-                    label: 'Gasto',
-                    index: 0,
-                    current: _selectedTypeIndex,
-                    onTap: _setTypeIndex,
-                  ),
-                  _TypeSegment(
-                    label: 'Ingreso',
-                    index: 1,
-                    current: _selectedTypeIndex,
-                    onTap: _setTypeIndex,
-                  ),
-                  _TypeSegment(
-                    label: 'Mover',
-                    index: 2,
-                    current: _selectedTypeIndex,
-                    onTap: _setTypeIndex,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.only(bottom: compactSheet ? 4 : 8),
             child: Column(
               children: [
                 Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text(
-                            isTransfer
-                                ? amountPrefix
-                                : (_selectedTypeIndex == 1
-                                      ? '+$amountPrefix'
-                                      : '-$amountPrefix'),
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: _accentColor.withValues(alpha: 0.4),
-                            ),
-                          ),
+                  children: [
+                    if (!isAmountStep && !_isEditing) ...[
+                      MenudoIconButton(
+                        onPressed: _returnToAmount,
+                        icon: Icon(
+                          MenudoCupertinoIcons.chevronLeft,
+                          color: context.menudo.textMain,
                         ),
-                        SizedBox(width: (10)),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 160),
-                          transitionBuilder: (child, animation) =>
-                              FadeTransition(
-                                opacity: animation,
-                                child: SlideTransition(
-                                  position: Tween<Offset>(
-                                    begin: const Offset(0, 0.08),
-                                    end: Offset.zero,
-                                  ).animate(animation),
-                                  child: child,
-                                ),
-                              ),
-                          child: Text(
-                            _formattedAmountDisplay(),
-                            key: ValueKey('${_selectedTypeIndex}_$_amount'),
-                            style: TextStyle(
-                              fontSize: compactSheet ? 42 : 48,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -2,
-                              color: _accentColor,
-                            ),
-                          ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: context.menudo.surface,
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                      ],
-                    )
-                    .animate(key: ValueKey(_selectedTypeIndex))
-                    .fadeIn()
-                    .scale(begin: const Offset(0.95, 0.95)),
-                SizedBox(height: (10)),
-                Text(
-                  isTransfer
+                        padding: const EdgeInsets.all(4),
+                        child: Row(
+                          children: [
+                            _TypeSegment(
+                              label: 'Gasto',
+                              index: 0,
+                              current: _selectedTypeIndex,
+                              onTap: _setTypeIndex,
+                            ),
+                            _TypeSegment(
+                              label: 'Ingreso',
+                              index: 1,
+                              current: _selectedTypeIndex,
+                              onTap: _setTypeIndex,
+                            ),
+                            _TypeSegment(
+                              label: 'Mover',
+                              index: 2,
+                              current: _selectedTypeIndex,
+                              onTap: _setTypeIndex,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: compactSheet ? 14 : 20),
+                _AmountHero(
+                  prefix: isTransfer
+                      ? amountPrefix
+                      : (_selectedTypeIndex == 1
+                            ? '+$amountPrefix'
+                            : '-$amountPrefix'),
+                  amount: _formattedAmountDisplay(),
+                  accentColor: _accentColor,
+                  isCompact: compactSheet,
+                  isFocused: isAmountStep,
+                  subtitle: isTransfer
                       ? 'Mover entre tus cuentas'
                       : _selectedTypeIndex == 1
-                      ? 'Registrar ingreso'
-                      : 'Registrar gasto',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: context.menudo.textMuted,
-                  ),
+                      ? 'Ingreso'
+                      : 'Gasto',
                 ),
               ],
             ),
           ),
           Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(20, compactSheet ? 4 : 2, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (isTransfer) ...[
-                    if (stackFieldPairs) ...[
-                      _FieldCard(
-                        icon: MenudoCupertinoIcons.arrowUpFromLine,
-                        color: AppColors.e6,
-                        label: 'Origen',
-                        value: _accountName(_fromAccountId, wallets),
-                        onTap: () =>
-                            _pickAccount(isFrom: true, wallets: wallets),
-                        isPlaceholder: _fromAccountId == null,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.04, 0),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                );
+              },
+              child: isAmountStep
+                  ? _AmountOnlyStage(
+                      key: const ValueKey('amount-stage'),
+                      accountName: _accountName(_fromAccountId, wallets),
+                      hasAccount: _fromAccountId != null,
+                      accentColor: _accentColor,
+                      onAccountTap: () =>
+                          _pickAccount(isFrom: true, wallets: wallets),
+                    )
+                  : SingleChildScrollView(
+                      key: const ValueKey('details-stage'),
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.fromLTRB(
+                        20,
+                        compactSheet ? 4 : 2,
+                        20,
+                        0,
                       ),
-                      SizedBox(height: (12)),
-                      _FieldCard(
-                        icon: MenudoCupertinoIcons.arrowDownToLine,
-                        color: AppColors.b5,
-                        label: 'Destino',
-                        value: _accountName(_toAccountId, wallets),
-                        onTap: () =>
-                            _pickAccount(isFrom: false, wallets: wallets),
-                        isPlaceholder: _toAccountId == null,
-                      ),
-                    ] else
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _FieldCard(
-                              icon: MenudoCupertinoIcons.arrowUpFromLine,
-                              color: AppColors.e6,
-                              label: 'Origen',
-                              value: _accountName(_fromAccountId, wallets),
-                              onTap: () =>
-                                  _pickAccount(isFrom: true, wallets: wallets),
-                              isPlaceholder: _fromAccountId == null,
-                            ),
-                          ),
-                          SizedBox(width: (12)),
-                          Expanded(
-                            child: _FieldCard(
-                              icon: MenudoCupertinoIcons.arrowDownToLine,
-                              color: AppColors.b5,
-                              label: 'Destino',
-                              value: _accountName(_toAccountId, wallets),
-                              onTap: () =>
-                                  _pickAccount(isFrom: false, wallets: wallets),
-                              isPlaceholder: _toAccountId == null,
-                            ),
-                          ),
-                        ],
-                      ),
-                  ] else ...[
-                    if (stackFieldPairs) ...[
-                      _FieldCard(
-                        icon: MenudoCupertinoIcons.tag,
-                        color: AppColors.o5,
-                        label: 'Categoría',
-                        value: categoryLabel,
-                        onTap: _pickCategory,
-                        isPlaceholder: selectedCategory == null,
-                      ),
-                      SizedBox(height: (12)),
-                      _FieldCard(
-                        icon: MenudoCupertinoIcons.landmark,
-                        color: AppColors.b5,
-                        label: 'Cuenta',
-                        value: _accountName(_fromAccountId, wallets),
-                        onTap: () =>
-                            _pickAccount(isFrom: true, wallets: wallets),
-                        isPlaceholder: _fromAccountId == null,
-                      ),
-                    ] else
-                      Row(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: _FieldCard(
-                              icon: MenudoCupertinoIcons.tag,
-                              color: AppColors.o5,
-                              label: 'Categoría',
-                              value: categoryLabel,
-                              onTap: _pickCategory,
-                              isPlaceholder: selectedCategory == null,
+                          if (isTransfer) ...[
+                            if (stackFieldPairs) ...[
+                              _FieldCard(
+                                icon: MenudoCupertinoIcons.arrowUpFromLine,
+                                color: AppColors.e6,
+                                label: 'Origen',
+                                value: _accountName(_fromAccountId, wallets),
+                                onTap: () => _pickAccount(
+                                  isFrom: true,
+                                  wallets: wallets,
+                                ),
+                                isPlaceholder: _fromAccountId == null,
+                              ),
+                              SizedBox(height: (12)),
+                              _FieldCard(
+                                icon: MenudoCupertinoIcons.arrowDownToLine,
+                                color: AppColors.b5,
+                                label: 'Destino',
+                                value: _accountName(_toAccountId, wallets),
+                                onTap: () => _pickAccount(
+                                  isFrom: false,
+                                  wallets: wallets,
+                                ),
+                                isPlaceholder: _toAccountId == null,
+                              ),
+                            ] else
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _FieldCard(
+                                      icon:
+                                          MenudoCupertinoIcons.arrowUpFromLine,
+                                      color: AppColors.e6,
+                                      label: 'Origen',
+                                      value: _accountName(
+                                        _fromAccountId,
+                                        wallets,
+                                      ),
+                                      onTap: () => _pickAccount(
+                                        isFrom: true,
+                                        wallets: wallets,
+                                      ),
+                                      isPlaceholder: _fromAccountId == null,
+                                    ),
+                                  ),
+                                  SizedBox(width: (12)),
+                                  Expanded(
+                                    child: _FieldCard(
+                                      icon:
+                                          MenudoCupertinoIcons.arrowDownToLine,
+                                      color: AppColors.b5,
+                                      label: 'Destino',
+                                      value: _accountName(
+                                        _toAccountId,
+                                        wallets,
+                                      ),
+                                      onTap: () => _pickAccount(
+                                        isFrom: false,
+                                        wallets: wallets,
+                                      ),
+                                      isPlaceholder: _toAccountId == null,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ] else ...[
+                            _CategoryChoicePanel(
+                              title: _selectedTypeIndex == 1
+                                  ? 'Elige el origen'
+                                  : 'Elige la categoría',
+                              subtitle: categoryLabel,
+                              selectedCategory: selectedCategory,
+                              selectedParent: selectedParent,
+                              groups: categoryChoiceGroups,
+                              selectedKey: _catKey,
+                              accentColor: _accentColor,
+                              onSelected: (category) {
+                                MenudoHaptics.selection();
+                                setState(() {
+                                  _catKey = category.slug;
+                                  _formMessage = null;
+                                });
+                              },
                             ),
-                          ),
-                          SizedBox(width: (12)),
-                          Expanded(
-                            child: _FieldCard(
+                            SizedBox(height: (12)),
+                            _FieldCard(
                               icon: MenudoCupertinoIcons.landmark,
                               color: AppColors.b5,
                               label: 'Cuenta',
@@ -813,29 +930,27 @@ class _RegisterTransactionSheetState
                                   _pickAccount(isFrom: true, wallets: wallets),
                               isPlaceholder: _fromAccountId == null,
                             ),
+                            SizedBox(height: (12)),
+                            _InfoStrip(
+                              isGeneralMode: _budgetId == null,
+                              budgetName: budgetLabel,
+                              onBudgetTap: budgets.isEmpty
+                                  ? null
+                                  : () => _pickBudget(budgets),
+                            ),
+                          ],
+                          SizedBox(height: (12)),
+                          _SecondaryActionCard(
+                            icon: MenudoCupertinoIcons.fileText,
+                            color: AppColors.p5,
+                            label: 'Nota',
+                            value: noteLabel,
+                            onTap: _showNoteDialog,
                           ),
+                          SizedBox(height: (16)),
                         ],
                       ),
-                  ],
-                  SizedBox(height: (12)),
-                  _InfoStrip(
-                    isGeneralMode: _budgetId == null,
-                    budgetName: budgetLabel,
-                    onBudgetTap: budgets.isEmpty
-                        ? null
-                        : () => _pickBudget(budgets),
-                  ),
-                  SizedBox(height: (12)),
-                  _SecondaryActionCard(
-                    icon: MenudoCupertinoIcons.fileText,
-                    color: AppColors.p5,
-                    label: 'Nota',
-                    value: noteLabel,
-                    onTap: _showNoteDialog,
-                  ),
-                  SizedBox(height: (16)),
-                ],
-              ),
+                    ),
             ),
           ),
           Container(
@@ -856,9 +971,11 @@ class _RegisterTransactionSheetState
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _Numpad(onKeyTap: _onKeyTap),
-                SizedBox(height: (12)),
-                if (_formMessage != null || missingFields.isNotEmpty) ...[
+                if (isAmountStep) ...[
+                  _Numpad(onKeyTap: _onKeyTap),
+                  SizedBox(height: (12)),
+                ],
+                if (_formMessage != null || showMissingFields) ...[
                   AnimatedBuilder(
                     animation: _shakeOffset,
                     child: Container(
@@ -880,7 +997,7 @@ class _RegisterTransactionSheetState
                       ),
                       child: Text(
                         _formMessage ??
-                            'Falta ${_missingFieldsLabel(missingFields)} para registrar este movimiento.',
+                            'Falta ${_missingFieldsLabel(missingFields)} para guardar este movimiento.',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -898,14 +1015,11 @@ class _RegisterTransactionSheetState
                   SizedBox(height: (12)),
                 ],
                 MenudoButton(
-                  label: _isSaving
-                      ? "Guardando movimiento..."
-                      : (_isEditing
-                            ? "Guardar movimiento"
-                            : "Registrar movimiento"),
+                  label: primaryLabel,
                   isFullWidth: true,
-                  isDisabled: !canSubmit,
-                  onTap: () => _saveTransaction(),
+                  isDisabled: isAmountStep ? !canContinue : !canSubmit,
+                  onTap: () =>
+                      isAmountStep ? _goToDetails(wallets) : _saveTransaction(),
                 ),
               ],
             ),
@@ -1144,6 +1258,599 @@ class _InfoStripItem extends StatelessWidget {
       },
       behavior: HitTestBehavior.opaque,
       child: child,
+    );
+  }
+}
+
+class _AmountHero extends StatelessWidget {
+  final String prefix;
+  final String amount;
+  final String subtitle;
+  final Color accentColor;
+  final bool isCompact;
+  final bool isFocused;
+
+  const _AmountHero({
+    required this.prefix,
+    required this.amount,
+    required this.subtitle,
+    required this.accentColor,
+    required this.isCompact,
+    required this.isFocused,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final amountFont = isFocused
+        ? (isCompact ? 58.0 : 68.0)
+        : (isCompact ? 38.0 : 44.0);
+
+    return Column(
+      children: [
+        AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(
+                horizontal: isFocused ? 18 : 14,
+                vertical: isFocused ? 16 : 10,
+              ),
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: isFocused ? 0.10 : 0.06),
+                borderRadius: BorderRadius.circular(isFocused ? 30 : 24),
+                border: Border.all(
+                  color: accentColor.withValues(alpha: isFocused ? 0.18 : 0.10),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(bottom: isFocused ? 14 : 8),
+                    child: Text(
+                      prefix,
+                      style: TextStyle(
+                        fontSize: isFocused ? 22 : 18,
+                        fontWeight: FontWeight.w800,
+                        color: accentColor.withValues(alpha: 0.52),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 160),
+                      transitionBuilder: (child, animation) => FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, 0.06),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        ),
+                      ),
+                      child: Text(
+                        amount,
+                        key: ValueKey(amount),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: amountFont,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0,
+                          color: accentColor,
+                          height: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+            .animate(key: ValueKey(isFocused))
+            .fadeIn()
+            .scale(begin: const Offset(0.97, 0.97)),
+        const SizedBox(height: 10),
+        Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: context.menudo.textMuted,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AmountOnlyStage extends StatelessWidget {
+  final String accountName;
+  final bool hasAccount;
+  final Color accentColor;
+  final VoidCallback onAccountTap;
+
+  const _AmountOnlyStage({
+    super.key,
+    required this.accountName,
+    required this.hasAccount,
+    required this.accentColor,
+    required this.onAccountTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 2, 20, 8),
+      physics: const BouncingScrollPhysics(),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: context.menudo.surface,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: context.menudo.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  MenudoCupertinoIcons.landmark,
+                  color: accentColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Cuenta',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: context.menudo.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      accountName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: hasAccount
+                            ? context.menudo.textMain
+                            : context.menudo.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              MenudoIconButton(
+                onPressed: onAccountTap,
+                icon: Icon(
+                  MenudoCupertinoIcons.chevronRight,
+                  color: context.menudo.textMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CategoryChoicePanel extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final MenudoCategory? selectedCategory;
+  final MenudoCategory? selectedParent;
+  final List<_CategoryChoiceGroup> groups;
+  final String? selectedKey;
+  final Color accentColor;
+  final ValueChanged<MenudoCategory> onSelected;
+
+  const _CategoryChoicePanel({
+    required this.title,
+    required this.subtitle,
+    required this.selectedCategory,
+    required this.selectedParent,
+    required this.groups,
+    required this.selectedKey,
+    required this.accentColor,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.menudo;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: accentColor.withValues(alpha: 0.16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: colors.textMain,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: colors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(MenudoCupertinoIcons.tag, color: accentColor),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _SelectedCategorySummary(
+            selectedCategory: selectedCategory,
+            selectedParent: selectedParent,
+            fallbackLabel: subtitle,
+            accentColor: accentColor,
+          ),
+          const SizedBox(height: 14),
+          if (groups.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: colors.background,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: colors.border),
+              ),
+              child: Text(
+                'No hay categorías disponibles todavía.',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: colors.textSecondary,
+                ),
+              ),
+            )
+          else
+            Column(
+              children: [
+                for (var index = 0; index < groups.length; index++) ...[
+                  _CategoryChoiceGroupSection(
+                    group: groups[index],
+                    selectedKey: selectedKey,
+                    accentColor: accentColor,
+                    onSelected: onSelected,
+                  ),
+                  if (index != groups.length - 1) const SizedBox(height: 12),
+                ],
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryChoiceGroup {
+  final MenudoCategory? parent;
+  final List<MenudoCategory> categories;
+
+  const _CategoryChoiceGroup({required this.parent, required this.categories});
+}
+
+class _SelectedCategorySummary extends StatelessWidget {
+  final MenudoCategory? selectedCategory;
+  final MenudoCategory? selectedParent;
+  final String fallbackLabel;
+  final Color accentColor;
+
+  const _SelectedCategorySummary({
+    required this.selectedCategory,
+    required this.selectedParent,
+    required this.fallbackLabel,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.menudo;
+    final category = selectedCategory;
+    final parent = selectedParent;
+    final hasSelection = category != null;
+    final displayColor = category?.color ?? accentColor;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: hasSelection
+            ? displayColor.withValues(alpha: 0.12)
+            : colors.background,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: hasSelection
+              ? displayColor.withValues(alpha: 0.32)
+              : colors.border,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: displayColor.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              category?.icono ?? MenudoCupertinoIcons.tag,
+              color: displayColor,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hasSelection ? category.nombre : fallbackLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: hasSelection ? colors.textMain : colors.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  hasSelection && parent != null
+                      ? parent.nombre
+                      : 'Agrupadas por categoría padre',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (hasSelection)
+            Icon(MenudoCupertinoIcons.checkCircle, color: displayColor),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryChoiceGroupSection extends StatelessWidget {
+  final _CategoryChoiceGroup group;
+  final String? selectedKey;
+  final Color accentColor;
+  final ValueChanged<MenudoCategory> onSelected;
+
+  const _CategoryChoiceGroupSection({
+    required this.group,
+    required this.selectedKey,
+    required this.accentColor,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.menudo;
+    final parent = group.parent;
+    final groupColor = parent?.color ?? accentColor;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.background,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: groupColor.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: groupColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  parent?.icono ?? MenudoCupertinoIcons.layoutGrid,
+                  color: groupColor,
+                  size: 17,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  parent?.nombre ?? 'Sin grupo',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: colors.textMain,
+                  ),
+                ),
+              ),
+              Text(
+                '${group.categories.length}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: colors.textMuted,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth < 360 ? 2 : 3;
+              final spacing = 10.0;
+              final tileWidth =
+                  (constraints.maxWidth - spacing * (columns - 1)) / columns;
+
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: [
+                  for (final category in group.categories)
+                    _CategoryChoiceTile(
+                      width: tileWidth,
+                      category: category,
+                      parentColor: groupColor,
+                      isSelected: category.slug == selectedKey,
+                      onTap: () => onSelected(category),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryChoiceTile extends StatelessWidget {
+  final double width;
+  final MenudoCategory category;
+  final Color parentColor;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _CategoryChoiceTile({
+    required this.width,
+    required this.category,
+    required this.parentColor,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: MenudoGestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          constraints: const BoxConstraints(minHeight: 94),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? category.color.withValues(alpha: 0.16)
+                : context.menudo.background,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isSelected
+                  ? category.color.withValues(alpha: 0.55)
+                  : parentColor.withValues(alpha: 0.12),
+              width: isSelected ? 1.4 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: category.color.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      category.icono,
+                      color: category.color,
+                      size: 18,
+                    ),
+                  ),
+                  const Spacer(),
+                  AnimatedOpacity(
+                    duration: const Duration(milliseconds: 160),
+                    opacity: isSelected ? 1 : 0,
+                    child: Icon(
+                      MenudoCupertinoIcons.checkCircle,
+                      size: 18,
+                      color: category.color,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                category.nombre,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w900,
+                  color: context.menudo.textMain,
+                  height: 1.08,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

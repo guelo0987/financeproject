@@ -15,6 +15,7 @@ import '../../../core/utils/external_links.dart';
 import '../../../services/subscription_service.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_logo.dart';
+import '../../../shared/widgets/menudo_toast.dart';
 import '../../../utils/app_env.dart';
 import '../subscription_provider.dart';
 import '../subscription_state.dart';
@@ -390,13 +391,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   void _showSnack(String message, {bool isError = true}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? null : context.menudo.textMain,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (isError) {
+      MenudoToast.error(
+        context,
+        title: 'No se pudo completar',
+        message: message,
+      );
+    } else {
+      MenudoToast.success(context, title: message);
+    }
   }
 
   @override
@@ -1122,9 +1125,7 @@ class _PlanCard extends StatelessWidget {
               height: (22),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: selected
-                    ? context.menudo.surface
-                    : Colors.transparent,
+                color: selected ? context.menudo.surface : Colors.transparent,
                 border: Border.all(
                   color: selected
                       ? context.menudo.surface
@@ -1171,9 +1172,7 @@ class _PlanCard extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: selected
-                                ? context.menudo.surface.withValues(
-                                    alpha: 0.18,
-                                  )
+                                ? context.menudo.surface.withValues(alpha: 0.18)
                                 : badgeColor!.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(100),
                           ),
@@ -1225,9 +1224,7 @@ class _PlanCard extends StatelessWidget {
                         period,
                         style: MenudoTextStyles.bodySmall.copyWith(
                           color: selected
-                              ? context.menudo.surface.withValues(
-                                  alpha: 0.65,
-                                )
+                              ? context.menudo.surface.withValues(alpha: 0.65)
                               : context.menudo.textSecondary,
                         ),
                       ),

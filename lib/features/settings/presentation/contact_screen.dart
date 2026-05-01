@@ -11,6 +11,7 @@ import '../../../core/utils/external_links.dart';
 import '../../../core/utils/menudo_haptics.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_card.dart';
+import '../../../shared/widgets/menudo_toast.dart';
 import '../../../utils/app_env.dart';
 
 class ContactScreen extends ConsumerStatefulWidget {
@@ -24,6 +25,7 @@ class _ContactScreenState extends ConsumerState<ContactScreen> {
   void _copyEmail() {
     Clipboard.setData(ClipboardData(text: AppEnv.feedbackEmail));
     MenudoHaptics.success();
+    MenudoToast.success(context, title: 'Correo copiado');
   }
 
   void _openEmail() {

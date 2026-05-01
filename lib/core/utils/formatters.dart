@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../preferences/app_preferences.dart';
 
@@ -90,6 +91,40 @@ String formatMoneyInputValue(double value, {String currency = ''}) {
     '#,##0.##',
     moneyLocaleForCurrency(effectiveCurrency),
   ).format(value.abs());
+}
+
+class ThousandsNumberInputFormatter extends TextInputFormatter {
+  const ThousandsNumberInputFormatter({this.maxDigits = 12});
+
+  final int maxDigits;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digitsOnly.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+
+    final limited = digitsOnly.length > maxDigits
+        ? digitsOnly.substring(0, maxDigits)
+        : digitsOnly;
+    final normalized = limited.replaceFirst(RegExp(r'^0+(?=\d)'), '');
+    final formatted = normalized.replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (match) => '${match[1]},',
+    );
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
 }
 
 String formatMoney(

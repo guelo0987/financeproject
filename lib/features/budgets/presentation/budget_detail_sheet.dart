@@ -9,6 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import 'package:financeproject/shared/widgets/menudo_destructive_dialog.dart';
+import 'package:financeproject/shared/widgets/menudo_toast.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../core/preferences/app_preferences.dart';
@@ -120,13 +121,14 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
         break;
       }
     }
-    final updated = await showModalBottomSheet<bool>(
-      context: context,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) =>
-          CreateBudgetWizard(initialBudget: latestBudget, initialStep: 2),
+    final updated = await Navigator.of(context, rootNavigator: true).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => CreateBudgetWizard(
+          initialBudget: latestBudget,
+          initialStep: 2,
+          fullScreen: true,
+        ),
+      ),
     );
     if (updated == true && mounted) {
       navigator.pop();
@@ -134,6 +136,9 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   }
 
   Future<void> _deleteBudget() async {
+    final budgetNotifier = ref.read(budgetControllerProvider.notifier);
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
+    final rootContext = rootNavigator.context;
     final confirm = await MenudoDestructiveDialog.show(
       context: context,
       title: 'Eliminar presupuesto',
@@ -144,57 +149,58 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
 
     if (confirm != true || !mounted) return;
 
-    final messenger = ScaffoldMessenger.of(context);
-    final b = widget.budget;
+    final b = _currentBudget();
+    final incomeDetails = <int, double>{...b.incomePlan};
+    for (final source in b.incomeSources) {
+      final categoryId = source.categoryId;
+      if (categoryId != null && source.planned > 0) {
+        incomeDetails[categoryId] = source.planned;
+      }
+    }
 
     Future<void> restoreBudget() async {
       try {
-        await ref.read(budgetControllerProvider.notifier).createBudget(
-              b,
-              const {},
-              const {},
-            );
+        await budgetNotifier.createBudget(b, const {}, incomeDetails);
         MenudoHaptics.success();
+        if (rootContext.mounted) {
+          MenudoToast.success(
+            rootContext,
+            title: 'Presupuesto restaurado',
+            message: b.nombre,
+          );
+        }
       } catch (error) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(presentError(error)),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        if (rootContext.mounted) {
+          MenudoToast.error(
+            rootContext,
+            title: 'No se pudo restaurar',
+            message: presentError(error),
+          );
+        }
       }
     }
 
     try {
-      await ref
-          .read(budgetControllerProvider.notifier)
-          .deleteBudget(widget.budget.id);
-      if (!mounted) return;
+      await budgetNotifier.deleteBudget(widget.budget.id);
+      if (!rootContext.mounted) return;
       MenudoHaptics.success();
-      Navigator.of(context).pop(true);
-
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text('"${b.nombre}" fue eliminado.'),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 6),
-            action: SnackBarAction(
-              label: 'Deshacer',
-              onPressed: () {
-                unawaited(restoreBudget());
-              },
-            ),
-          ),
-        );
+      if (mounted) {
+        Navigator.of(context).pop(true);
+      }
+      MenudoToast.undo(
+        rootContext,
+        title: 'Presupuesto eliminado',
+        message: b.nombre,
+        onUndo: () {
+          unawaited(restoreBudget());
+        },
+      );
     } catch (error) {
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(presentError(error)),
-          behavior: SnackBarBehavior.floating,
-        ),
+      if (!rootContext.mounted) return;
+      MenudoToast.error(
+        rootContext,
+        title: 'No se pudo eliminar',
+        message: presentError(error),
       );
     }
   }
@@ -321,11 +327,10 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(presentError(error)),
-          behavior: SnackBarBehavior.floating,
-        ),
+      MenudoToast.error(
+        context,
+        title: 'No se pudo salir',
+        message: presentError(error),
       );
     }
   }
@@ -876,8 +881,9 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
       });
     final double spent = displayBudget.totalSpent;
     final double left = displayBudget.availableToSpend;
-    final bool isShared =
-        _members.length > 1 || displayBudget.espacioId != null;
+    final bool isShared = _members.any(
+      (member) => !member.isOwner && member.userId != displayBudget.ownerUserId,
+    );
     final auth = ref.watch(authProvider);
     final currentUserId =
         auth.profile?.userId ?? int.tryParse(auth.userId ?? '');
@@ -985,7 +991,9 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
                           useRootNavigator: true,
                           isScrollControlled: true,
                           backgroundColor: Colors.transparent,
-                          builder: (_) => const RegisterTransactionSheet(),
+                          builder: (_) => RegisterTransactionSheet(
+                            initialBudgetId: displayBudget.id,
+                          ),
                         );
                       },
                     ),
@@ -1057,13 +1065,14 @@ class _BudgetDetailSheetState extends ConsumerState<BudgetDetailSheet> {
   }
 
   Widget _buildSharedBudgetSection({required bool isShared}) {
+    final collaborators = _members.where((member) => !member.isOwner).toList();
     final previewMembers = _members.take(3).toList();
     final extraMembers = _members.length - previewMembers.length;
     final title = isShared ? 'Presupuesto compartido' : 'Compartir presupuesto';
     final subtitle = _isLoadingMembers
         ? 'Preparando accesos...'
         : isShared
-        ? '${_members.length} miembro${_members.length == 1 ? '' : 's'} con acceso'
+        ? '${collaborators.length} colaborador${collaborators.length == 1 ? '' : 'es'} con acceso'
         : 'Invita hasta 3 personas por correo';
     final actionLabel = isShared ? 'Abrir' : 'Invitar';
 
@@ -2304,11 +2313,10 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
       MenudoHaptics.success();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(presentError(error)),
-          behavior: SnackBarBehavior.floating,
-        ),
+      MenudoToast.error(
+        context,
+        title: 'No se pudo quitar',
+        message: presentError(error),
       );
     } finally {
       if (mounted) {
@@ -2343,6 +2351,7 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
 
   Future<void> _inviteMember() async {
     final email = _inviteController.text.trim();
+    final rootContext = Navigator.of(context, rootNavigator: true).context;
     final activeCooldown = _activeInviteCooldownRemaining;
     if (email.isEmpty) {
       setState(() {
@@ -2394,12 +2403,26 @@ class _BudgetMembersSheetState extends ConsumerState<_BudgetMembersSheet> {
             'Listo. Enviamos la invitación a $email. Podrás reenviarla en ${_formatInviteCooldownLabel(appliedCooldown)}.';
         _inviteFeedbackTone = _InfoCardTone.success;
       });
+      if (rootContext.mounted) {
+        MenudoToast.success(
+          rootContext,
+          title: 'Invitación enviada',
+          message: email,
+        );
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
         _inviteFeedback = presentError(error);
         _inviteFeedbackTone = _InfoCardTone.error;
       });
+      if (rootContext.mounted) {
+        MenudoToast.error(
+          rootContext,
+          title: 'No se pudo invitar',
+          message: presentError(error),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isInviting = false);

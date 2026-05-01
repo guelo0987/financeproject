@@ -18,6 +18,7 @@ import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_card.dart';
 import '../../../shared/widgets/menudo_chip.dart';
 import '../../../shared/widgets/menudo_loading_view.dart';
+import '../../../shared/widgets/menudo_toast.dart';
 import '../../auth/auth_state.dart';
 import '../../subscription/subscription_provider.dart';
 
@@ -279,6 +280,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           .setMarket(marketFromCurrency(_currency).code);
       if (!mounted) return;
       MenudoHaptics.success();
+      if (context.mounted) {
+        final rootContext = Navigator.of(context, rootNavigator: true).context;
+        MenudoToast.success(rootContext, title: 'Perfil actualizado');
+      }
     } catch (error) {
       _showMessage(presentError(error));
     } finally {
@@ -290,9 +295,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
+    MenudoToast.error(context, title: 'Revisa esto', message: message);
   }
 
   @override
@@ -740,10 +743,17 @@ class _AvatarEmojiSheetState extends State<_AvatarEmojiSheet> {
                 ),
               ),
               SizedBox(height: (18)),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: widget.suggestions.map((emoji) {
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 5,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: widget.suggestions.length,
+                itemBuilder: (context, index) {
+                  final emoji = widget.suggestions[index];
                   final isSelected = emoji == preview;
                   return MenudoGestureDetector(
                     onTap: () {
@@ -755,8 +765,6 @@ class _AvatarEmojiSheetState extends State<_AvatarEmojiSheet> {
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
-                      width: 52,
-                      height: 52,
                       decoration: BoxDecoration(
                         color: isSelected
                             ? context.menudo.successLight
@@ -766,16 +774,19 @@ class _AvatarEmojiSheetState extends State<_AvatarEmojiSheet> {
                           color: isSelected
                               ? context.menudo.primary
                               : context.menudo.border,
-                          width: isSelected ? 1.6 : 1,
+                          width: isSelected ? 2 : 1.2,
                         ),
                       ),
                       alignment: Alignment.center,
-                      child: Text(emoji, style: TextStyle(fontSize: 24)),
+                      child: Text(
+                        emoji,
+                        style: const TextStyle(fontSize: 24),
+                      ),
                     ),
                   );
-                }).toList(),
+                },
               ),
-              SizedBox(height: (18)),
+              SizedBox(height: (24)),
               _FieldLabel('Emoji personalizado'),
               SizedBox(height: 8),
               _PlainTextField(
@@ -1207,9 +1218,7 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
+    MenudoToast.error(context, title: 'Revisa esto', message: message);
   }
 
   Future<void> _submit() async {
@@ -1237,6 +1246,7 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
       return;
     }
 
+    final rootContext = Navigator.of(context, rootNavigator: true).context;
     setState(() => _isSaving = true);
     try {
       await ref
@@ -1248,6 +1258,9 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
       if (!mounted) return;
       Navigator.of(context).pop();
       MenudoHaptics.success();
+      if (rootContext.mounted) {
+        MenudoToast.success(rootContext, title: 'Contraseña actualizada');
+      }
     } catch (error) {
       _showMessage(presentError(error));
     } finally {

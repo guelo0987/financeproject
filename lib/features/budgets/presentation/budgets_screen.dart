@@ -9,6 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../core/utils/error_presenter.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../shared/widgets/menudo_toast.dart';
 import '../budget_providers.dart';
 import 'budget_detail_sheet.dart';
 import 'wizard/create_budget_wizard.dart';
@@ -49,22 +50,19 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
 
   void _showCreate() {
     MenudoHaptics.medium();
-    showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const CreateBudgetWizard(),
+    Navigator.of(context, rootNavigator: true).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const CreateBudgetWizard(fullScreen: true),
+      ),
     );
   }
 
   void _showError(Object error) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(presentError(error)),
-        behavior: SnackBarBehavior.floating,
-      ),
+    MenudoToast.error(
+      context,
+      title: 'No se pudo actualizar',
+      message: presentError(error),
     );
   }
 
@@ -74,6 +72,12 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
       await ref
           .read(budgetNotifierProvider.notifier)
           .selectBudget(budget.id, persist: true);
+      if (!mounted) return;
+      MenudoToast.success(
+        context,
+        title: 'Presupuesto activo',
+        message: budget.nombre,
+      );
     } catch (error) {
       _showError(error);
     }
@@ -182,7 +186,11 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                             duration: 500.ms,
                             delay: (120 + entry.key * 90).ms,
                           )
-                          .slideY(begin: 0.05, end: 0, curve: MenudoMotion.spring);
+                          .slideY(
+                            begin: 0.05,
+                            end: 0,
+                            curve: MenudoMotion.spring,
+                          );
                     }),
 
                   SizedBox(height: (120)),
@@ -300,7 +308,12 @@ class _BudgetCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final double spent = budget.totalSpent;
     final double remaining = budget.availableToSpend;
-    final isShared = budget.miembros.isNotEmpty || budget.espacioId != null;
+    final collaborators = budget.miembros
+        .where(
+          (member) => !member.isOwner && member.userId != budget.ownerUserId,
+        )
+        .toList();
+    final isShared = collaborators.isNotEmpty;
 
     return MenudoGestureDetector(
       onTap: onTap,
@@ -332,9 +345,8 @@ class _BudgetCard extends StatelessWidget {
                             ),
                             if (isShared)
                               _BudgetMetaTag(
-                                label: budget.miembros.isEmpty
-                                    ? 'Compartido'
-                                    : '${budget.miembros.length} miembros',
+                                label:
+                                    '${collaborators.length} colaborador${collaborators.length == 1 ? '' : 'es'}',
                               ),
                             if (isDashboardActive) const _BudgetActivePill(),
                           ],
@@ -352,14 +364,9 @@ class _BudgetCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (budget.miembros.isNotEmpty ||
-                      budget.espacioId != null) ...[
+                  if (isShared) ...[
                     SizedBox(width: (12)),
-                    _buildAvatars(
-                      context,
-                      budget.miembros,
-                      isShared: budget.espacioId != null,
-                    ),
+                    _buildAvatars(context, collaborators, isShared: isShared),
                   ],
                 ],
               ),

@@ -14,6 +14,7 @@ import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_logo.dart';
 import '../../../shared/widgets/menudo_tap_target.dart';
 import '../../../shared/widgets/menudo_blurred_app_bar.dart';
+import '../../../shared/widgets/menudo_toast.dart';
 import '../auth_state.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -68,12 +69,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (!mounted) return;
     if (success) {
       MenudoHaptics.success();
+      MenudoToast.success(context, title: message);
       return;
     }
     MenudoHaptics.error();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
+    MenudoToast.error(context, title: 'Revisa esto', message: message);
   }
 
   void _handleBack() {
@@ -199,7 +199,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 SizedBox(height: 8),
                 Text(
                   _appleAvailable
-                      ? 'Empieza con Apple o usa tu correo.'
+                      ? 'Crea tu cuenta rápido, privado y sin llenar formularios.'
                       : 'Crea tu cuenta con correo y contraseña.',
                   style: MenudoTextStyles.bodyMedium.copyWith(
                     color: context.menudo.textMuted,
@@ -208,18 +208,44 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ).animate().fadeIn(delay: 160.ms),
                 SizedBox(height: (28)),
                 if (_appleAvailable) ...[
-                  IgnorePointer(
-                    ignoring: _isLoading,
-                    child: Opacity(
-                      opacity: _isLoading ? 0.7 : 1,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: SignInWithAppleButton(
-                          onPressed: _handleRegisterWithApple,
-                          style: SignInWithAppleButtonStyle.black,
-                          text: 'Crear cuenta con Apple',
-                        ),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: context.menudo.surface,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: context.menudo.primary.withValues(alpha: 0.22),
                       ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Empieza en segundos',
+                          style: MenudoTextStyles.labelBold.copyWith(
+                            color: context.menudo.primary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: (12)),
+                        IgnorePointer(
+                          ignoring: _isLoading,
+                          child: Opacity(
+                            opacity: _isLoading ? 0.7 : 1,
+                            child: SizedBox(
+                              height: 56,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: SignInWithAppleButton(
+                                  onPressed: _handleRegisterWithApple,
+                                  style: SignInWithAppleButtonStyle.black,
+                                  text: 'Crear cuenta con Apple',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ).animate().fadeIn(delay: 220.ms).slideY(begin: 0.04),
                   SizedBox(height: (14)),
@@ -233,8 +259,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                     child: Text(
                       _showEmailForm
-                          ? 'Ocultar registro con correo'
-                          : 'Crear cuenta con correo',
+                          ? 'Ocultar otras opciones'
+                          : 'Otras opciones de inicio de sesión',
                       style: TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ).animate().fadeIn(delay: 260.ms),

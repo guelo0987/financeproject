@@ -196,6 +196,7 @@ class BudgetRepository {
 
   MenudoBudget _budgetFromApi(Map<String, dynamic> row) {
     final categories = asJsonList(row['categorias'] ?? []);
+    final members = asJsonList(row['miembros'] ?? []);
     final otherExpensesRaw = asJsonList(row['otros_gastos'] ?? []);
     final cats = <String, BudgetCategory>{};
     final otherExpenses = <BudgetCategory>[];
@@ -326,6 +327,9 @@ class BudgetRepository {
         'ingresos': row['ingresos'],
         'ahorro_objetivo': row['ahorro_objetivo'],
       },
+      miembros: members.map((item) {
+        return BudgetMember.fromJson(asJsonMap(item));
+      }).toList(),
       cats: cats,
       otherExpenses: otherExpenses,
       incomePlan: incomePlan,

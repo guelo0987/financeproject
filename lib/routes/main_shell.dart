@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../shared/widgets/menudo_bottom_nav.dart';
 import '../features/quick_log/presentation/register_transaction_sheet.dart';
+import '../features/shortcuts/presentation/new_user_shortcut_onboarding_gate.dart';
 
 class MainShell extends StatelessWidget {
   final Widget child;
@@ -44,7 +45,7 @@ class MainShell extends StatelessWidget {
     final selectedIndex = _getSelectedIndex(context);
 
     return Scaffold(
-      body: child,
+      body: NewUserShortcutOnboardingGate(child: child),
       // We use bottomNavigationBar property instead of a Stack so flutter handles insets
       bottomNavigationBar: MenudoBottomNav(
         currentIndex: selectedIndex,

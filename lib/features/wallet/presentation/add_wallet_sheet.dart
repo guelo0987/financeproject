@@ -8,6 +8,7 @@ import '../../../core/data/models.dart';
 import '../../../core/preferences/app_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../shared/widgets/menudo_toast.dart';
 import '../../auth/auth_state.dart';
 
 class AddWalletSheet extends ConsumerStatefulWidget {
@@ -132,9 +133,7 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
+    MenudoToast.error(context, title: 'Revisa la cuenta', message: message);
   }
 
   void _save() {
@@ -316,15 +315,15 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
                           IntrinsicWidth(
                             child: TextField(
                               controller: _amountController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
+                              keyboardType: TextInputType.number,
+                              inputFormatters: const [
+                                ThousandsNumberInputFormatter(),
+                              ],
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 44,
                                 fontWeight: FontWeight.w800,
-                                letterSpacing: -1.5,
+                                letterSpacing: 0,
                                 color: _typeIndex == 2
                                     ? AppColors.r5
                                     : context.menudo.textMain,

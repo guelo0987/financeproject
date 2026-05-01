@@ -15,6 +15,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/error_presenter.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../model/models.dart';
+import '../../../shared/widgets/menudo_toast.dart';
 import '../../auth/auth_state.dart';
 import '../../budgets/budget_providers.dart';
 import '../providers/space_providers.dart';
@@ -849,11 +850,10 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
 
   void _showError(Object error) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(presentError(error)),
-        behavior: SnackBarBehavior.floating,
-      ),
+    MenudoToast.error(
+      context,
+      title: 'No se pudo actualizar',
+      message: presentError(error),
     );
   }
 
@@ -907,6 +907,7 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
   }
 
   Future<void> _deleteSpace() async {
+    final rootContext = Navigator.of(context, rootNavigator: true).context;
     final confirmed = await MenudoDestructiveDialog.show(
       context: context,
       title: 'Eliminar espacio',
@@ -915,7 +916,6 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
 
     if (confirmed != true) return;
 
-    final messenger = ScaffoldMessenger.of(context);
     final s = widget.space;
 
     setState(() => _isMutating = true);
@@ -926,15 +926,13 @@ class _SpaceDetailSheetState extends ConsumerState<_SpaceDetailSheet> {
       if (!mounted) return;
       MenudoHaptics.success();
       Navigator.pop(context, true);
-
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text('"${s.nombre}" fue eliminado.'),
-            behavior: SnackBarBehavior.floating,
-          ),
+      if (rootContext.mounted) {
+        MenudoToast.success(
+          rootContext,
+          title: 'Espacio eliminado',
+          message: s.nombre,
         );
+      }
     } catch (error) {
       _showError(error);
       if (mounted) {

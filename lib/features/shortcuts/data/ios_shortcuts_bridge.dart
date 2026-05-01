@@ -41,6 +41,23 @@ class IosShortcutsBridge {
     await _channel.invokeMethod<void>('presentShortcutSetup');
   }
 
+  Future<bool> openShortcutsApp() async {
+    if (!_supportsShortcuts) return false;
+    return await _channel.invokeMethod<bool>('openShortcutsApp') ?? false;
+  }
+
+  Future<void> requestShortcutNotificationAuthorization() async {
+    if (!_supportsShortcuts) return;
+    await _channel.invokeMethod<void>(
+      'requestShortcutNotificationAuthorization',
+    );
+  }
+
+  Future<void> previewShortcutFeedback() async {
+    if (!_supportsShortcuts) return;
+    await _channel.invokeMethod<void>('previewShortcutFeedback');
+  }
+
   Future<MenudoShortcutPayload?> consumePendingShortcut() async {
     if (!_supportsShortcuts) return null;
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>?>(

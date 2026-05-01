@@ -12,6 +12,7 @@ import '../../../core/utils/menudo_haptics.dart';
 import '../../../shared/widgets/menudo_button.dart';
 import '../../../shared/widgets/menudo_logo.dart';
 import '../../../shared/widgets/menudo_tap_target.dart';
+import '../../../shared/widgets/menudo_toast.dart';
 import '../auth_state.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -61,12 +62,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     if (success) {
       MenudoHaptics.success();
+      MenudoToast.success(context, title: message);
       return;
     }
     MenudoHaptics.error();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
+    MenudoToast.error(context, title: 'Revisa esto', message: message);
   }
 
   String? _validateEmailLogin() {
@@ -181,7 +181,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 SizedBox(height: 8),
                 Text(
                   _appleAvailable
-                      ? 'Continúa con Apple o entra con tu correo.'
+                      ? 'La forma más rápida y privada de volver a tu dinero.'
                       : 'Entra con tu correo y tu contraseña.',
                   style: MenudoTextStyles.bodyMedium.copyWith(
                     color: context.menudo.textMuted,
@@ -190,18 +190,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ).animate().fadeIn(delay: 260.ms),
                 SizedBox(height: (28)),
                 if (_appleAvailable) ...[
-                  IgnorePointer(
-                    ignoring: _isLoading,
-                    child: Opacity(
-                      opacity: _isLoading ? 0.7 : 1,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: SignInWithAppleButton(
-                          onPressed: _handleAppleLogin,
-                          style: SignInWithAppleButtonStyle.black,
-                          text: 'Continuar con Apple',
-                        ),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: context.menudo.surface,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: context.menudo.primary.withValues(alpha: 0.22),
                       ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Recomendado',
+                          style: MenudoTextStyles.labelBold.copyWith(
+                            color: context.menudo.primary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: (12)),
+                        IgnorePointer(
+                          ignoring: _isLoading,
+                          child: Opacity(
+                            opacity: _isLoading ? 0.7 : 1,
+                            child: SizedBox(
+                              height: 56,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: SignInWithAppleButton(
+                                  onPressed: _handleAppleLogin,
+                                  style: SignInWithAppleButtonStyle.black,
+                                  text: 'Continuar con Apple',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.04),
                   SizedBox(height: (14)),
@@ -215,8 +241,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     child: Text(
                       _showEmailForm
-                          ? 'Ocultar correo y contraseña'
-                          : 'Usar correo y contraseña',
+                          ? 'Ocultar otras opciones'
+                          : 'Otras opciones de inicio de sesión',
                       style: TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ).animate().fadeIn(delay: 340.ms),
@@ -437,11 +463,10 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
     final email = _emailController.text.trim().toLowerCase();
     final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
     if (!emailPattern.hasMatch(email)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Escribe un correo válido.'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      MenudoToast.error(
+        context,
+        title: 'Correo inválido',
+        message: 'Escribe un correo válido.',
       );
       return;
     }
@@ -453,11 +478,10 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
       Navigator.of(context).pop(email);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(presentError(error)),
-          behavior: SnackBarBehavior.floating,
-        ),
+      MenudoToast.error(
+        context,
+        title: 'No se pudo enviar',
+        message: presentError(error),
       );
     } finally {
       if (mounted) setState(() => _isSending = false);

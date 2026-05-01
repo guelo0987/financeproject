@@ -7,6 +7,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
 import 'package:financeproject/shared/widgets/menudo_destructive_dialog.dart';
+import 'package:financeproject/shared/widgets/menudo_toast.dart';
 
 import '../../../controllers/transaction_controller.dart';
 import '../../../core/data/models.dart';
@@ -227,6 +228,14 @@ class TransactionDetailSheet extends ConsumerWidget {
     ];
 
     Future<void> deleteTransaction() async {
+      final transactionNotifier = ref.read(
+        transactionControllerProvider.notifier,
+      );
+      final walletNotifier = ref.read(walletNotifierProvider.notifier);
+      final budgetNotifier = ref.read(budgetNotifierProvider.notifier);
+      final rootNavigator = Navigator.of(context, rootNavigator: true);
+      final rootContext = rootNavigator.context;
+
       final confirm = await MenudoDestructiveDialog.show(
         context: context,
         title: 'Eliminar movimiento',
@@ -235,58 +244,46 @@ class TransactionDetailSheet extends ConsumerWidget {
 
       if (confirm != true || !context.mounted) return;
 
-      final navigator = Navigator.of(context);
-      final messenger = ScaffoldMessenger.of(context);
-
       Future<void> restoreDeletedTransaction() async {
         try {
-          await ref
-              .read(transactionControllerProvider.notifier)
-              .addTransaction(t);
-          await ref.read(walletNotifierProvider.notifier).refresh();
-          await ref.read(budgetNotifierProvider.notifier).refresh();
+          await transactionNotifier.addTransaction(t);
+          await walletNotifier.refresh();
+          await budgetNotifier.refresh();
           MenudoHaptics.success();
         } catch (error) {
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(presentError(error)),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          if (rootContext.mounted) {
+            MenudoToast.error(
+              rootContext,
+              title: 'No se pudo restaurar',
+              message: presentError(error),
+            );
+          }
         }
       }
 
       try {
-        await ref
-            .read(transactionControllerProvider.notifier)
-            .deleteTransaction(t.id);
-        await ref.read(walletNotifierProvider.notifier).refresh();
-        await ref.read(budgetNotifierProvider.notifier).refresh();
-        if (!context.mounted) return;
+        await transactionNotifier.deleteTransaction(t.id);
+        await walletNotifier.refresh();
+        await budgetNotifier.refresh();
+        if (!rootContext.mounted) return;
         MenudoHaptics.success();
-        navigator.pop();
-        messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: const Text('El movimiento salió de tu historial.'),
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 6),
-              action: SnackBarAction(
-                label: 'Deshacer',
-                onPressed: () {
-                  unawaited(restoreDeletedTransaction());
-                },
-              ),
-            ),
-          );
+        if (context.mounted) {
+          Navigator.pop(context);
+        }
+        MenudoToast.undo(
+          rootContext,
+          title: 'Movimiento eliminado',
+          message: normalizedUiLabel(t.desc),
+          onUndo: () {
+            unawaited(restoreDeletedTransaction());
+          },
+        );
       } catch (error) {
-        if (!context.mounted) return;
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(presentError(error)),
-            behavior: SnackBarBehavior.floating,
-          ),
+        if (!rootContext.mounted) return;
+        MenudoToast.error(
+          rootContext,
+          title: 'No se pudo eliminar',
+          message: presentError(error),
         );
       }
     }

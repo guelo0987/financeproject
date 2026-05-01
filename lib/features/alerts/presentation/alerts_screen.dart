@@ -10,6 +10,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/menudo_haptics.dart';
 import '../../../../model/models.dart';
 import '../../../../shared/widgets/menudo_loading_view.dart';
+import '../../../../shared/widgets/menudo_toast.dart';
 import '../../auth/auth_state.dart';
 import '../../budgets/budget_providers.dart' as budget_providers;
 import '../../budgets/presentation/budget_detail_sheet.dart';
@@ -33,11 +34,10 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
 
   void _showError(Object error) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(presentError(error)),
-        behavior: SnackBarBehavior.floating,
-      ),
+    MenudoToast.error(
+      context,
+      title: 'No se pudo actualizar',
+      message: presentError(error),
     );
   }
 
@@ -91,6 +91,8 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
     try {
       await ref.read(alertControllerProvider.notifier).markAllAsRead();
       MenudoHaptics.success();
+      if (!mounted) return;
+      MenudoToast.success(context, title: 'Alertas al día');
     } catch (error) {
       _showError(error);
     } finally {

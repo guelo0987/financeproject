@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/navigation/root_navigator.dart';
 import 'main_shell.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/calendar/presentation/calendar_screen.dart';
@@ -34,6 +35,7 @@ final appRouter = Provider<GoRouter>((ref) {
   final requiresPasswordReset = authState.requiresPasswordReset;
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     redirect: (context, state) {
       final loc = state.matchedLocation;
@@ -189,7 +191,9 @@ final appRouter = Provider<GoRouter>((ref) {
       GoRoute(path: '/tools', builder: (context, state) => const ToolsScreen()),
       GoRoute(
         path: '/shortcuts',
-        builder: (context, state) => const IosShortcutsSetupScreen(),
+        builder: (context, state) => IosShortcutsSetupScreen(
+          firstRun: state.uri.queryParameters['firstRun'] == 'true',
+        ),
       ),
       GoRoute(
         path: '/recurring',

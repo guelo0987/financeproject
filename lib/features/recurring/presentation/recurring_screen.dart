@@ -12,6 +12,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/menudo_blurred_app_bar.dart';
 import '../../../core/utils/error_presenter.dart';
 import '../../../shared/widgets/menudo_loading_view.dart';
+import '../../../shared/widgets/menudo_toast.dart';
 import '../../budgets/budget_providers.dart';
 import '../../categories/presentation/category_picker_sheet.dart';
 import '../../categories/providers/category_providers.dart';
@@ -53,14 +54,12 @@ class RecurringScreen extends ConsumerWidget {
   }
 
   void _showError(BuildContext context, Object error) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(presentError(error)),
-        behavior: SnackBarBehavior.floating,
-      ),
+    MenudoToast.error(
+      context,
+      title: 'No se pudo actualizar',
+      message: presentError(error),
     );
   }
-
 
   Future<void> _showRecurringSheet(
     BuildContext context, {
@@ -95,21 +94,24 @@ class RecurringScreen extends ConsumerWidget {
     WidgetRef ref,
     RecurringTransaction recurring,
   ) async {
+    final rootContext = Navigator.of(context, rootNavigator: true).context;
     final confirm = await MenudoDestructiveDialog.show(
       context: context,
       title: 'Eliminar automática',
-      message: 'Eliminarás "${recurring.desc}" y dejará de registrarse automáticamente.',
+      message:
+          'Eliminarás "${recurring.desc}" y dejará de registrarse automáticamente.',
       confirmLabel: 'Sí, eliminar',
     );
 
     if (confirm != true) return;
 
-    final messenger = ScaffoldMessenger.of(context);
     final r = recurring;
 
     Future<void> restoreRecurring() async {
       try {
-        await ref.read(recurringNotifierProvider.notifier).addRecurring(
+        await ref
+            .read(recurringNotifierProvider.notifier)
+            .addRecurring(
               RecurringTransaction(
                 id: 0,
                 desc: r.desc,
@@ -125,13 +127,21 @@ class RecurringScreen extends ConsumerWidget {
               ),
             );
         MenudoHaptics.success();
+        if (rootContext.mounted) {
+          MenudoToast.success(
+            rootContext,
+            title: 'Automática restaurada',
+            message: r.desc,
+          );
+        }
       } catch (error) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(presentError(error)),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        if (rootContext.mounted) {
+          MenudoToast.error(
+            rootContext,
+            title: 'No se pudo restaurar',
+            message: presentError(error),
+          );
+        }
       }
     }
 
@@ -140,21 +150,14 @@ class RecurringScreen extends ConsumerWidget {
       if (!context.mounted) return;
       MenudoHaptics.success();
 
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text('"${r.desc}" fue eliminada.'),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 6),
-            action: SnackBarAction(
-              label: 'Deshacer',
-              onPressed: () {
-                unawaited(restoreRecurring());
-              },
-            ),
-          ),
-        );
+      MenudoToast.undo(
+        rootContext,
+        title: 'Automática eliminada',
+        message: r.desc,
+        onUndo: () {
+          unawaited(restoreRecurring());
+        },
+      );
     } catch (error) {
       if (!context.mounted) return;
       _showError(context, error);
@@ -323,7 +326,12 @@ class RecurringScreen extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(
             parent: BouncingScrollPhysics(),
           ),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            MediaQuery.paddingOf(context).top + kToolbarHeight + 16,
+            16,
+            100,
+          ),
           children: [
             Row(
                   children: [
@@ -809,9 +817,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
+    MenudoToast.error(context, title: 'Revisa la automática', message: message);
   }
 
   void _setTypeIndex(int index) {
@@ -1041,6 +1047,7 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
       presupuestoId: _presupuestoId,
     );
 
+    final rootContext = Navigator.of(context, rootNavigator: true).context;
     setState(() => _isSaving = true);
     try {
       final notifier = ref.read(recurringNotifierProvider.notifier);
@@ -1052,6 +1059,13 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
       if (!mounted) return;
       MenudoHaptics.success();
       Navigator.pop(context);
+      if (rootContext.mounted) {
+        MenudoToast.success(
+          rootContext,
+          title: _isEditing ? 'Automática actualizada' : 'Automática creada',
+          message: recurring.desc,
+        );
+      }
     } catch (error) {
       _showError(presentError(error));
     } finally {
@@ -1386,21 +1400,23 @@ class _AddRecurringSheetState extends ConsumerState<_AddRecurringSheet> {
                               ),
                             ),
                             SizedBox(height: (16)),
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final itemWidth = (constraints.maxWidth - (6 * 8)) / 7;
-                                return Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    for (int i = 1; i <= (_frecuencia == 'mensual' ? 28 : 7); i++)
-                                      _RecurringDayChip(
-                                        label: _frecuencia == 'mensual' ? '$i' : _weekdayShortLabel(i),
-                                        selected: _dia == i,
-                                        onTap: () => _selectExecutionDay(i),
-                                        width: itemWidth,
-                                      ),
-                                  ],
+                            GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 7,
+                                crossAxisSpacing: 8,
+                                mainAxisSpacing: 8,
+                              ),
+                              itemCount: _frecuencia == 'mensual' ? 28 : 7,
+                              itemBuilder: (context, index) {
+                                final i = index + 1;
+                                return _RecurringDayChip(
+                                  label: _frecuencia == 'mensual'
+                                      ? '$i'
+                                      : _weekdayShortLabel(i),
+                                  selected: _dia == i,
+                                  onTap: () => _selectExecutionDay(i),
                                 );
                               },
                             ),
@@ -1533,13 +1549,11 @@ class _RecurringDayChip extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
-    this.width,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final double? width;
 
   @override
   Widget build(BuildContext context) {
@@ -1547,8 +1561,6 @@ class _RecurringDayChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        width: width,
-        height: 44,
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 11),
         decoration: BoxDecoration(
           color: selected ? context.menudo.primary : context.menudo.surface,
@@ -1558,14 +1570,16 @@ class _RecurringDayChip extends StatelessWidget {
             width: selected ? 1.6 : 1.2,
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: selected
-                ? context.menudo.surface
-                : context.menudo.textSecondary,
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: selected
+                  ? context.menudo.surface
+                  : context.menudo.textSecondary,
+            ),
           ),
         ),
       ),

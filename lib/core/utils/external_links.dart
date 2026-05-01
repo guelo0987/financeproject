@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../utils/app_env.dart';
+import '../../shared/widgets/menudo_toast.dart';
 
 class ExternalLinks {
   static Future<bool> openUrl(String url) {
@@ -42,14 +43,10 @@ class ExternalLinks {
     final launched = await openUrl(url);
     if (launched || !context.mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          fallbackMessage ??
-              'No pudimos abrir ese enlace ahora mismo. Inténtalo otra vez.',
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
+    MenudoToast.error(
+      context,
+      title: 'No se pudo abrir',
+      message: fallbackMessage ?? 'Inténtalo otra vez en un momento.',
     );
   }
 
@@ -78,13 +75,11 @@ class ExternalLinks {
     await Clipboard.setData(ClipboardData(text: fallbackParts.join('\n')));
     if (!context.mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'No pudimos abrir tu app de correo. Copiamos el mensaje para que lo pegues manualmente.',
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
+    MenudoToast.show(
+      context,
+      title: 'Mensaje copiado',
+      message: 'Abre tu correo y pégalo manualmente.',
+      tone: MenudoToastTone.info,
     );
   }
 }
