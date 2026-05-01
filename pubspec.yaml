@@ -1,7 +1,7 @@
 name: financeproject
 description: "Menudo — Personal finance app."
 publish_to: 'none'
-version: 1.0.0+3
+version: 1.0.0+4
 
 environment:
   sdk: ^3.11.1
