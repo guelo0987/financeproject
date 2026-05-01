@@ -15,6 +15,7 @@ import '../../alerts/providers/alert_providers.dart';
 import '../../../../core/data/models.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/menudo_loading_view.dart';
+import '../../../../shared/widgets/menudo_sliver_refresh_control.dart';
 import '../../../../shared/widgets/menudo_toast.dart';
 import '../../auth/auth_state.dart';
 import '../../quick_log/presentation/register_transaction_sheet.dart';
@@ -162,117 +163,125 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       body: SafeArea(
-        child: RefreshIndicator.adaptive(
-          onRefresh: _refreshDashboard,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.screen,
-              AppSpacing.p16,
-              AppSpacing.screen,
-              AppSpacing.p24,
-            ),
-            children: [
-              DashboardHeader(
-                    avatarEmoji: avatarEmoji,
-                    avatarLabel: avatarLabel,
-                    title: headerTitle,
-                    unreadAlerts: unreadAlerts,
-                    onProfileTap: () => context.push('/settings'),
-                    onAlertsTap: () => context.push('/alerts'),
-                    onSettingsTap: () => context.push('/settings'),
-                  )
-                  .animate()
-                  .fadeIn(duration: 400.ms)
-                  .slideX(begin: -0.05, end: 0, curve: MenudoMotion.springBack),
-
-              SizedBox(height: AppSpacing.p22),
-              DashboardOverviewCard(
-                    accountLabel: wallets.length == 1
-                        ? (defaultWallet?.nombre ?? 'Mi cuenta')
-                        : '${wallets.length} cuentas',
-                    availableNow: totalAvailable,
-                    monthBalance: monthlyBalance,
-                    incomeThisMonth: monthlyIncome,
-                    spentThisMonth: monthlySpent,
-                    currencyCode: activeCurrency,
-                    onWalletTap: () {
-                      MenudoHaptics.light();
-                      context.push('/wallet');
-                    },
-                  )
-                  .animate()
-                  .fadeIn(duration: 500.ms, delay: 100.ms)
-                  .scale(
-                    begin: const Offset(0.95, 0.95),
-                    curve: MenudoMotion.springBack,
-                    delay: 100.ms,
-                  ),
-
-              SizedBox(height: AppSpacing.p20),
-              if (_needsWalletTour(wallets, demoMode) &&
-                  !_dismissedWalletSuggestion) ...[
-                WalletSetupSuggestionCard(
-                  onConfigure: _openAddWallet,
-                  onDismiss: () {
-                    MenudoHaptics.selection();
-                    setState(() => _dismissedWalletSuggestion = true);
-                  },
-                ).animate().fadeIn(duration: 320.ms, delay: 160.ms),
-                SizedBox(height: AppSpacing.p20),
-              ],
-              DashboardActionGrid(
-                    onIncomeTap: () =>
-                        _openRegisterSheet(context, initialType: 'ingreso'),
-                    onExpenseTap: () => _openRegisterSheet(context),
-                    onTransferTap: () => _openRegisterSheet(
-                      context,
-                      initialType: 'transferencia',
-                    ),
-                    onMoreTap: () => context.push('/tools'),
-                  )
-                  .animate()
-                  .fadeIn(duration: 400.ms, delay: 200.ms)
-                  .slideY(begin: 0.1, end: 0, curve: MenudoMotion.spring),
-
-              SizedBox(height: AppSpacing.p28),
-              DashboardSectionHeader(
-                title: "Recientes",
-                trailing: TextButton(
-                  onPressed: () => context.push('/history'),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "Ver todo",
-                        style: TextStyle(
-                          color: colors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Icon(
-                        CupertinoIcons.chevron_right,
-                        size: (14),
-                        color: colors.primary,
-                      ),
-                    ],
-                  ),
-                ),
-              ).animate().fadeIn(duration: 400.ms, delay: 440.ms),
-
-              SizedBox(height: AppSpacing.p4),
-
-              DashboardRecentTransactions(
-                    recent: recent,
-                    currencyCode: activeCurrency,
-                  )
-                  .animate()
-                  .fadeIn(duration: 500.ms, delay: 520.ms)
-                  .slideY(begin: 0.05, end: 0, curve: MenudoMotion.spring),
-            ],
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
           ),
+          slivers: [
+            MenudoSliverRefreshControl(onRefresh: _refreshDashboard),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screen,
+                AppSpacing.p16,
+                AppSpacing.screen,
+                AppSpacing.p24,
+              ),
+              sliver: SliverList.list(
+                children: [
+                  DashboardHeader(
+                        avatarEmoji: avatarEmoji,
+                        avatarLabel: avatarLabel,
+                        title: headerTitle,
+                        unreadAlerts: unreadAlerts,
+                        onProfileTap: () => context.push('/settings'),
+                        onAlertsTap: () => context.push('/alerts'),
+                        onSettingsTap: () => context.push('/settings'),
+                      )
+                      .animate()
+                      .fadeIn(duration: 400.ms)
+                      .slideX(
+                        begin: -0.05,
+                        end: 0,
+                        curve: MenudoMotion.springBack,
+                      ),
+
+                  SizedBox(height: AppSpacing.p22),
+                  DashboardOverviewCard(
+                        accountLabel: wallets.length == 1
+                            ? (defaultWallet?.nombre ?? 'Mi cuenta')
+                            : '${wallets.length} cuentas',
+                        availableNow: totalAvailable,
+                        monthBalance: monthlyBalance,
+                        incomeThisMonth: monthlyIncome,
+                        spentThisMonth: monthlySpent,
+                        currencyCode: activeCurrency,
+                        onWalletTap: () {
+                          MenudoHaptics.light();
+                          context.push('/wallet');
+                        },
+                      )
+                      .animate()
+                      .fadeIn(duration: 500.ms, delay: 100.ms)
+                      .scale(
+                        begin: const Offset(0.95, 0.95),
+                        curve: MenudoMotion.springBack,
+                        delay: 100.ms,
+                      ),
+
+                  SizedBox(height: AppSpacing.p20),
+                  if (_needsWalletTour(wallets, demoMode) &&
+                      !_dismissedWalletSuggestion) ...[
+                    WalletSetupSuggestionCard(
+                      onConfigure: _openAddWallet,
+                      onDismiss: () {
+                        MenudoHaptics.selection();
+                        setState(() => _dismissedWalletSuggestion = true);
+                      },
+                    ).animate().fadeIn(duration: 320.ms, delay: 160.ms),
+                    SizedBox(height: AppSpacing.p20),
+                  ],
+                  DashboardActionGrid(
+                        onIncomeTap: () =>
+                            _openRegisterSheet(context, initialType: 'ingreso'),
+                        onExpenseTap: () => _openRegisterSheet(context),
+                        onTransferTap: () => _openRegisterSheet(
+                          context,
+                          initialType: 'transferencia',
+                        ),
+                        onMoreTap: () => context.push('/tools'),
+                      )
+                      .animate()
+                      .fadeIn(duration: 400.ms, delay: 200.ms)
+                      .slideY(begin: 0.1, end: 0, curve: MenudoMotion.spring),
+
+                  SizedBox(height: AppSpacing.p28),
+                  DashboardSectionHeader(
+                    title: "Recientes",
+                    trailing: TextButton(
+                      onPressed: () => context.push('/history'),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "Ver todo",
+                            style: TextStyle(
+                              color: colors.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Icon(
+                            CupertinoIcons.chevron_right,
+                            size: (14),
+                            color: colors.primary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ).animate().fadeIn(duration: 400.ms, delay: 440.ms),
+
+                  SizedBox(height: AppSpacing.p4),
+
+                  DashboardRecentTransactions(
+                        recent: recent,
+                        currencyCode: activeCurrency,
+                      )
+                      .animate()
+                      .fadeIn(duration: 500.ms, delay: 520.ms)
+                      .slideY(begin: 0.05, end: 0, curve: MenudoMotion.spring),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

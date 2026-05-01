@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:financeproject/shared/widgets/menudo_tap_target.dart';
 import 'package:financeproject/core/utils/menudo_haptics.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/theme/app_motion.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:financeproject/core/theme/menudo_cupertino_icons.dart';
@@ -9,7 +10,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/data/models.dart';
 import '../../../../core/utils/error_presenter.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../shared/widgets/menudo_sliver_refresh_control.dart';
 import '../../../../shared/widgets/menudo_toast.dart';
+import '../../../../utils/storage_keys.dart';
+import '../../auth/auth_state.dart';
 import '../budget_providers.dart';
 import 'budget_detail_sheet.dart';
 import 'wizard/create_budget_wizard.dart';
@@ -32,8 +36,11 @@ class BudgetsScreen extends ConsumerStatefulWidget {
 }
 
 class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
+  static const _storage = FlutterSecureStorage();
+
   String _filtro = "Todos";
   final List<String> _filtros = ["Todos", "Mensual", "Quincenal", "Semanal"];
+  bool _onboardingScheduled = false;
 
   String _fmt(double val) => formatMoney(val);
 
@@ -53,6 +60,43 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     Navigator.of(context, rootNavigator: true).push<bool>(
       MaterialPageRoute(
         builder: (_) => const CreateBudgetWizard(fullScreen: true),
+      ),
+    );
+  }
+
+  void _scheduleBudgetOnboarding() {
+    if (_onboardingScheduled) return;
+    _onboardingScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _onboardingScheduled = false;
+      await _maybeShowBudgetOnboarding();
+    });
+  }
+
+  Future<void> _maybeShowBudgetOnboarding() async {
+    if (!mounted) return;
+    final auth = ref.read(authProvider);
+    final userId = auth.userId?.trim();
+    if (!auth.isAuthenticated || userId == null || userId.isEmpty) return;
+
+    final key = '${StorageKeys.budgetOnboardingSeen}_$userId';
+    final seen = await _storage.read(key: key);
+    if (seen == 'true' || !mounted) return;
+
+    await _storage.write(key: key, value: 'true');
+    if (!mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _BudgetOnboardingSheet(
+        onCreateBudget: () {
+          MenudoHaptics.medium();
+          Navigator.of(sheetContext).pop();
+          _showCreate();
+        },
       ),
     );
   }
@@ -83,8 +127,17 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     }
   }
 
+  Future<void> _refreshBudgets() async {
+    try {
+      await ref.read(budgetNotifierProvider.notifier).refresh();
+    } catch (error) {
+      _showError(error);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    _scheduleBudgetOnboarding();
     final budgets = ref.watch(effectiveBudgetsProvider);
     final selectedIdx = ref
         .watch(selectedBudgetIdxProvider)
@@ -100,8 +153,11 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
     return Scaffold(
       backgroundColor: context.menudo.background,
       body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
         slivers: [
+          MenudoSliverRefreshControl(onRefresh: _refreshBudgets),
           SliverAppBar(
             pinned: true,
             backgroundColor: context.menudo.background,
@@ -282,6 +338,272 @@ class _BudgetsScreenState extends ConsumerState<BudgetsScreen> {
                 : "No encontramos presupuestos en la vista '$_filtro'.",
             style: TextStyle(fontSize: 14, color: context.menudo.textSecondary),
             textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BudgetOnboardingSheet extends StatelessWidget {
+  final VoidCallback onCreateBudget;
+
+  const _BudgetOnboardingSheet({required this.onCreateBudget});
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.all(12),
+        padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomPadding),
+        decoration: BoxDecoration(
+          color: context.menudo.background,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: context.menudo.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 30,
+              offset: const Offset(0, 16),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 42,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: context.menudo.border,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            _BudgetOnboardingHero(),
+            const SizedBox(height: 18),
+            Text(
+              'Tu plan de dinero vive aquí',
+              style: TextStyle(
+                fontSize: 24,
+                height: 1.05,
+                fontWeight: FontWeight.w900,
+                color: context.menudo.textMain,
+              ),
+            ),
+            const SizedBox(height: 9),
+            Text(
+              'Organiza categorías, define cuánto puedes gastar y comparte el plan solo con personas que acepten la invitación.',
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+                color: context.menudo.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: const [
+                Expanded(
+                  child: _BudgetOnboardingFeature(
+                    icon: MenudoCupertinoIcons.layoutGrid,
+                    label: 'Categorías',
+                    color: AppColors.o5,
+                  ),
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: _BudgetOnboardingFeature(
+                    icon: MenudoCupertinoIcons.pie_chart_rounded,
+                    label: 'Plan',
+                    color: AppColors.e6,
+                  ),
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: _BudgetOnboardingFeature(
+                    icon: MenudoCupertinoIcons.users,
+                    label: 'Amigos',
+                    color: AppColors.b5,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: onCreateBudget,
+                icon: const Icon(MenudoCupertinoIcons.plus),
+                label: const Text('Crear mi primer presupuesto'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: context.menudo.primary,
+                  foregroundColor: context.menudo.textOnDark,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  MenudoHaptics.light();
+                  Navigator.of(context).pop();
+                },
+                child: Text(
+                  'Explorar primero',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: context.menudo.textMuted,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ).animate().fadeIn(duration: 240.ms).slideY(begin: 0.06, end: 0),
+    );
+  }
+}
+
+class _BudgetOnboardingHero extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.menudo.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: context.menudo.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppColors.o5.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  MenudoCupertinoIcons.pie_chart_rounded,
+                  color: AppColors.o5,
+                  size: 34,
+                ),
+                Positioned(
+                  right: 10,
+                  top: 12,
+                  child: Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: AppColors.e6,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: context.menudo.surface,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _BudgetHeroLine(widthFactor: 0.86, color: AppColors.e6),
+                const SizedBox(height: 8),
+                _BudgetHeroLine(widthFactor: 0.64, color: AppColors.o5),
+                const SizedBox(height: 8),
+                _BudgetHeroLine(
+                  widthFactor: 0.74,
+                  color: context.menudo.textMuted,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BudgetHeroLine extends StatelessWidget {
+  final double widthFactor;
+  final Color color;
+
+  const _BudgetHeroLine({required this.widthFactor, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return FractionallySizedBox(
+      widthFactor: widthFactor,
+      child: Container(
+        height: 10,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.22),
+          borderRadius: BorderRadius.circular(999),
+        ),
+      ),
+    );
+  }
+}
+
+class _BudgetOnboardingFeature extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _BudgetOnboardingFeature({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 66),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 19),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: context.menudo.textMain,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
       ),

@@ -289,7 +289,6 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
     return Scaffold(
       backgroundColor: context.menudo.background,
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
@@ -798,7 +797,7 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                   horizontal: 16,
                   vertical: 14,
                 ),
-                margin: const EdgeInsets.only(bottom: 10),
+                margin: const EdgeInsets.only(bottom: 6),
                 decoration: BoxDecoration(
                   color: context.menudo.surface,
                   borderRadius: BorderRadius.circular(18),
@@ -916,11 +915,15 @@ class _CategoryGroupState extends State<_CategoryGroup> {
 
             if (_expanded)
               Padding(
-                padding: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.only(bottom: 4),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final width = constraints.maxWidth;
-                    final crossAxisCount = width >= 760 ? 2 : 1;
+                    final crossAxisCount = width >= 900
+                        ? 3
+                        : width >= 520
+                        ? 3
+                        : 2;
 
                     return GridView.builder(
                       shrinkWrap: true,
@@ -929,7 +932,7 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                         crossAxisCount: crossAxisCount,
                         mainAxisSpacing: 10,
                         crossAxisSpacing: 10,
-                        mainAxisExtent: 72,
+                        mainAxisExtent: 68,
                       ),
                       itemCount: subs.length + 1,
                       itemBuilder: (context, i) {
@@ -948,7 +951,7 @@ class _CategoryGroupState extends State<_CategoryGroup> {
                 ),
               ),
 
-            SizedBox(height: (14)),
+            SizedBox(height: (10)),
           ],
         )
         .animate()
@@ -1102,7 +1105,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
   final _nameCtrl = TextEditingController();
   static const List<IconData> _iconOptions = [
     MenudoCupertinoIcons.tag,
-    MenudoCupertinoIcons.shoppingCart,
+    MenudoCupertinoIcons.package,
     MenudoCupertinoIcons.utensils,
     MenudoCupertinoIcons.coffee,
     MenudoCupertinoIcons.car,

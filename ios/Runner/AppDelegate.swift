@@ -37,6 +37,18 @@ import AppIntents
 
   override func userNotificationCenter(
     _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+    if #available(iOS 14.0, *) {
+      completionHandler([.banner, .list])
+    } else {
+      completionHandler([.alert])
+    }
+  }
+
+  override func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
     didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void
   ) {
@@ -91,7 +103,7 @@ import AppIntents
           guard (200 ... 299).contains(response.statusCode) else {
             if QuickExpenseNetworkClient.shouldQueue(statusCode: response.statusCode) {
               QueuedQuickExpenseStore.enqueue(expense)
-              MenudoShortcutFeedback.expenseSaved(
+              await MenudoShortcutFeedback.expenseSaved(
                 amount: amount,
                 merchant: description,
                 categoryName: categoryName,
@@ -103,7 +115,7 @@ import AppIntents
           }
           QuickExpenseIdempotencyStore.mark(idempotencyKey)
           PendingShortcutStore.storeQuickExpense(source: "notification_action")
-          MenudoShortcutFeedback.expenseSaved(
+          await MenudoShortcutFeedback.expenseSaved(
             amount: amount,
             merchant: description,
             categoryName: categoryName,
@@ -111,7 +123,7 @@ import AppIntents
           )
         } catch {
           QueuedQuickExpenseStore.enqueue(expense)
-          MenudoShortcutFeedback.expenseSaved(
+          await MenudoShortcutFeedback.expenseSaved(
             amount: amount,
             merchant: description,
             categoryName: categoryName,

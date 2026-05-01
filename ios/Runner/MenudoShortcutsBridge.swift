@@ -3,6 +3,7 @@ import Foundation
 import Security
 import SwiftUI
 import UIKit
+import WidgetKit
 
 #if canImport(AppIntents)
 import AppIntents
@@ -371,6 +372,27 @@ enum PendingShortcutStore {
   }
 }
 
+enum MenudoWidgetSnapshotStore {
+  private static let key = "menudo.widget.snapshot"
+
+  static func save(rawPayload: Any?) {
+    guard let payload = rawPayload as? [String: Any] else { return }
+    MenudoShortcutsSharedStore.defaults.set(payload, forKey: key)
+    MenudoShortcutsSharedStore.defaults.synchronize()
+    if #available(iOS 14.0, *) {
+      WidgetCenter.shared.reloadAllTimelines()
+    }
+  }
+
+  static func clear() {
+    MenudoShortcutsSharedStore.defaults.removeObject(forKey: key)
+    MenudoShortcutsSharedStore.defaults.synchronize()
+    if #available(iOS 14.0, *) {
+      WidgetCenter.shared.reloadAllTimelines()
+    }
+  }
+}
+
 final class MenudoShortcutsBridge: NSObject {
   static let shared = MenudoShortcutsBridge()
 
@@ -415,12 +437,21 @@ final class MenudoShortcutsBridge: NSObject {
       result(nil)
     case "previewShortcutFeedback":
       MenudoShortcutFeedback.requestNotificationAuthorizationIfNeeded()
-      MenudoShortcutFeedback.expenseSaved(
-        amount: 250,
-        merchant: "Apple Pay",
-        categoryName: "Comida",
-        currencyCode: "DOP"
-      )
+      Task {
+        await MenudoShortcutFeedback.expenseSaved(
+          amount: 250,
+          merchant: "Apple Pay",
+          categoryName: "Comida",
+          currencyCode: "DOP",
+          displayDuration: 240
+        )
+      }
+      result(nil)
+    case "syncWidgetSnapshot":
+      MenudoWidgetSnapshotStore.save(rawPayload: call.arguments)
+      result(nil)
+    case "clearWidgetSnapshot":
+      MenudoWidgetSnapshotStore.clear()
       result(nil)
     case "syncQuickExpenseContext":
       QuickExpenseShortcutContextStore.save(rawPayload: call.arguments)

@@ -23,8 +23,9 @@ enum MenudoShortcutFeedback {
     merchant: String?,
     categoryName: String,
     currencyCode: String,
-    queued: Bool = false
-  ) {
+    queued: Bool = false,
+    displayDuration: TimeInterval = 30
+  ) async {
     scheduleNotification(
       amount: amount,
       merchant: merchant,
@@ -32,12 +33,13 @@ enum MenudoShortcutFeedback {
       currencyCode: currencyCode,
       queued: queued
     )
-    startLiveActivity(
+    await startLiveActivity(
       amount: amount,
       merchant: merchant,
       categoryName: categoryName,
       currencyCode: currencyCode,
-      queued: queued
+      queued: queued,
+      displayDuration: displayDuration
     )
   }
 
@@ -123,11 +125,15 @@ enum MenudoShortcutFeedback {
     merchant: String?,
     categoryName: String,
     currencyCode: String,
-    queued: Bool
-  ) {
+    queued: Bool,
+    displayDuration: TimeInterval
+  ) async {
     #if canImport(ActivityKit)
     if #available(iOS 16.2, *) {
-      guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+      guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+        print("[shortcuts] live activity skipped: activities disabled")
+        return
+      }
 
       let attributes = MenudoQuickExpenseActivityAttributes(
         amount: amount,
@@ -135,31 +141,69 @@ enum MenudoShortcutFeedback {
         categoryName: categoryName,
         currencyCode: currencyCode
       )
-      let state = MenudoQuickExpenseActivityAttributes.ContentState(
+      let initialState = MenudoQuickExpenseActivityAttributes.ContentState(
+        status: queued ? "Pendiente" : "Procesando",
+        savedAt: Date(),
+        isQueued: queued
+      )
+      let finalState = MenudoQuickExpenseActivityAttributes.ContentState(
         status: queued ? "Pendiente" : "Guardado",
         savedAt: Date(),
         isQueued: queued
       )
       let content = ActivityContent(
-        state: state,
-        staleDate: Date().addingTimeInterval(180)
+        state: initialState,
+        staleDate: Date().addingTimeInterval(max(displayDuration + 45, 120))
       )
 
-      Task {
-        do {
-          let activity = try Activity.request(
+      do {
+        for activity in Activity<MenudoQuickExpenseActivityAttributes>.activities {
+          await activity.end(nil, dismissalPolicy: .immediate)
+        }
+
+        let activity: Activity<MenudoQuickExpenseActivityAttributes>
+        if #available(iOS 18.0, *), !queued {
+          do {
+            activity = try Activity.request(
+              attributes: attributes,
+              content: content,
+              pushType: nil,
+              style: .transient
+            )
+          } catch {
+            activity = try Activity.request(
+              attributes: attributes,
+              content: content,
+              pushType: nil
+            )
+          }
+        } else {
+          activity = try Activity.request(
             attributes: attributes,
             content: content,
             pushType: nil
           )
-          try? await Task.sleep(nanoseconds: 12_000_000_000)
-          await activity.end(
-            ActivityContent(state: state, staleDate: nil),
-            dismissalPolicy: .after(Date().addingTimeInterval(24))
-          )
-        } catch {
-          print("[shortcuts] live activity failed: \(error.localizedDescription)")
         }
+        if !queued {
+          try? await Task.sleep(nanoseconds: 850_000_000)
+          await activity.update(
+            ActivityContent(
+              state: finalState,
+              staleDate: Date().addingTimeInterval(max(displayDuration + 45, 120))
+            )
+          )
+        }
+
+        Task.detached(priority: .background) {
+          let seconds = UInt64(max(displayDuration, 12) * 1_000_000_000)
+          try? await Task.sleep(nanoseconds: seconds)
+          await activity.end(
+            ActivityContent(state: finalState, staleDate: nil),
+            dismissalPolicy: .after(Date().addingTimeInterval(10))
+          )
+        }
+      } catch {
+        print("[shortcuts] live activity failed: \(error.localizedDescription)")
       }
     }
     #endif

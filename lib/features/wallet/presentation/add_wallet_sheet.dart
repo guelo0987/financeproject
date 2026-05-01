@@ -59,11 +59,11 @@ class _AddWalletSheetState extends ConsumerState<AddWalletSheet> {
     MenudoCupertinoIcons.landmark,
     MenudoCupertinoIcons.creditCard,
     MenudoCupertinoIcons.banknote,
-    MenudoCupertinoIcons.piggyBank,
+    MenudoCupertinoIcons.pieChart,
     MenudoCupertinoIcons.shieldAlert,
-    MenudoCupertinoIcons.building,
-    MenudoCupertinoIcons.wallet,
-    MenudoCupertinoIcons.coins,
+    MenudoCupertinoIcons.briefcase,
+    MenudoCupertinoIcons.home,
+    MenudoCupertinoIcons.tag,
   ];
 
   final List<Color> _colorOptions = [

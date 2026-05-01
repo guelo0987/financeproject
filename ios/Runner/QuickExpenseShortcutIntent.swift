@@ -9,6 +9,17 @@ private struct ResolvedQuickExpenseCategory {
   let name: String
 }
 
+private enum QuickExpenseShortcutIntentError: LocalizedError {
+  case message(String)
+
+  var errorDescription: String? {
+    switch self {
+    case .message(let text):
+      return text
+    }
+  }
+}
+
 @available(iOS 16.0, *)
 struct ShortcutCategoryEntity: AppEntity, Identifiable, Hashable {
   static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Categoría")
@@ -90,20 +101,20 @@ struct QuickExpenseShortcutIntent: AppIntent {
     }
   }
 
-  func perform() async throws -> some IntentResult & ProvidesDialog {
+  func perform() async throws -> some IntentResult {
     guard amount > 0 else {
       throw $amount.needsValueError(IntentDialog("¿Cuánto fue el gasto?"))
     }
 
     guard let context = QuickExpenseShortcutContextStore.load() else {
-      return .result(
-        dialog: IntentDialog("Abre Menudo una vez con tu sesión iniciada para preparar este atajo.")
+      throw QuickExpenseShortcutIntentError.message(
+        "Abre Menudo una vez con tu sesión iniciada para preparar este atajo."
       )
     }
 
     guard !context.categories.isEmpty else {
-      return .result(
-        dialog: IntentDialog("Crea o sincroniza una categoría de gasto en Menudo antes de usar este atajo.")
+      throw QuickExpenseShortcutIntentError.message(
+        "Crea o sincroniza una categoría de gasto en Menudo antes de usar este atajo."
       )
     }
 
@@ -118,9 +129,7 @@ struct QuickExpenseShortcutIntent: AppIntent {
       // If we are in a context where we can show a notification (e.g. background automation)
       // we trigger the interactive notification instead of just failing.
       triggerMissingCategoryNotification(amount: amount, merchant: merchantName, context: context)
-      return .result(
-        dialog: IntentDialog("Te enviamos una notificación para elegir la categoría de este gasto de \(amount).")
-      )
+      return .result()
     }
     let idempotencyKey = makeIdempotencyKey(
       amount: amount,
@@ -130,7 +139,9 @@ struct QuickExpenseShortcutIntent: AppIntent {
     )
 
     if QuickExpenseIdempotencyStore.contains(idempotencyKey) {
-      return .result(dialog: IntentDialog("Ese gasto ya estaba registrado en Menudo."))
+      throw QuickExpenseShortcutIntentError.message(
+        "Ese gasto ya estaba registrado en Menudo."
+      )
     }
 
     let expense = QueuedQuickExpense(
@@ -154,49 +165,45 @@ struct QuickExpenseShortcutIntent: AppIntent {
 
       guard (200 ... 299).contains(httpResponse.statusCode) else {
         if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
-          return .result(
-            dialog: IntentDialog("Vuelve a abrir Menudo para actualizar tu sesión.")
+          throw QuickExpenseShortcutIntentError.message(
+            "Vuelve a abrir Menudo para actualizar tu sesión."
           )
         }
         if QuickExpenseNetworkClient.shouldQueue(statusCode: httpResponse.statusCode) {
           QueuedQuickExpenseStore.enqueue(expense)
-          MenudoShortcutFeedback.expenseSaved(
+          await MenudoShortcutFeedback.expenseSaved(
             amount: amount,
             merchant: merchantName,
             categoryName: resolvedCategory.name,
             currencyCode: context.defaultWallet.currency,
             queued: true
           )
-          return .result(
-            dialog: IntentDialog("No había conexión estable. Menudo guardará este gasto cuando vuelva a conectarse.")
-          )
+          return .result()
         }
-        return .result(
-          dialog: IntentDialog("No pudimos registrar el gasto. Inténtalo otra vez en un momento.")
+        throw QuickExpenseShortcutIntentError.message(
+          "No pudimos registrar el gasto. Inténtalo otra vez en un momento."
         )
       }
 
       QuickExpenseIdempotencyStore.mark(idempotencyKey)
       PendingShortcutStore.storeQuickExpense(source: "app_intent")
-      MenudoShortcutFeedback.expenseSaved(
+      await MenudoShortcutFeedback.expenseSaved(
         amount: amount,
         merchant: merchantName,
         categoryName: resolvedCategory.name,
         currencyCode: context.defaultWallet.currency
       )
-      return .result(dialog: IntentDialog("Gasto registrado en Menudo."))
+      return .result()
     } catch {
       QueuedQuickExpenseStore.enqueue(expense)
-      MenudoShortcutFeedback.expenseSaved(
+      await MenudoShortcutFeedback.expenseSaved(
         amount: amount,
         merchant: merchantName,
         categoryName: resolvedCategory.name,
         currencyCode: context.defaultWallet.currency,
         queued: true
       )
-      return .result(
-        dialog: IntentDialog("No había conexión estable. Menudo guardará este gasto cuando vuelva a conectarse.")
-      )
+      return .result()
     }
   }
 
@@ -329,6 +336,12 @@ struct QuickExpenseShortcutIntent: AppIntent {
       .joined(separator: " ")
   }
 }
+
+@available(iOS, introduced: 16.1, deprecated: 17.0, message: "Use LiveActivityIntent instead.")
+extension QuickExpenseShortcutIntent: LiveActivityStartingIntent {}
+
+@available(iOS 17.0, *)
+extension QuickExpenseShortcutIntent: LiveActivityIntent {}
 
 @available(iOS 16.0, *)
 struct MenudoAppShortcutsProvider: AppShortcutsProvider {

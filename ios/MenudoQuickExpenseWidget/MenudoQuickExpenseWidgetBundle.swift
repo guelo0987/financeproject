@@ -4,6 +4,7 @@ import WidgetKit
 @main
 struct MenudoQuickExpenseWidgetBundle: WidgetBundle {
   var body: some Widget {
+    MenudoFinanceSummaryWidget()
     MenudoQuickExpenseLiveActivity()
   }
 }

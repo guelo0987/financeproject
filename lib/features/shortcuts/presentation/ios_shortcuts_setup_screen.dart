@@ -126,63 +126,272 @@ class IosShortcutsSetupScreen extends ConsumerWidget {
                     }
                   },
                 ),
-                SizedBox(height: (10)),
-                TextButton(
-                  onPressed: _supportsShortcuts
-                      ? () async {
-                          MenudoHaptics.light();
-                          await bridge.previewShortcutFeedback();
-                          if (context.mounted) {
-                            MenudoToast.show(
-                              context,
-                              title: 'Vista previa enviada',
-                              message:
-                                  'Si tu iPhone soporta Live Activities, verás la confirmación del atajo.',
-                              tone: MenudoToastTone.info,
-                            );
-                          }
-                        }
-                      : null,
-                  child: Text(
-                    'Probar notificación y Dynamic Island',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: _supportsShortcuts
-                          ? context.menudo.textOnDark
-                          : context.menudo.textOnDark.withValues(alpha: 0.42),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
           SizedBox(height: (18)),
+          const _LiveActivityTipCard(),
+          SizedBox(height: (18)),
+          const _ShortcutCreationGuideCard(),
+          SizedBox(height: (18)),
+          const _ApplePayAutomationGuideCard(),
+          SizedBox(height: (18)),
           const _ShortcutAutomationStoryboard(),
           SizedBox(height: (18)),
           const _DoubleTapSetupCard(),
-          SizedBox(height: (18)),
-          MenudoCard(
-            padding: const EdgeInsets.all(18),
+        ],
+      ),
+    );
+  }
+}
+
+class _LiveActivityTipCard extends StatelessWidget {
+  const _LiveActivityTipCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return MenudoCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.b5.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            alignment: Alignment.center,
+            child: Icon(MenudoCupertinoIcons.bell, color: AppColors.b5),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Cuando uses el shortcut Registrar Gasto, la confirmación aparece fuera de Menudo: mírala en Dynamic Island, en la pantalla bloqueada o desde una notificación discreta.',
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.32,
+                fontWeight: FontWeight.w700,
+                color: context.menudo.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 240.ms).slideY(begin: 0.03, end: 0);
+  }
+}
+
+class _ShortcutCreationGuideCard extends StatelessWidget {
+  const _ShortcutCreationGuideCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _GuidedSetupCard(
+      title: 'Crear el atajo visible',
+      subtitle: 'Hazlo una vez en la app Atajos.',
+      icon: MenudoCupertinoIcons.zap,
+      color: AppColors.o5,
+      steps: const [
+        _GuideStepData(
+          title: 'Abre Atajos',
+          text: 'Toca el botón de arriba para ir directo a la app Shortcuts.',
+          icon: MenudoCupertinoIcons.sparkles,
+        ),
+        _GuideStepData(
+          title: 'Toca +',
+          text: 'Crea un shortcut nuevo desde el botón de más.',
+          icon: MenudoCupertinoIcons.plus,
+        ),
+        _GuideStepData(
+          title: 'Busca Menudo',
+          text: 'En acciones, escribe Menudo y elige Registrar Gasto.',
+          icon: MenudoCupertinoIcons.search,
+        ),
+        _GuideStepData(
+          title: 'Listo y vuelve',
+          text: 'Guarda el shortcut y vuelve a Menudo para enlazar Apple Pay.',
+          icon: MenudoCupertinoIcons.checkCircle,
+        ),
+      ],
+    );
+  }
+}
+
+class _ApplePayAutomationGuideCard extends StatelessWidget {
+  const _ApplePayAutomationGuideCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _GuidedSetupCard(
+      title: 'Enlazar Apple Pay',
+      subtitle: 'La automatización queda aprobada por iOS.',
+      icon: MenudoCupertinoIcons.creditCard,
+      color: AppColors.e6,
+      steps: const [
+        _GuideStepData(
+          title: 'Automatización',
+          text: 'En Atajos, entra a Automation y crea una personal.',
+          icon: MenudoCupertinoIcons.layoutGrid,
+        ),
+        _GuideStepData(
+          title: 'Busca Wallet',
+          text: 'Elige Wallet o Transaction como disparador del pago.',
+          icon: MenudoCupertinoIcons.wallet,
+        ),
+        _GuideStepData(
+          title: 'Tu tarjeta',
+          text: 'Selecciona la tarjeta y marca Run Immediately.',
+          icon: MenudoCupertinoIcons.creditCard,
+        ),
+        _GuideStepData(
+          title: 'Registrar Gasto',
+          text: 'Como acción final, elige el shortcut de Menudo.',
+          icon: MenudoCupertinoIcons.zap,
+        ),
+      ],
+    );
+  }
+}
+
+class _GuidedSetupCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final List<_GuideStepData> steps;
+
+  const _GuidedSetupCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.steps,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MenudoCard(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                alignment: Alignment.center,
+                child: Icon(icon, color: color),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: context.menudo.textMain,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: context.menudo.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          for (var i = 0; i < steps.length; i++) ...[
+            _VisualGuideStep(index: i + 1, data: steps[i], color: color),
+            if (i != steps.length - 1) const SizedBox(height: 10),
+          ],
+        ],
+      ),
+    ).animate().fadeIn(duration: 260.ms).slideY(begin: 0.03, end: 0);
+  }
+}
+
+class _GuideStepData {
+  final String title;
+  final String text;
+  final IconData icon;
+
+  const _GuideStepData({
+    required this.title,
+    required this.text,
+    required this.icon,
+  });
+}
+
+class _VisualGuideStep extends StatelessWidget {
+  final int index;
+  final _GuideStepData data;
+  final Color color;
+
+  const _VisualGuideStep({
+    required this.index,
+    required this.data,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: context.menudo.background,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.menudo.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            alignment: Alignment.center,
+            child: Icon(data.icon, color: color, size: 19),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _SimpleStep(
-                  index: '1',
-                  text:
-                      'Abre Menudo una vez con tu sesión iniciada para sincronizar billetera, categorías y sesión segura.',
+                Text(
+                  '$index. ${data.title}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: context.menudo.textMain,
+                  ),
                 ),
-                SizedBox(height: (12)),
-                _SimpleStep(
-                  index: '2',
-                  text:
-                      'En Atajos, elige la automatización de Apple Pay y selecciona la acción “Registrar Gasto” de Menudo.',
-                ),
-                SizedBox(height: (12)),
-                _SimpleStep(
-                  index: '3',
-                  text:
-                      'iOS pedirá aprobar esa automatización personal una vez. Después, Menudo procesa el gasto sin abrir Flutter.',
+                const SizedBox(height: 3),
+                Text(
+                  data.text,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.28,
+                    fontWeight: FontWeight.w600,
+                    color: context.menudo.textSecondary,
+                  ),
                 ),
               ],
             ),

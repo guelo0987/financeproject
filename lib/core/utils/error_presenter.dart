@@ -57,6 +57,15 @@ String presentError(
   if (lower.contains('socketexception') || lower.contains('clientexception')) {
     return 'No pudimos conectarnos en este momento. Revisa tu conexión e inténtalo otra vez.';
   }
+  if (lower.contains('timed out') ||
+      lower.contains('timeout') ||
+      lower.contains('connection closed') ||
+      lower.contains('connection reset') ||
+      lower.contains('failed host lookup') ||
+      lower.contains('network is unreachable') ||
+      lower.contains('no address associated with hostname')) {
+    return 'No pudimos actualizar ahora mismo. Revisaremos la conexión y puedes intentarlo otra vez en un momento.';
+  }
   if (lower.contains('rate_limit') || lower.contains('too many requests')) {
     return 'Vas muy rápido. Espera un momento e inténtalo otra vez.';
   }

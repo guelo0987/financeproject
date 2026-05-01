@@ -58,6 +58,16 @@ class IosShortcutsBridge {
     await _channel.invokeMethod<void>('previewShortcutFeedback');
   }
 
+  Future<void> syncWidgetSnapshot(Map<String, dynamic> payload) async {
+    if (!_supportsShortcuts) return;
+    await _channel.invokeMethod<void>('syncWidgetSnapshot', payload);
+  }
+
+  Future<void> clearWidgetSnapshot() async {
+    if (!_supportsShortcuts) return;
+    await _channel.invokeMethod<void>('clearWidgetSnapshot');
+  }
+
   Future<MenudoShortcutPayload?> consumePendingShortcut() async {
     if (!_supportsShortcuts) return null;
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>?>(

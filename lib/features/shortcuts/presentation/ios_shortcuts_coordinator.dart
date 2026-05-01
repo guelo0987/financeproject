@@ -10,7 +10,10 @@ import '../../../features/budgets/budget_providers.dart';
 import '../../../features/categories/providers/category_providers.dart';
 import '../../../features/transactions/providers/transaction_providers.dart';
 import '../../../features/wallet/providers/wallet_providers.dart';
+import '../../../core/preferences/app_preferences.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../model/models.dart';
+import '../../../routes/app_router.dart';
 import '../../../utils/app_env.dart';
 import '../data/ios_shortcuts_bridge.dart';
 
@@ -28,7 +31,9 @@ class _IosShortcutsCoordinatorState
     extends ConsumerState<IosShortcutsCoordinator>
     with WidgetsBindingObserver {
   String? _lastShortcutContextSignature;
+  String? _lastWidgetSnapshotSignature;
   bool _syncScheduled = false;
+  bool _widgetSyncScheduled = false;
   bool _dataRefreshScheduled = false;
   bool _forceDataRefreshPending = false;
   DateTime? _lastDataRefreshAt;
@@ -42,16 +47,12 @@ class _IosShortcutsCoordinatorState
     if (!_supportsShortcuts) return;
     WidgetsBinding.instance.addObserver(this);
     final bridge = ref.read(iosShortcutsBridgeProvider);
-    bridge.setShortcutHandler((_) async {
-      await bridge.clearPendingShortcut();
-      await bridge.flushQueuedQuickExpenses();
-      _scheduleExternalDataRefresh(force: true);
-      _scheduleShortcutContextSync();
-    });
+    bridge.setShortcutHandler(_handleShortcutPayload);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(iosShortcutsBridgeProvider).clearPendingShortcut();
+      unawaited(_consumePendingShortcut());
       _scheduleExternalDataRefresh();
       _scheduleShortcutContextSync();
+      _scheduleWidgetSnapshotSync();
     });
   }
 
@@ -67,8 +68,33 @@ class _IosShortcutsCoordinatorState
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      unawaited(_consumePendingShortcut());
       _scheduleExternalDataRefresh();
       _scheduleShortcutContextSync();
+      _scheduleWidgetSnapshotSync();
+    }
+  }
+
+  Future<void> _consumePendingShortcut() async {
+    if (!_supportsShortcuts || !mounted) return;
+    final payload = await ref
+        .read(iosShortcutsBridgeProvider)
+        .consumePendingShortcut();
+    if (payload == null) return;
+    await _handleShortcutPayload(payload);
+  }
+
+  Future<void> _handleShortcutPayload(MenudoShortcutPayload payload) async {
+    if (!_supportsShortcuts || !mounted) return;
+
+    final bridge = ref.read(iosShortcutsBridgeProvider);
+    await bridge.flushQueuedQuickExpenses();
+    _scheduleExternalDataRefresh(force: true);
+    _scheduleShortcutContextSync();
+    _scheduleWidgetSnapshotSync();
+
+    if (payload.source == 'live_activity_tap') {
+      ref.read(appRouter).go('/');
     }
   }
 
@@ -102,6 +128,7 @@ class _IosShortcutsCoordinatorState
     if (!auth.isAuthenticated || auth.token == null || auth.token!.isEmpty) {
       _lastShortcutContextSignature = null;
       await bridge.clearQuickExpenseContext();
+      await bridge.clearWidgetSnapshot();
       return;
     }
 
@@ -156,12 +183,61 @@ class _IosShortcutsCoordinatorState
     _lastShortcutContextSignature = signature;
   }
 
+  Future<void> _syncWidgetSnapshot() async {
+    if (!_supportsShortcuts || !mounted) return;
+
+    final bridge = ref.read(iosShortcutsBridgeProvider);
+    final auth = ref.read(authProvider);
+    if (!auth.isAuthenticated || auth.userId == null) {
+      _lastWidgetSnapshotSignature = null;
+      await bridge.clearWidgetSnapshot();
+      return;
+    }
+
+    final wallets = ref.read(effectiveWalletsProvider);
+    final balance = wallets
+        .where((wallet) => wallet.incluirEnPatrimonio)
+        .fold<double>(0, (sum, wallet) => sum + wallet.saldo);
+    final currency = _widgetCurrency(wallets);
+    final lastExpense = _lastExpense(ref.read(effectiveTransactionsProvider));
+    final lastExpenseAmount = lastExpense == null
+        ? 'Listo'
+        : '-${formatMoney(lastExpense.monto.abs(), currency: _transactionCurrency(lastExpense, currency))}';
+    final payload = <String, dynamic>{
+      'balanceText': formatMoney(balance, currency: currency),
+      'balanceLabel': 'Patrimonio actual',
+      'lastExpenseTitle': lastExpense?.desc.trim().isNotEmpty == true
+          ? lastExpense!.desc.trim()
+          : 'Sin gastos recientes',
+      'lastExpenseAmountText': lastExpenseAmount,
+      'lastExpenseSubtitle': lastExpense == null
+          ? 'Abre Menudo para actualizar'
+          : _dateLabel(lastExpense.dateString),
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+
+    final signature = jsonEncode(payload);
+    if (signature == _lastWidgetSnapshotSignature) return;
+
+    await bridge.syncWidgetSnapshot(payload);
+    _lastWidgetSnapshotSignature = signature;
+  }
+
   void _scheduleShortcutContextSync() {
     if (!_supportsShortcuts || _syncScheduled) return;
     _syncScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _syncScheduled = false;
       await _syncShortcutContext();
+    });
+  }
+
+  void _scheduleWidgetSnapshotSync() {
+    if (!_supportsShortcuts || _widgetSyncScheduled) return;
+    _widgetSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _widgetSyncScheduled = false;
+      await _syncWidgetSnapshot();
     });
   }
 
@@ -192,11 +268,62 @@ class _IosShortcutsCoordinatorState
       effectiveCategoriesProvider,
       (previous, next) => _scheduleShortcutContextSync(),
     );
+    ref.listen(effectiveTransactionsProvider, (previous, next) {
+      _scheduleShortcutContextSync();
+      _scheduleWidgetSnapshotSync();
+    });
     ref.listen(
-      effectiveTransactionsProvider,
-      (previous, next) => _scheduleShortcutContextSync(),
+      effectiveWalletsProvider,
+      (previous, next) => _scheduleWidgetSnapshotSync(),
     );
     return widget.child;
+  }
+
+  String _widgetCurrency(List<WalletAccount> wallets) {
+    final defaultWallet = ref.read(defaultWalletProvider);
+    final walletCurrency = defaultWallet?.moneda.trim().toUpperCase();
+    if (walletCurrency != null && walletCurrency.isNotEmpty) {
+      return walletCurrency;
+    }
+    final profileCurrency = ref.read(authProvider).profile?.baseCurrency;
+    final normalizedProfile = profileCurrency?.trim().toUpperCase();
+    if (normalizedProfile != null && normalizedProfile.isNotEmpty) {
+      return normalizedProfile;
+    }
+    return AppFormattingPreferences.currencyCode;
+  }
+
+  String _transactionCurrency(MenudoTransaction transaction, String fallback) {
+    final currency = transaction.moneda.trim().toUpperCase();
+    if (currency.isNotEmpty) return currency;
+    return fallback;
+  }
+
+  MenudoTransaction? _lastExpense(List<MenudoTransaction> transactions) {
+    final expenses = transactions
+        .where((transaction) => transaction.tipo == 'gasto')
+        .toList(growable: false);
+    if (expenses.isEmpty) return null;
+
+    final sorted = [...expenses];
+    sorted.sort((a, b) {
+      final aDate = parseDateOnly(a.dateString) ?? DateTime(1970);
+      final bDate = parseDateOnly(b.dateString) ?? DateTime(1970);
+      final byDate = bDate.compareTo(aDate);
+      if (byDate != 0) return byDate;
+      return b.id.compareTo(a.id);
+    });
+    return sorted.first;
+  }
+
+  String _dateLabel(String rawDate) {
+    final date = parseDateOnly(rawDate);
+    if (date == null) return 'Último movimiento';
+    final now = dateOnly(DateTime.now());
+    final delta = now.difference(dateOnly(date)).inDays;
+    if (delta == 0) return 'Hoy';
+    if (delta == 1) return 'Ayer';
+    return formatDateByPattern(date, pattern: 'd MMM');
   }
 
   List<MenudoCategory> _frequentCategories(

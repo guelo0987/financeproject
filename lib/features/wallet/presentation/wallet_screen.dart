@@ -13,6 +13,7 @@ import '../../../../core/preferences/app_preferences_controller.dart';
 import '../../../../core/utils/error_presenter.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../shared/widgets/menudo_loading_view.dart';
+import '../../../../shared/widgets/menudo_sliver_refresh_control.dart';
 import '../../../../shared/widgets/menudo_toast.dart';
 import '../../auth/auth_state.dart';
 import '../providers/wallet_providers.dart';
@@ -81,6 +82,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       title: 'No se pudo completar',
       message: presentError(error),
     );
+  }
+
+  Future<void> _refreshWallets() async {
+    try {
+      await ref.read(walletNotifierProvider.notifier).refresh();
+    } catch (error) {
+      if (!mounted) return;
+      _showWalletError(context, error);
+    }
   }
 
   @override
@@ -163,8 +173,11 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     };
 
     return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
       slivers: [
+        MenudoSliverRefreshControl(onRefresh: _refreshWallets),
         SliverAppBar(
           expandedHeight: 120.0,
           floating: false,

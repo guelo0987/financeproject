@@ -56,6 +56,7 @@ class _RegisterTransactionSheetState
   bool _isSaving = false;
   String? _formMessage;
   bool _budgetSelectionInitialized = false;
+  String? _activeCategoryGroupKey;
   late final AnimationController _shakeController;
   late final Animation<double> _shakeOffset;
 
@@ -475,6 +476,35 @@ class _RegisterTransactionSheetState
     return groups;
   }
 
+  String _categoryGroupKey(_CategoryChoiceGroup group) {
+    final parentId = group.parent?.id;
+    return parentId == null ? '__ungrouped__' : 'parent_$parentId';
+  }
+
+  String _resolvedActiveCategoryGroupKey(
+    List<_CategoryChoiceGroup> groups,
+    MenudoCategory? selectedCategory,
+  ) {
+    if (groups.isEmpty) return '__ungrouped__';
+
+    final availableKeys = {
+      for (final group in groups) _categoryGroupKey(group),
+    };
+    if (_activeCategoryGroupKey != null &&
+        availableKeys.contains(_activeCategoryGroupKey)) {
+      return _activeCategoryGroupKey!;
+    }
+
+    final selectedKey = selectedCategory?.categoriaParadreId == null
+        ? '__ungrouped__'
+        : 'parent_${selectedCategory!.categoriaParadreId}';
+    if (selectedCategory != null && availableKeys.contains(selectedKey)) {
+      return selectedKey;
+    }
+
+    return _categoryGroupKey(groups.first);
+  }
+
   void _maybeSeedFromAccount(List<WalletAccount> wallets) {
     if (wallets.isEmpty) return;
 
@@ -686,6 +716,10 @@ class _RegisterTransactionSheetState
     final amountPrefix = currencyPrefix(_transactionCurrencyFor(wallets));
 
     final categoryChoiceGroups = _categoryGroupsFor(categories);
+    final activeCategoryGroupKey = _resolvedActiveCategoryGroupKey(
+      categoryChoiceGroups,
+      selectedCategory,
+    );
     final isAmountStep = _step == _TransactionEntryStep.amount && !_isEditing;
     final canContinue = amountValue > 0 && !_isSaving;
     final showMissingFields = !isAmountStep && missingFields.isNotEmpty;
@@ -902,25 +936,6 @@ class _RegisterTransactionSheetState
                                 ],
                               ),
                           ] else ...[
-                            _CategoryChoicePanel(
-                              title: _selectedTypeIndex == 1
-                                  ? 'Elige el origen'
-                                  : 'Elige la categoría',
-                              subtitle: categoryLabel,
-                              selectedCategory: selectedCategory,
-                              selectedParent: selectedParent,
-                              groups: categoryChoiceGroups,
-                              selectedKey: _catKey,
-                              accentColor: _accentColor,
-                              onSelected: (category) {
-                                MenudoHaptics.selection();
-                                setState(() {
-                                  _catKey = category.slug;
-                                  _formMessage = null;
-                                });
-                              },
-                            ),
-                            SizedBox(height: (12)),
                             _FieldCard(
                               icon: MenudoCupertinoIcons.landmark,
                               color: AppColors.b5,
@@ -937,6 +952,35 @@ class _RegisterTransactionSheetState
                               onBudgetTap: budgets.isEmpty
                                   ? null
                                   : () => _pickBudget(budgets),
+                            ),
+                            SizedBox(height: (12)),
+                            _CategoryChoicePanel(
+                              title: 'Elige la categoría',
+                              subtitle: categoryLabel,
+                              selectedCategory: selectedCategory,
+                              selectedParent: selectedParent,
+                              groups: categoryChoiceGroups,
+                              activeGroupKey: activeCategoryGroupKey,
+                              selectedKey: _catKey,
+                              accentColor: _accentColor,
+                              onGroupSelected: (groupKey) {
+                                MenudoHaptics.selection();
+                                setState(() {
+                                  _activeCategoryGroupKey = groupKey;
+                                  _formMessage = null;
+                                });
+                              },
+                              onSelected: (category) {
+                                MenudoHaptics.selection();
+                                setState(() {
+                                  _activeCategoryGroupKey =
+                                      category.categoriaParadreId == null
+                                      ? '__ungrouped__'
+                                      : 'parent_${category.categoriaParadreId}';
+                                  _catKey = category.slug;
+                                  _formMessage = null;
+                                });
+                              },
                             ),
                           ],
                           SizedBox(height: (12)),
@@ -1460,8 +1504,10 @@ class _CategoryChoicePanel extends StatelessWidget {
   final MenudoCategory? selectedCategory;
   final MenudoCategory? selectedParent;
   final List<_CategoryChoiceGroup> groups;
+  final String activeGroupKey;
   final String? selectedKey;
   final Color accentColor;
+  final ValueChanged<String> onGroupSelected;
   final ValueChanged<MenudoCategory> onSelected;
 
   const _CategoryChoicePanel({
@@ -1470,14 +1516,21 @@ class _CategoryChoicePanel extends StatelessWidget {
     required this.selectedCategory,
     required this.selectedParent,
     required this.groups,
+    required this.activeGroupKey,
     required this.selectedKey,
     required this.accentColor,
+    required this.onGroupSelected,
     required this.onSelected,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = context.menudo;
+    final activeGroup = groups.where((group) {
+      final parentId = group.parent?.id;
+      final key = parentId == null ? '__ungrouped__' : 'parent_$parentId';
+      return key == activeGroupKey;
+    }).firstOrNull;
 
     return Container(
       width: double.infinity,
@@ -1528,7 +1581,7 @@ class _CategoryChoicePanel extends StatelessWidget {
             fallbackLabel: subtitle,
             accentColor: accentColor,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           if (groups.isEmpty)
             Container(
               width: double.infinity,
@@ -1549,16 +1602,43 @@ class _CategoryChoicePanel extends StatelessWidget {
             )
           else
             Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (var index = 0; index < groups.length; index++) ...[
+                if (groups.length > 1) ...[
+                  SizedBox(
+                    height: 40,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: groups.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final group = groups[index];
+                        final parent = group.parent;
+                        final groupKey = parent?.id == null
+                            ? '__ungrouped__'
+                            : 'parent_${parent!.id}';
+                        final groupColor = parent?.color ?? accentColor;
+                        final selected = groupKey == activeGroupKey;
+
+                        return _CategoryGroupChip(
+                          label: parent?.nombre ?? 'Sin grupo',
+                          color: groupColor,
+                          isSelected: selected,
+                          onTap: () => onGroupSelected(groupKey),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (activeGroup != null)
                   _CategoryChoiceGroupSection(
-                    group: groups[index],
+                    group: activeGroup,
                     selectedKey: selectedKey,
                     accentColor: accentColor,
                     onSelected: onSelected,
                   ),
-                  if (index != groups.length - 1) const SizedBox(height: 12),
-                ],
               ],
             ),
         ],
@@ -1646,7 +1726,9 @@ class _SelectedCategorySummary extends StatelessWidget {
                 Text(
                   hasSelection && parent != null
                       ? parent.nombre
-                      : 'Agrupadas por categoría padre',
+                      : hasSelection
+                      ? 'Categoría seleccionada'
+                      : 'Elige primero un grupo y luego la categoría',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -1789,7 +1871,7 @@ class _CategoryChoiceTile extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
-          constraints: const BoxConstraints(minHeight: 94),
+          constraints: const BoxConstraints(minHeight: 88),
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: isSelected
@@ -1848,6 +1930,51 @@ class _CategoryChoiceTile extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryGroupChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _CategoryGroupChip({
+    required this.label,
+    required this.color,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MenudoGestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: 0.14)
+              : context.menudo.background,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected
+                ? color.withValues(alpha: 0.32)
+                : context.menudo.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            color: isSelected ? color : context.menudo.textSecondary,
           ),
         ),
       ),
